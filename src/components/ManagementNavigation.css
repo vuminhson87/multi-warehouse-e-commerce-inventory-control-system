@@ -1,0 +1,112 @@
+.management-navigation {
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.management-navigation-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.management-navigation-brand {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+    white-space: nowrap;
+}
+
+.management-navigation-links {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.management-navigation-link {
+    padding: 10px 14px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.management-navigation-link:hover {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.management-navigation-link.active {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.management-navigation-account {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.management-navigation-username {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.management-navigation-logout {
+    padding: 10px 14px;
+    border: 1px solid #fecaca;
+    background: #ffffff;
+    color: #dc2626;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.management-navigation-logout:hover {
+    background: #fef2f2;
+}
+
+@media (max-width: 1000px) {
+    .management-navigation-inner {
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .management-navigation-links {
+        order: 3;
+        flex-basis: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .management-navigation-link {
+        white-space: nowrap;
+    }
+
+    .management-navigation-account {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .management-navigation-inner {
+        padding: 12px;
+    }
+
+    .management-navigation-brand {
+        font-size: 17px;
+    }
+
+    .management-navigation-username {
+        display: none;
+    }
+}
