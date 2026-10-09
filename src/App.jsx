@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import ProductCatalogPage from './pages/ProductCatalogPage'
 import InventoryDashboardPage from './pages/InventoryDashboardPage'
@@ -16,14 +22,37 @@ import AddProductPage from './pages/AddProductPage'
 import EditProductPage from './pages/EditProductPage'
 import DiscontinueProductPage from './pages/DiscontinueProductPage'
 import { CartProvider } from './context/CartContext'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import './App.css'
+import ManagementNavigation from './components/ManagementNavigation'
+
+function ManagementLayout() {
+  const { currentUser } = useAuth()
+  const location = useLocation()
+
+  const isManagementUser =
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'WAREHOUSE_MANAGER'
+
+  const isManagementPage =
+    location.pathname === '/inventory' ||
+    location.pathname.startsWith('/inventory/') ||
+    location.pathname === '/admin/products' ||
+    location.pathname.startsWith('/admin/products/')
+
+  if (!isManagementUser || !isManagementPage) {
+    return null
+  }
+
+  return <ManagementNavigation />
+}
 
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
+          <ManagementLayout />
           <Routes>
             <Route path="/" element={<Navigate to="/products" replace />} />
 
