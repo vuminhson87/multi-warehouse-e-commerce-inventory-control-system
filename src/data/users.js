@@ -10,6 +10,7 @@ const users = [
     username: 'warehouse',
     password: '123456',
     role: 'WAREHOUSE_MANAGER',
+    warehouseId: 1,
   },
   {
     id: 3,
