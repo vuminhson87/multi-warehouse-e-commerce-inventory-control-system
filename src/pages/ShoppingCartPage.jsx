@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import './ShoppingCartPage.css'
 import CustomerHeader from '../components/CustomerHeader'
@@ -10,6 +11,7 @@ function ShoppingCartPage() {
         removeFromCart,
     } = useCart()
 
+    const navigate = useNavigate()
     const totalPrice = cartItems.reduce(
         (total, item) => total + item.price * item.quantity,
         0
@@ -53,6 +55,10 @@ function ShoppingCartPage() {
                         <h2>
                             Tổng tiền: {totalPrice.toLocaleString('vi-VN')} VNĐ
                         </h2>
+
+                        <button onClick={() => navigate('/checkout')}>
+                            Tiến hành thanh toán
+                        </button>
                     </div>
                 )}
             </div>
