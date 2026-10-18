@@ -1,0 +1,121 @@
+
+.product-form-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.product-form-header {
+  margin-bottom: 24px;
+}
+
+.product-form-header h1 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.product-form-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.product-form > label {
+  color: #334155;
+  font-weight: 600;
+}
+
+.product-form > input,
+.product-form > select,
+.product-form > textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.product-form > input:focus,
+.product-form > select:focus,
+.product-form > textarea:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #2563eb;
+}
+
+.product-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.product-form-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.product-form-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.product-form-error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.product-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.product-form-cancel,
+.product-form-submit {
+  padding: 11px 20px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.product-form-cancel {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.product-form-submit {
+  background: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+}
+
+.product-form-submit:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .product-form-page {
+    padding: 16px;
+  }
+
+  .product-form {
+    padding: 18px;
+  }
+}
