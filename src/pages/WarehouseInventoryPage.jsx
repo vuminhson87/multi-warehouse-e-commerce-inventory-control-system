@@ -1,26 +1,25 @@
 
-import { warehouses, inventory } from '../data/inventory'
+import { warehouses } from '../data/inventory'
 import { useState } from 'react'
-import products from '../data/products'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useInventory } from '../context/InventoryContext'
+import { useProducts } from '../context/ProductContext'
 import './WarehouseInventoryPage.css'
 
 function WarehouseInventoryPage() {
     const { currentUser } = useAuth()
+    const { inventory, updateOnHand } = useInventory()
+    const { products } = useProducts()
     const [selectedWarehouseId, setSelectedWarehouseId] = useState(1)
-    const [inventoryData, setInventoryData] = useState(inventory)
     const [editingProductId, setEditingProductId] = useState(null)
     const [editedOnHand, setEditedOnHand] = useState('')
 
     const canEditInventory =
-        currentUser?.role === 'ADMIN' ||
-        (
-            currentUser?.role === 'WAREHOUSE_MANAGER' &&
-            currentUser?.warehouseId === selectedWarehouseId
-        )
+        currentUser?.role === 'WAREHOUSE_MANAGER' &&
+        currentUser?.warehouseId === selectedWarehouseId
 
-    const warehouseInventory = inventoryData.filter(
+    const warehouseInventory = inventory.filter(
         (item) => item.warehouseId === selectedWarehouseId
     )
 
@@ -31,7 +30,7 @@ function WarehouseInventoryPage() {
             return
         }
 
-        const item = inventoryData.find(
+        const item = inventory.find(
             (item) =>
                 item.productId === productId &&
                 item.warehouseId === selectedWarehouseId
@@ -56,15 +55,8 @@ function WarehouseInventoryPage() {
             return
         }
 
-        // Cập nhật đúng sản phẩm tại đúng kho
-        setInventoryData((prevInventory) =>
-            prevInventory.map((inventoryItem) =>
-                inventoryItem.productId === productId &&
-                    inventoryItem.warehouseId === selectedWarehouseId
-                    ? { ...inventoryItem, onHand: newOnHand }
-                    : inventoryItem
-            )
-        )
+        // Cập nhật nguồn tồn kho dùng chung cho cả ba trang.
+        updateOnHand(selectedWarehouseId, productId, newOnHand)
 
         // Thoát chế độ chỉnh sửa
         setEditingProductId(null)

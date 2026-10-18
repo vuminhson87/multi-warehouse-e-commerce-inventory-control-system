@@ -61,7 +61,7 @@ export function ProductProvider({ children }) {
                 category: productData.category.trim(),
                 price: Number(productData.price),
                 description: productData.description.trim(),
-                inStock: Boolean(productData.inStock),
+                inStock: false,
                 status: 'ACTIVE',
             }
 
@@ -117,6 +117,7 @@ export function ProductProvider({ children }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useProducts() {
     const context = useContext(ProductContext)
 

@@ -3,12 +3,14 @@ import { Link, useParams } from 'react-router-dom'
 import './ProductDetailPage.css'
 import { useCart } from '../context/CartContext'
 import { useProducts } from '../context/ProductContext'
+import { useInventory } from '../context/InventoryContext'
 import CustomerHeader from '../components/CustomerHeader'
 
 function ProductDetailPage() {
     const { productId } = useParams()
     const { addToCart } = useCart()
     const { products } = useProducts()
+    const { getProductAvailableStock } = useInventory()
 
     const product = products.find(
         (item) => String(item.id) === String(productId)
@@ -52,27 +54,36 @@ function ProductDetailPage() {
 
                     <p>{product.description}</p>
 
-                    <p>
-                        Trạng thái:{' '}
-                        {product.inStock ? 'Còn hàng' : 'Hết hàng'}
-                    </p>
+                    {(() => {
+                        const availableStock = getProductAvailableStock(product.id)
+                        const isInStock = availableStock > 0
 
-                    <div className="product-detail-actions">
-                        {product.inStock ? (
-                            <button
-                                className="add-cart-button"
-                                onClick={() => addToCart(product)}
-                            >
-                                Thêm vào giỏ hàng
-                            </button>
-                        ) : (
-                            <p>Sản phẩm hiện đã hết hàng.</p>
-                        )}
+                        return (
+                            <>
+                                <p>
+                                    Trạng thái:{' '}
+                                    {isInStock ? 'Còn hàng' : 'Hết hàng'}
+                                </p>
 
-                        <Link className="view-cart-link" to="/cart">
-                            Xem giỏ hàng
-                        </Link>
-                    </div>
+                                <div className="product-detail-actions">
+                                    {isInStock ? (
+                                        <button
+                                            className="add-cart-button"
+                                            onClick={() => addToCart(product)}
+                                        >
+                                            Thêm vào giỏ hàng
+                                        </button>
+                                    ) : (
+                                        <p>Sản phẩm hiện đã hết hàng.</p>
+                                    )}
+
+                                    <Link className="view-cart-link" to="/cart">
+                                        Xem giỏ hàng
+                                    </Link>
+                                </div>
+                            </>
+                        )
+                    })()}
                 </div>
             </div>
         </>

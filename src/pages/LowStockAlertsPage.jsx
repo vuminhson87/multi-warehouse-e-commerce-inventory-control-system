@@ -1,153 +1,191 @@
-
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { inventory, warehouses } from '../data/inventory'
-import products from '../data/products'
+import { warehouses } from '../data/inventory'
+import { useInventory } from '../context/InventoryContext'
+import { useProducts } from '../context/ProductContext'
 import './LowStockAlertsPage.css'
 
+const STORAGE_KEY = 'productWarehouseLowStockThresholds'
 const DEFAULT_LOW_STOCK_THRESHOLD = 10
 
-const DEFAULT_WAREHOUSE_THRESHOLDS = {
-    1: DEFAULT_LOW_STOCK_THRESHOLD,
-    2: DEFAULT_LOW_STOCK_THRESHOLD,
-    3: DEFAULT_LOW_STOCK_THRESHOLD,
+function getStoredThresholds() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
+        if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+            return saved
+        }
+    } catch {
+        // fallback
+    }
+    return {}
+}
+
+function getThreshold(thresholds, warehouseId, productId) {
+    const key = `${warehouseId}_${productId}`
+    const val = thresholds[key]
+    return Number.isSafeInteger(val) && val >= 0
+        ? val
+        : DEFAULT_LOW_STOCK_THRESHOLD
+}
+
+function ThresholdForm({
+    assignedWarehouseId,
+    products,
+    selectedProductId,
+    onProductChange,
+    onSave,
+    thresholds,
+}) {
+    const currentThreshold = getThreshold(
+        thresholds,
+        assignedWarehouseId,
+        selectedProductId
+    )
+    const [input, setInput] = useState(String(currentThreshold))
+
+    const handleSelectProduct = (event) => {
+        const nextId = Number(event.target.value)
+        onProductChange(nextId)
+        setInput(String(getThreshold(thresholds, assignedWarehouseId, nextId)))
+    }
+
+    return (
+        <div className="alerts-threshold-form">
+            <label htmlFor="low-stock-product-select">Sản phẩm:</label>
+            <select
+                id="low-stock-product-select"
+                value={selectedProductId}
+                onChange={handleSelectProduct}
+            >
+                {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                        {p.name}
+                    </option>
+                ))}
+            </select>
+
+            <label htmlFor="low-stock-threshold">Ngưỡng:</label>
+            <input
+                id="low-stock-threshold"
+                type="number"
+                min="0"
+                step="1"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+            />
+
+            <button
+                type="button"
+                onClick={() => onSave(selectedProductId, input)}
+            >
+                Lưu ngưỡng
+            </button>
+        </div>
+    )
 }
 
 function LowStockAlertsPage() {
+    // 1. TẤT CẢ CÁC HOOKS PHẢI ĐƯỢC GỌI Ở ĐẦU COMPONENT THEO RULES OF HOOKS
     const { currentUser } = useAuth()
+    const { inventory } = useInventory()
+    const { products } = useProducts()
+
+    const [thresholds, setThresholds] = useState(getStoredThresholds)
     const [selectedWarehouseId, setSelectedWarehouseId] = useState('all')
-    const [thresholdInput, setThresholdInput] = useState('')
-    const [warehouseThresholds, setWarehouseThresholds] = useState(() => {
+
+    const initialProductId = Number(products[0]?.id || 1)
+    const [selectedProductId, setSelectedProductId] = useState(initialProductId)
+
+    const isWarehouseManager = currentUser?.role === 'WAREHOUSE_MANAGER'
+    const isAdmin = currentUser?.role === 'ADMIN'
+    const assignedWarehouseId = currentUser?.warehouseId
+
+    const canEditThreshold = isWarehouseManager && Boolean(assignedWarehouseId)
+
+    // Lưu bảng ngưỡng vào localStorage khi thay đổi
+    useEffect(() => {
         try {
-            const saved = JSON.parse(
-                localStorage.getItem('warehouseLowStockThresholds') || 'null'
-            )
-
-            if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
-                return DEFAULT_WAREHOUSE_THRESHOLDS
-            }
-
-            return Object.fromEntries(
-                warehouses.map((warehouse) => {
-                    const value = saved[warehouse.id]
-
-                    return [
-                        warehouse.id,
-                        Number.isSafeInteger(value) && value >= 0
-                            ? value
-                            : DEFAULT_LOW_STOCK_THRESHOLD,
-                    ]
-                })
-            )
-        } catch {
-            return DEFAULT_WAREHOUSE_THRESHOLDS
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(thresholds))
+        } catch (error) {
+            console.error('Không thể lưu ngưỡng cảnh báo:', error)
         }
-    })
+    }, [thresholds])
 
+    // 2. KIỂM TRA ĐIỀU KIỆN ĐĂNG NHẬP & PHÂN QUYỀN SAU KHI ĐÃ GỌI XONG TẤT CẢ CÁC HOOKS
     if (!currentUser) {
         return <Navigate to="/login" replace />
     }
 
-    if (
-        currentUser.role !== 'WAREHOUSE_MANAGER' &&
-        currentUser.role !== 'ADMIN'
-    ) {
+    if (!isWarehouseManager && !isAdmin) {
         return (
             <div className="alerts-page">
                 <h1>Không có quyền truy cập</h1>
                 <p>
-                    Chức năng này chỉ dành cho nhân viên quản lý kho
-                    và quản trị viên.
+                    Chức năng này chỉ dành cho nhân viên quản lý kho và quản trị
+                    viên.
                 </p>
             </div>
         )
     }
 
-    const isAdmin = currentUser.role === 'ADMIN'
-    const editableWarehouseId = isAdmin
-        ? selectedWarehouseId
-        : currentUser.warehouseId
-
-    const canEditThreshold =
-        editableWarehouseId !== 'all' &&
-        warehouses.some(
-            (warehouse) => warehouse.id === Number(editableWarehouseId)
-        )
-
-    useEffect(() => {
-        if (canEditThreshold) {
-            setThresholdInput(
-                String(
-                    warehouseThresholds[editableWarehouseId] ??
-                    DEFAULT_LOW_STOCK_THRESHOLD
-                )
-            )
-        } else {
-            setThresholdInput('')
-        }
-    }, [editableWarehouseId, canEditThreshold])
-
-    const handleSaveThreshold = () => {
+    const handleSaveThreshold = (productId, rawInput) => {
         if (!canEditThreshold) {
-            alert('Bạn không có quyền thiết lập ngưỡng cho kho này.')
+            alert('Bạn không có quyền thiết lập ngưỡng cảnh báo.')
             return
         }
 
-        const newThreshold = Number(thresholdInput)
+        const newThreshold = Number(rawInput)
 
         if (
-            thresholdInput.trim() === '' ||
+            rawInput.trim() === '' ||
             !Number.isSafeInteger(newThreshold) ||
             newThreshold < 0
         ) {
-            alert('Ngưỡng cảnh báo phải là số nguyên không âm.')
+            alert('Ngưỡng cảnh báo phải là số nguyên không âm (>= 0).')
             return
         }
 
+        const key = `${assignedWarehouseId}_${productId}`
         const updatedThresholds = {
-            ...warehouseThresholds,
-            [editableWarehouseId]: newThreshold,
+            ...thresholds,
+            [key]: newThreshold,
         }
 
-        setWarehouseThresholds(updatedThresholds)
-
-        try {
-            localStorage.setItem(
-                'warehouseLowStockThresholds',
-                JSON.stringify(updatedThresholds)
-            )
-            alert('Lưu ngưỡng cảnh báo thành công!')
-        } catch {
-            alert(
-                'Đã cập nhật ngưỡng trong phiên hiện tại, nhưng không thể lưu vào trình duyệt.'
-            )
-        }
+        setThresholds(updatedThresholds)
+        alert('Lưu ngưỡng cảnh báo cho sản phẩm tại kho thành công!')
     }
 
+    // Danh sách tồn kho theo quyền truy cập
     const visibleInventory = inventory.filter((item) => {
         if (!isAdmin) {
-            return item.warehouseId === currentUser.warehouseId
+            return Number(item.warehouseId) === Number(assignedWarehouseId)
         }
 
         return (
             selectedWarehouseId === 'all' ||
-            item.warehouseId === Number(selectedWarehouseId)
+            Number(item.warehouseId) === Number(selectedWarehouseId)
         )
     })
 
+    // Tính toán danh sách cảnh báo tồn kho thấp theo từng sản phẩm tại từng kho
     const alerts = visibleInventory
         .map((item) => {
             const product = products.find(
-                (p) => p.id === item.productId
+                (p) => Number(p.id) === Number(item.productId)
             )
 
             const warehouse = warehouses.find(
-                (w) => w.id === item.warehouseId
+                (w) => Number(w.id) === Number(item.warehouseId)
             )
 
             const available = item.onHand - item.reserved
-            const threshold = warehouseThresholds[item.warehouseId] ?? DEFAULT_LOW_STOCK_THRESHOLD
+            const threshold = getThreshold(
+                thresholds,
+                item.warehouseId,
+                item.productId
+            )
+
             return {
                 ...item,
                 productName: product?.name || 'Không xác định',
@@ -158,8 +196,8 @@ function LowStockAlertsPage() {
                     available === 0
                         ? 'OUT_OF_STOCK'
                         : available > 0 && available <= threshold
-                            ? 'LOW_STOCK'
-                            : 'NORMAL',
+                          ? 'LOW_STOCK'
+                          : 'NORMAL',
             }
         })
         .filter((item) => item.status !== 'NORMAL')
@@ -174,15 +212,15 @@ function LowStockAlertsPage() {
     ).length
 
     const assignedWarehouse = warehouses.find(
-        (warehouse) => warehouse.id === currentUser.warehouseId
+        (w) => Number(w.id) === Number(assignedWarehouseId)
     )
 
     return (
         <div className="alerts-page">
             <h1>Low Stock Alerts</h1>
             <p>
-                Theo dõi sản phẩm sắp hết hàng hoặc đã hết hàng
-                tại các kho được phép quản lý.
+                Theo dõi sản phẩm sắp hết hàng hoặc đã hết hàng tại các kho được
+                phép quản lý.
             </p>
 
             <div className="alerts-summary">
@@ -193,16 +231,12 @@ function LowStockAlertsPage() {
 
                 <div className="alerts-summary-card">
                     <h3>Sắp hết hàng</h3>
-                    <p className="alerts-number-warning">
-                        {lowStockCount}
-                    </p>
+                    <p className="alerts-number-warning">{lowStockCount}</p>
                 </div>
 
                 <div className="alerts-summary-card">
                     <h3>Đã hết hàng</h3>
-                    <p className="alerts-number-danger">
-                        {outOfStockCount}
-                    </p>
+                    <p className="alerts-number-danger">{outOfStockCount}</p>
                 </div>
             </div>
 
@@ -241,40 +275,27 @@ function LowStockAlertsPage() {
             </div>
 
             <p className="alerts-threshold">
-                Ngưỡng cảnh báo được thiết lập riêng cho từng kho.
-                Hết hàng khi tồn khả dụng bằng 0.
+                Ngưỡng cảnh báo được thiết lập riêng cho từng sản phẩm tại từng
+                kho. Hết hàng khi tồn khả dụng bằng 0.
             </p>
 
             <div className="alerts-threshold-settings">
-                <h2>Thiết lập ngưỡng cảnh báo</h2>
+                <h2>Thiết lập ngưỡng cảnh báo theo sản phẩm</h2>
 
                 {canEditThreshold ? (
-                    <div className="alerts-threshold-form">
-                        <label htmlFor="low-stock-threshold">
-                            Ngưỡng cảnh báo của kho:
-                        </label>
-
-                        <input
-                            id="low-stock-threshold"
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={thresholdInput}
-                            onChange={(event) =>
-                                setThresholdInput(event.target.value)
-                            }
-                        />
-
-                        <button
-                            type="button"
-                            onClick={handleSaveThreshold}
-                        >
-                            Lưu ngưỡng
-                        </button>
-                    </div>
+                    <ThresholdForm
+                        key={`${assignedWarehouseId}_${selectedProductId}`}
+                        assignedWarehouseId={assignedWarehouseId}
+                        products={products}
+                        selectedProductId={selectedProductId}
+                        onProductChange={setSelectedProductId}
+                        onSave={handleSaveThreshold}
+                        thresholds={thresholds}
+                    />
                 ) : (
                     <p>
-                        Vui lòng chọn một kho cụ thể để thiết lập ngưỡng cảnh báo.
+                        Chỉ Quản lý kho mới có quyền thiết lập ngưỡng cảnh báo
+                        cho kho được phân công.
                     </p>
                 )}
             </div>
@@ -290,6 +311,7 @@ function LowStockAlertsPage() {
                             <th>Tồn thực tế</th>
                             <th>Đang giữ</th>
                             <th>Có thể bán</th>
+                            <th>Ngưỡng</th>
                             <th>Trạng thái</th>
                         </tr>
                     </thead>
@@ -297,7 +319,7 @@ function LowStockAlertsPage() {
                     <tbody>
                         {alerts.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="alerts-empty">
+                                <td colSpan={7} className="alerts-empty">
                                     Không có cảnh báo tồn kho thấp.
                                 </td>
                             </tr>
@@ -311,6 +333,7 @@ function LowStockAlertsPage() {
                                     <td>{item.onHand}</td>
                                     <td>{item.reserved}</td>
                                     <td>{item.available}</td>
+                                    <td>{item.threshold}</td>
                                     <td>
                                         {item.status === 'OUT_OF_STOCK' ? (
                                             <span className="alerts-badge alerts-badge-danger">

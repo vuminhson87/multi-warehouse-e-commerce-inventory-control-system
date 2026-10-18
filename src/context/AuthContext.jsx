@@ -21,7 +21,8 @@ export function AuthProvider({ children }) {
         setCurrentUserState(user)
 
         if (user) {
-            const { password, ...safeUser } = user
+            const safeUser = { ...user }
+            delete safeUser.password
             sessionStorage.setItem('currentUser', JSON.stringify(safeUser))
         } else {
             sessionStorage.removeItem('currentUser')
@@ -40,6 +41,7 @@ export function AuthProvider({ children }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     return useContext(AuthContext)
 }
