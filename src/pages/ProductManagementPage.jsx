@@ -3,11 +3,13 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
+import { useInventory } from '../context/InventoryContext'
 import './ProductManagementPage.css'
 
 function ProductManagementPage() {
     const { currentUser } = useAuth()
     const { products, updateProductStatus } = useProducts()
+    const { getProductAvailableStock } = useInventory()
 
     const [keyword, setKeyword] = useState('')
     const [category, setCategory] = useState('Tất cả')
@@ -87,53 +89,58 @@ function ProductManagementPage() {
                     </thead>
 
                     <tbody>
-                        {filteredProducts.map((product) => (
-                            <tr key={product.id}>
-                                <td>#{product.id}</td>
-                                <td>{product.name}</td>
-                                <td>{product.category}</td>
-                                <td>
-                                    {product.price.toLocaleString('vi-VN')} VNĐ
-                                </td>
-                                <td>
-                                    <span
-                                        className={
-                                            product.inStock
-                                                ? 'product-status active'
-                                                : 'product-status inactive'
-                                        }
-                                    >
-                                        {product.inStock
-                                            ? 'Còn hàng'
-                                            : 'Hết hàng'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <select
-                                        className={`product-business-status ${product.status === 'DISCONTINUED'
-                                                ? 'discontinued'
-                                                : 'active'
-                                            }`}
-                                        value={product.status ?? 'ACTIVE'}
-                                        onChange={(event) =>
-                                            updateProductStatus(product.id, event.target.value)
-                                        }
-                                        aria-label={`Trạng thái kinh doanh của ${product.name}`}
-                                    >
-                                        <option value="ACTIVE">Đang kinh doanh</option>
-                                        <option value="DISCONTINUED">Ngừng kinh doanh</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <Link
-                                        className="product-action-edit"
-                                        to={`/admin/products/${product.id}/edit`}
-                                    >
-                                        Sửa
-                                    </Link>
-                                </td>
-                            </tr>
-                        ))}
+                        {filteredProducts.map((product) => {
+                            const isInStock =
+                                getProductAvailableStock(product.id) > 0
+
+                            return (
+                                <tr key={product.id}>
+                                    <td>#{product.id}</td>
+                                    <td>{product.name}</td>
+                                    <td>{product.category}</td>
+                                    <td>
+                                        {product.price.toLocaleString('vi-VN')} VNĐ
+                                    </td>
+                                    <td>
+                                        <span
+                                            className={
+                                                isInStock
+                                                    ? 'product-status active'
+                                                    : 'product-status inactive'
+                                            }
+                                        >
+                                            {isInStock
+                                                ? 'Còn hàng'
+                                                : 'Hết hàng'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <select
+                                            className={`product-business-status ${product.status === 'DISCONTINUED'
+                                                    ? 'discontinued'
+                                                    : 'active'
+                                                }`}
+                                            value={product.status ?? 'ACTIVE'}
+                                            onChange={(event) =>
+                                                updateProductStatus(product.id, event.target.value)
+                                            }
+                                            aria-label={`Trạng thái kinh doanh của ${product.name}`}
+                                        >
+                                            <option value="ACTIVE">Đang kinh doanh</option>
+                                            <option value="DISCONTINUED">Ngừng kinh doanh</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <Link
+                                            className="product-action-edit"
+                                            to={`/admin/products/${product.id}/edit`}
+                                        >
+                                            Sửa
+                                        </Link>
+                                    </td>
+                                </tr>
+                            )
+                        })}
 
                         {filteredProducts.length === 0 && (
                             <tr>

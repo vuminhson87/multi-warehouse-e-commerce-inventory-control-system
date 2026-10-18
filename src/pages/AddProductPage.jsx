@@ -15,7 +15,6 @@ function AddProductPage() {
         category: '',
         price: '',
         description: '',
-        inStock: true,
     })
 
     const [error, setError] = useState('')
@@ -25,11 +24,11 @@ function AddProductPage() {
     }
 
     function handleChange(event) {
-        const { name, value, type, checked } = event.target
+        const { name, value } = event.target
 
         setForm((previous) => ({
             ...previous,
-            [name]: type === 'checkbox' ? checked : value,
+            [name]: value,
         }))
 
         setError('')
@@ -116,18 +115,8 @@ function AddProductPage() {
                     placeholder="Nhập mô tả sản phẩm..."
                 />
 
-                <label className="product-form-checkbox">
-                    <input
-                        type="checkbox"
-                        name="inStock"
-                        checked={form.inStock}
-                        onChange={handleChange}
-                    />
-                    Sản phẩm hiện còn hàng
-                </label>
-
                 <p className="product-form-note">
-                    Trạng thái kinh doanh mặc định: Đang kinh doanh.
+                    Trạng thái kinh doanh mặc định: Đang kinh doanh. Tồn kho khởi tạo tại các kho là 0 (cập nhật tại mục Quản lý kho).
                 </p>
 
                 {error && (

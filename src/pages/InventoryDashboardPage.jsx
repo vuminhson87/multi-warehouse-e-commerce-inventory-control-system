@@ -1,13 +1,16 @@
 
-import { inventory, warehouses } from '../data/inventory'
-import products from '../data/products'
+import { warehouses } from '../data/inventory'
 import { useState } from 'react'
 import './InventoryDashboardPage.css'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useInventory } from '../context/InventoryContext'
+import { useProducts } from '../context/ProductContext'
 
 function InventoryDashboardPage() {
     const { currentUser } = useAuth()
+    const { inventory } = useInventory()
+    const { products } = useProducts()
     const [selectedWarehouse, setSelectedWarehouse] = useState('all')
 
     const filteredInventory = inventory.filter(
@@ -31,7 +34,7 @@ function InventoryDashboardPage() {
 
     const productSummary = products.map((product) => {
         const productInventory = inventory.filter(
-            (item) => item.productId === product.id
+            (item) => Number(item.productId) === Number(product.id)
         )
 
         const onHand = productInventory.reduce(
@@ -152,10 +155,10 @@ function InventoryDashboardPage() {
                     <tbody>
                         {filteredInventory.map((item) => {
                             const warehouse = warehouses.find(
-                                (w) => w.id === item.warehouseId
+                                (w) => Number(w.id) === Number(item.warehouseId)
                             )
                             const product = products.find(
-                                (p) => p.id === item.productId
+                                (p) => Number(p.id) === Number(item.productId)
                             )
 
                             const available = item.onHand - item.reserved

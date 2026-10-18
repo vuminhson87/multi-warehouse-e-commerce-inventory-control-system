@@ -185,6 +185,14 @@
     font-weight: 600;
 }
 
+.alerts-threshold-form select {
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #fff;
+    font-size: 15px;
+}
+
 .alerts-threshold-form input {
     width: 100px;
     padding: 10px 12px;

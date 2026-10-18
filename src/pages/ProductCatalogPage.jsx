@@ -3,9 +3,11 @@ import './ProductCatalogPage.css'
 import { Link, useSearchParams } from 'react-router-dom'
 import CustomerHeader from '../components/CustomerHeader'
 import { useProducts } from '../context/ProductContext'
+import { useInventory } from '../context/InventoryContext'
 
 function ProductCatalogPage() {
     const { products } = useProducts()
+    const { getProductAvailableStock } = useInventory()
     const [searchParams] = useSearchParams()
 
     const searchKeyword = searchParams.get('search') || ''
@@ -64,26 +66,31 @@ function ProductCatalogPage() {
                         <p>Không tìm thấy sản phẩm phù hợp.</p>
                     )}
 
-                    {filteredProducts.map((product) => (
-                        <div className="product-card" key={product.id}>
-                            <h2>{product.name}</h2>
+                    {filteredProducts.map((product) => {
+                        const availableStock = getProductAvailableStock(product.id)
+                        const isInStock = availableStock > 0
 
-                            <p>Danh mục: {product.category}</p>
+                        return (
+                            <div className="product-card" key={product.id}>
+                                <h2>{product.name}</h2>
 
-                            <p>
-                                Giá: {product.price.toLocaleString('vi-VN')} VNĐ
-                            </p>
+                                <p>Danh mục: {product.category}</p>
 
-                            <p>
-                                Trạng thái:{' '}
-                                {product.inStock ? 'Còn hàng' : 'Hết hàng'}
-                            </p>
+                                <p>
+                                    Giá: {product.price.toLocaleString('vi-VN')} VNĐ
+                                </p>
 
-                            <Link to={`/products/${product.id}`}>
-                                Xem chi tiết
-                            </Link>
-                        </div>
-                    ))}
+                                <p>
+                                    Trạng thái:{' '}
+                                    {isInStock ? 'Còn hàng' : 'Hết hàng'}
+                                </p>
+
+                                <Link to={`/products/${product.id}`}>
+                                    Xem chi tiết
+                                </Link>
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
         </>
