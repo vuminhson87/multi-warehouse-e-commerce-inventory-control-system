@@ -27,7 +27,6 @@ import './App.css'
 import ManagementNavigation from './components/ManagementNavigation'
 import { ProductProvider } from './context/ProductContext'
 import InventoryProvider from './context/InventoryProvider'
-import OrderProvider from './context/OrderProvider'
 
 function ManagementLayout() {
   const { currentUser } = useAuth()
@@ -55,7 +54,7 @@ function App() {
     <AuthProvider>
       <ProductProvider>
         <InventoryProvider>
-          <OrderProvider>
+
             <CartProvider>
               <BrowserRouter>
                 <ManagementLayout />
@@ -109,7 +108,6 @@ function App() {
               </Routes>
               </BrowserRouter>
             </CartProvider>
-          </OrderProvider>
         </InventoryProvider>
       </ProductProvider>
     </AuthProvider>
