@@ -1,0 +1,35 @@
+# M3 - Nguyễn Anh Quân: hạ tầng dữ liệu cho môi trường dev/test (PostgreSQL + Redis).
+# Chạy: docker compose -f backend/docker-compose.yml up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mw_user
+      POSTGRES_PASSWORD: mw_password
+      POSTGRES_DB: multi_warehouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - mw_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mw_user -d multi_warehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mw-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mw_pgdata:
