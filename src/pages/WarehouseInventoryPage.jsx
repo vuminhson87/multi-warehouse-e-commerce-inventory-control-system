@@ -64,7 +64,7 @@ function WarehouseInventoryPage() {
     }
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (

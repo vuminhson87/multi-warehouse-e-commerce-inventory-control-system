@@ -15,7 +15,7 @@ function ProductManagementPage() {
     const [category, setCategory] = useState('Tất cả')
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (currentUser.role !== 'ADMIN') {
@@ -117,8 +117,8 @@ function ProductManagementPage() {
                                     <td>
                                         <select
                                             className={`product-business-status ${product.status === 'DISCONTINUED'
-                                                    ? 'discontinued'
-                                                    : 'active'
+                                                ? 'discontinued'
+                                                : 'active'
                                                 }`}
                                             value={product.status ?? 'ACTIVE'}
                                             onChange={(event) =>

@@ -44,46 +44,60 @@ function ProductDetailPage() {
 
             <div className="product-detail-page">
                 <div className="product-detail-card">
-                    <h1>{product.name}</h1>
+                    <div className="product-detail-image">
+                        <span role="img" aria-label="Sản phẩm công nghệ">
+                            💻
+                        </span>
+                    </div>
 
-                    <p>Danh mục: {product.category}</p>
+                    <div className="product-detail-info">
+                        <span className="product-detail-category">
+                            {product.category}
+                        </span>
 
-                    <p>
-                        Giá: {product.price.toLocaleString('vi-VN')} VNĐ
-                    </p>
+                        <h1>{product.name}</h1>
 
-                    <p>{product.description}</p>
+                        <p className="product-detail-price">
+                            {product.price.toLocaleString('vi-VN')} VNĐ
+                        </p>
 
-                    {(() => {
-                        const availableStock = getProductAvailableStock(product.id)
-                        const isInStock = availableStock > 0
+                        <p className="product-detail-description">
+                            {product.description}
+                        </p>
 
-                        return (
-                            <>
-                                <p>
-                                    Trạng thái:{' '}
-                                    {isInStock ? 'Còn hàng' : 'Hết hàng'}
-                                </p>
+                        {(() => {
+                            const availableStock = getProductAvailableStock(product.id)
+                            const isInStock = availableStock > 0
 
-                                <div className="product-detail-actions">
-                                    {isInStock ? (
-                                        <button
-                                            className="add-cart-button"
-                                            onClick={() => addToCart(product)}
+                            return (
+                                <>
+                                    <p className="product-detail-stock">
+                                        {isInStock ? 'Còn hàng' : 'Hết hàng'}
+                                    </p>
+
+                                    <div className="product-detail-actions">
+                                        {isInStock ? (
+                                            <button
+                                                className="add-cart-button"
+                                                onClick={() => addToCart(product)}
+                                            >
+                                                Thêm vào giỏ hàng
+                                            </button>
+                                        ) : (
+                                            <p>Sản phẩm hiện đã hết hàng.</p>
+                                        )}
+
+                                        <Link
+                                            className="view-cart-link"
+                                            to="/cart"
                                         >
-                                            Thêm vào giỏ hàng
-                                        </button>
-                                    ) : (
-                                        <p>Sản phẩm hiện đã hết hàng.</p>
-                                    )}
-
-                                    <Link className="view-cart-link" to="/cart">
-                                        Xem giỏ hàng
-                                    </Link>
-                                </div>
-                            </>
-                        )
-                    })()}
+                                            Xem giỏ hàng
+                                        </Link>
+                                    </div>
+                                </>
+                            )
+                        })()}
+                    </div>
                 </div>
             </div>
         </>

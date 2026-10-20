@@ -27,7 +27,7 @@ function OrderTrackingPage() {
     const [feedback, setFeedback] = useState(null)
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (currentUser.role !== 'CUSTOMER') {

@@ -268,3 +268,9 @@
 .header-account svg {
     flex-shrink: 0;
 }
+
+button.header-account {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+}

@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { flushSync } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 import './ManagementNavigation.css'
 
@@ -18,11 +19,11 @@ function ManagementNavigation() {
     const menuItems = [
         ...(isAdmin
             ? [
-                  {
-                      label: 'Quản lý sản phẩm',
-                      path: '/admin/products',
-                  },
-              ]
+                {
+                    label: 'Quản lý sản phẩm',
+                    path: '/admin/products',
+                },
+            ]
             : []),
         {
             label: 'Dashboard tồn kho',
@@ -39,8 +40,11 @@ function ManagementNavigation() {
     ]
 
     const handleLogout = () => {
+        flushSync(() => {
+            navigate('/', { replace: true })
+        })
+
         setCurrentUser(null)
-        navigate('/login', { replace: true })
     }
 
     return (
@@ -60,8 +64,7 @@ function ManagementNavigation() {
                             to={item.path}
                             end={item.path === '/inventory'}
                             className={({ isActive }) =>
-                                `management-navigation-link ${
-                                    isActive ? 'active' : ''
+                                `management-navigation-link ${isActive ? 'active' : ''
                                 }`
                             }
                         >

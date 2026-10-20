@@ -114,7 +114,7 @@ function LowStockAlertsPage() {
 
     // 2. KIỂM TRA ĐIỀU KIỆN ĐĂNG NHẬP & PHÂN QUYỀN SAU KHI ĐÃ GỌI XONG TẤT CẢ CÁC HOOKS
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (!isWarehouseManager && !isAdmin) {
