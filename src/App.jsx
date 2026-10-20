@@ -28,6 +28,7 @@ import ManagementNavigation from './components/ManagementNavigation'
 import { ProductProvider } from './context/ProductContext'
 import InventoryProvider from './context/InventoryProvider'
 import OrderProvider from './context/OrderProvider'
+import HomePage from './pages/HomePage'
 
 function ManagementLayout() {
   const { currentUser } = useAuth()
@@ -60,7 +61,7 @@ function App() {
               <BrowserRouter>
                 <ManagementLayout />
                 <Routes>
-                <Route path="/" element={<Navigate to="/products" replace />} />
+                <Route path="/" element={<HomePage />} />
 
                 <Route path="/login" element={<LoginPage />} />
 
