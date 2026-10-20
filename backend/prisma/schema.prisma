@@ -1,0 +1,314 @@
+// M3 - Nguyễn Anh Quân: Lược đồ CSDL PostgreSQL cho hệ thống TMĐT đa kho.
+// Truy vết: SR-INV-01/02, SR-ORD-02/03, SR-PROD-03, SR-TRACK-01, SR-HIS-01/02,
+//           SR-ALERT-01..03, SR-AUTH-02/05, BR-01..BR-12, NFR-SEC-01, NFR-REL-01/03.
+// Giá trị enum khớp với hằng số của M2 trong src/modules/order/order.constants.js.
+// Các ràng buộc CHECK và partial unique index (Prisma không mô tả được) nằm trong
+// prisma/migrations/*/migration.sql – KHÔNG xóa khi tạo migration mới.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// SR-AUTH-02: ba vai trò. Tên khớp với frontend (src/data/users.js).
+enum Role {
+  CUSTOMER
+  WAREHOUSE_MANAGER
+  ADMIN
+}
+
+// BR-11: trạng thái đơn hàng. Thanh toán thất bại KHÔNG có trạng thái Failed.
+enum OrderStatus {
+  PendingPayment
+  Paid
+  Processing
+  Completed
+  Cancelled
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  INCOMPLETE
+}
+
+enum IdempotencyOperation {
+  CREATE_ORDER
+  PAY_ORDER
+  CANCEL_ORDER
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
+}
+
+// Nhật ký biến động tồn kho để đối soát (NFR-REL-01, kiểm chứng zero oversell).
+enum InventoryMovementType {
+  RESERVE
+  RELEASE
+  CONSUME
+  RESTORE
+  RESTOCK
+  ADJUST
+}
+
+// ---------------------------------------------------------------------------
+// Danh mục & người dùng
+// ---------------------------------------------------------------------------
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @db.VarChar(20)
+  name      String   @db.VarChar(120)
+  address   String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  managers     User[]
+  inventories  Inventory[]
+  orders       Order[]
+  reservations StockReservation[]
+  alerts       LowStockAlert[]
+  movements    InventoryMovement[]
+
+  @@map("warehouses")
+}
+
+// NFR-SEC-01: chỉ lưu passwordHash (bcrypt), không bao giờ lưu mật khẩu thô.
+// SR-AUTH-05: assignedWarehouseId bắt buộc với WAREHOUSE_MANAGER, NULL với vai trò khác (CHECK trong SQL).
+model User {
+  id                  Int      @id @default(autoincrement())
+  username            String   @unique @db.VarChar(50)
+  passwordHash        String   @map("password_hash") @db.VarChar(100)
+  fullName            String?  @map("full_name") @db.VarChar(120)
+  role                Role
+  assignedWarehouseId Int?     @map("assigned_warehouse_id")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  assignedWarehouse Warehouse?          @relation(fields: [assignedWarehouseId], references: [id], onDelete: Restrict)
+  orders            Order[]
+  idempotencyKeys   IdempotencyRecord[]
+  movements         InventoryMovement[]
+
+  @@index([role])
+  @@map("users")
+}
+
+// SR-PROD-03: ngừng kinh doanh = isActive=false, KHÔNG xóa để giữ lịch sử đơn.
+// Giá dùng Decimal (VND, 2 chữ số lẻ để an toàn khi tính toán); Prisma trả về Decimal.js.
+model Product {
+  id             Int       @id @default(autoincrement())
+  sku            String    @unique @db.VarChar(40)
+  name           String    @db.VarChar(200)
+  category       String    @db.VarChar(80)
+  price          Decimal   @db.Decimal(15, 2)
+  description    String    @default("") @db.Text
+  imageUrl       String?   @map("image_url") @db.VarChar(500)
+  isActive       Boolean   @default(true) @map("is_active")
+  discontinuedAt DateTime? @map("discontinued_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  inventories  Inventory[]
+  orderItems   OrderItem[]
+  reservations StockReservation[]
+  alerts       LowStockAlert[]
+  movements    InventoryMovement[]
+
+  @@index([isActive, category])
+  @@index([name])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Tồn kho
+// ---------------------------------------------------------------------------
+
+// SR-INV-01/02: tồn kho riêng theo cặp (warehouse, product).
+// available = onHand - reserved (tính ra, không lưu riêng).
+// Bất biến (CHECK trong SQL): onHand >= 0, reserved >= 0, reserved <= onHand, lowStockThreshold >= 0.
+model Inventory {
+  id                Int      @id @default(autoincrement())
+  warehouseId       Int      @map("warehouse_id")
+  productId         Int      @map("product_id")
+  onHand            Int      @default(0) @map("on_hand")
+  reserved          Int      @default(0)
+  lowStockThreshold Int      @default(0) @map("low_stock_threshold")
+  version           Int      @default(0)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([warehouseId, productId])
+  @@index([productId])
+  @@map("inventories")
+}
+
+// Mỗi dòng giữ hàng của một sản phẩm trong một đơn tại kho thực hiện đơn.
+// Dùng để release/consume đúng số lượng và chống xử lý lặp (BR-02/03/04/06).
+model StockReservation {
+  id          Int               @id @default(autoincrement())
+  orderId     Int               @map("order_id")
+  warehouseId Int               @map("warehouse_id")
+  productId   Int               @map("product_id")
+  quantity    Int
+  status      ReservationStatus @default(ACTIVE)
+  expiresAt   DateTime          @map("expires_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  releasedAt  DateTime?         @map("released_at")
+  consumedAt  DateTime?         @map("consumed_at")
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, status])
+  @@index([status, expiresAt])
+  @@map("stock_reservations")
+}
+
+// SR-ALERT-02: cảnh báo khi available <= threshold. Tối đa một cảnh báo OPEN
+// cho mỗi (warehouse, product) – partial unique index trong SQL.
+model LowStockAlert {
+  id                 Int         @id @default(autoincrement())
+  warehouseId        Int         @map("warehouse_id")
+  productId          Int         @map("product_id")
+  availableAtTrigger Int         @map("available_at_trigger")
+  threshold          Int
+  status             AlertStatus @default(OPEN)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  resolvedAt         DateTime?   @map("resolved_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([warehouseId, status])
+  @@map("low_stock_alerts")
+}
+
+model InventoryMovement {
+  id            Int                   @id @default(autoincrement())
+  warehouseId   Int                   @map("warehouse_id")
+  productId     Int                   @map("product_id")
+  type          InventoryMovementType
+  quantity      Int
+  onHandAfter   Int                   @map("on_hand_after")
+  reservedAfter Int                   @map("reserved_after")
+  orderId       Int?                  @map("order_id")
+  actorUserId   Int?                  @map("actor_user_id")
+  note          String?               @db.VarChar(255)
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  actor     User?     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([warehouseId, productId, createdAt])
+  @@index([orderId])
+  @@map("inventory_movements")
+}
+
+// ---------------------------------------------------------------------------
+// Đơn hàng & thanh toán
+// ---------------------------------------------------------------------------
+
+// BR-01: fulfillmentWarehouseId – một đơn chỉ do một kho thực hiện; dùng để hoàn trả đúng kho (SR-CAN-03).
+model Order {
+  id                     Int         @id @default(autoincrement())
+  customerId             Int         @map("customer_id")
+  fulfillmentWarehouseId Int         @map("fulfillment_warehouse_id")
+  status                 OrderStatus @default(PendingPayment)
+  totalAmount            Decimal     @map("total_amount") @db.Decimal(15, 2)
+  version                Int         @default(0)
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+  paidAt                 DateTime?   @map("paid_at")
+  cancelledAt            DateTime?   @map("cancelled_at")
+
+  customer             User                @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  fulfillmentWarehouse Warehouse           @relation(fields: [fulfillmentWarehouseId], references: [id], onDelete: Restrict)
+  items                OrderItem[]
+  reservations         StockReservation[]
+  payments             PaymentAttempt[]
+  movements            InventoryMovement[]
+  idempotencyRecords   IdempotencyRecord[]
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("orders")
+}
+
+// Snapshot tên/giá để lịch sử đơn không đổi khi Admin sửa hoặc ngừng bán (SR-HIS-02, SR-PROD-03).
+model OrderItem {
+  id                  Int     @id @default(autoincrement())
+  orderId             Int     @map("order_id")
+  productId           Int     @map("product_id")
+  productNameSnapshot String  @map("product_name_snapshot") @db.VarChar(200)
+  unitPriceSnapshot   Decimal @map("unit_price_snapshot") @db.Decimal(15, 2)
+  quantity            Int
+  lineTotal           Decimal @map("line_total") @db.Decimal(15, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, productId])
+  @@map("order_items")
+}
+
+// NFR-SEC-08: không lưu bất kỳ thông tin thẻ nào. Tối đa một attempt PENDING/đơn (partial unique index trong SQL).
+model PaymentAttempt {
+  id            Int                  @id @default(autoincrement())
+  orderId       Int                  @map("order_id")
+  status        PaymentAttemptStatus @default(PENDING)
+  amount        Decimal              @db.Decimal(15, 2)
+  gatewayRef    String?              @unique @map("gateway_ref") @db.VarChar(64)
+  failureReason String?              @map("failure_reason") @db.VarChar(255)
+  createdAt     DateTime             @default(now()) @map("created_at")
+  completedAt   DateTime?            @map("completed_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("payment_attempts")
+}
+
+// Chống gửi lặp request (double submit/callback lặp) – khóa duy nhất theo (user, operation, key).
+model IdempotencyRecord {
+  id             Int                  @id @default(autoincrement())
+  userId         Int                  @map("user_id")
+  operation      IdempotencyOperation
+  key            String               @db.Uuid
+  requestHash    String               @map("request_hash") @db.VarChar(64)
+  orderId        Int?                 @map("order_id")
+  responseStatus Int?                 @map("response_status")
+  responseBody   Json?                @map("response_body")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  completedAt    DateTime?            @map("completed_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, operation, key])
+  @@map("idempotency_records")
+}
