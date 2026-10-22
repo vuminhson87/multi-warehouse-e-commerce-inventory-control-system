@@ -2,8 +2,6 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate,
-  useLocation,
 } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import ProductCatalogPage from './pages/ProductCatalogPage'
@@ -22,34 +20,15 @@ import AddProductPage from './pages/AddProductPage'
 import EditProductPage from './pages/EditProductPage'
 import DiscontinueProductPage from './pages/DiscontinueProductPage'
 import { CartProvider } from './context/CartContext'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext'
 import './App.css'
-import ManagementNavigation from './components/ManagementNavigation'
 import { ProductProvider } from './context/ProductContext'
 import InventoryProvider from './context/InventoryProvider'
 import OrderProvider from './context/OrderProvider'
 import HomePage from './pages/HomePage'
-
-function ManagementLayout() {
-  const { currentUser } = useAuth()
-  const location = useLocation()
-
-  const isManagementUser =
-    currentUser?.role === 'ADMIN' ||
-    currentUser?.role === 'WAREHOUSE_MANAGER'
-
-  const isManagementPage =
-    location.pathname === '/inventory' ||
-    location.pathname.startsWith('/inventory/') ||
-    location.pathname === '/admin/products' ||
-    location.pathname.startsWith('/admin/products/')
-
-  if (!isManagementUser || !isManagementPage) {
-    return null
-  }
-
-  return <ManagementNavigation />
-}
+import CustomerLayout from './layouts/CustomerLayout'
+import AdminLayout from './layouts/AdminLayout'
+import WarehouseLayout from './layouts/WarehouseLayout'
 
 function App() {
   return (
@@ -59,55 +38,61 @@ function App() {
           <OrderProvider>
             <CartProvider>
               <BrowserRouter>
-                <ManagementLayout />
                 <Routes>
-                <Route path="/" element={<HomePage />} />
 
-                <Route path="/login" element={<LoginPage />} />
 
-                <Route path="/products" element={<ProductCatalogPage />} />
-                <Route
-                  path="/products/:productId"
-                  element={<ProductDetailPage />}
-                />
-                <Route path="/cart" element={<ShoppingCartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/order-result" element={<OrderResultPage />} />
-                <Route path="/orders" element={<PurchaseHistoryPage />} />
-                <Route path="/orders/:orderId" element={<OrderTrackingPage />} />
+                  <Route element={<CustomerLayout />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/products" element={<ProductCatalogPage />} />
+                    <Route path="/products/:productId" element={<ProductDetailPage />} />
+                    <Route path="/cart" element={<ShoppingCartPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/order-result" element={<OrderResultPage />} />
+                    <Route path="/orders" element={<PurchaseHistoryPage />} />
+                    <Route path="/orders/:orderId" element={<OrderTrackingPage />} />
+                  </Route>
 
-                <Route
-                  path="/inventory"
-                  element={<InventoryDashboardPage />}
-                />
-                <Route
-                  path="/inventory/warehouses"
-                  element={<WarehouseInventoryPage />}
-                />
-                <Route
-                  path="/inventory/alerts"
-                  element={<LowStockAlertsPage />}
-                />
+                  <Route path="/login" element={<LoginPage />} />
 
-                <Route
-                  path="/admin/products"
-                  element={<ProductManagementPage />}
-                />
-                <Route
-                  path="/admin/products/add"
-                  element={<AddProductPage />}
-                />
-                <Route
-                  path="/admin/products/:productId/edit"
-                  element={<EditProductPage />}
-                />
-                <Route
-                  path="/admin/products/:productId/discontinue"
-                  element={<DiscontinueProductPage />}
-                />
 
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
+                  {/* Warehouse */}
+                  <Route element={<WarehouseLayout />}>
+                    <Route
+                      path="/inventory"
+                      element={<InventoryDashboardPage />}
+                    />
+                    <Route
+                      path="/inventory/warehouses"
+                      element={<WarehouseInventoryPage />}
+                    />
+                    <Route
+                      path="/inventory/alerts"
+                      element={<LowStockAlertsPage />}
+                    />
+                  </Route>
+
+                  {/* Admin */}
+                  <Route element={<AdminLayout />}>
+                    <Route
+                      path="/admin/products"
+                      element={<ProductManagementPage />}
+                    />
+                    <Route
+                      path="/admin/products/add"
+                      element={<AddProductPage />}
+                    />
+                    <Route
+                      path="/admin/products/:productId/edit"
+                      element={<EditProductPage />}
+                    />
+                    <Route
+                      path="/admin/products/:productId/discontinue"
+                      element={<DiscontinueProductPage />}
+                    />
+                  </Route>
+
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
               </BrowserRouter>
             </CartProvider>
           </OrderProvider>

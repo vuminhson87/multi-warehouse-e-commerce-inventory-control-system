@@ -4,7 +4,6 @@ import './ProductDetailPage.css'
 import { useCart } from '../context/CartContext'
 import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
-import CustomerHeader from '../components/CustomerHeader'
 
 function ProductDetailPage() {
     const { productId } = useParams()
@@ -19,7 +18,6 @@ function ProductDetailPage() {
     if (!product || product.status !== 'ACTIVE') {
         return (
             <>
-                <CustomerHeader />
 
                 <div className="product-detail-page">
                     <div className="product-detail-card">
@@ -40,8 +38,6 @@ function ProductDetailPage() {
 
     return (
         <>
-            <CustomerHeader />
-
             <div className="product-detail-page">
                 <div className="product-detail-card">
                     <div className="product-detail-image">

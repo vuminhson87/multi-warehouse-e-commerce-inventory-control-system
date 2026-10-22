@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import CustomerHeader from '../components/CustomerHeader'
 import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrderContext'
 import {
@@ -26,7 +25,6 @@ function PurchaseHistoryPage() {
     if (currentUser.role !== 'CUSTOMER') {
         return (
             <>
-                <CustomerHeader />
                 <div style={{ maxWidth: '900px', margin: '40px auto', padding: '20px' }}>
                     <h1>Không có quyền truy cập</h1>
                     <p>Chức năng lịch sử mua hàng chỉ dành cho khách hàng.</p>
@@ -63,7 +61,6 @@ function PurchaseHistoryPage() {
 
     return (
         <>
-            <CustomerHeader />
             <div style={{ maxWidth: '960px', margin: '30px auto', padding: '0 20px' }}>
                 <div
                     style={{

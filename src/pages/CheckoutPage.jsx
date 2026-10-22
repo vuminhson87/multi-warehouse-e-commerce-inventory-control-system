@@ -2,7 +2,6 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrderContext'
-import CustomerHeader from '../components/CustomerHeader'
 import './CheckoutPage.css'
 
 function CheckoutPage() {
@@ -28,14 +27,12 @@ function CheckoutPage() {
         isOrderUnfulfillable
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
-
+    
     if (currentUser.role !== 'CUSTOMER') {
         return (
             <>
-                <CustomerHeader />
-
                 <div className="checkout-page">
                     <div className="checkout-content">
                         <h1>Không có quyền truy cập</h1>
@@ -66,8 +63,6 @@ function CheckoutPage() {
 
     return (
         <>
-            <CustomerHeader />
-
             <div className="checkout-page">
                 <h1>Xác nhận đơn hàng</h1>
 

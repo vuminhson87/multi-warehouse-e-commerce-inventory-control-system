@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import './ShoppingCartPage.css'
-import CustomerHeader from '../components/CustomerHeader'
 
 function ShoppingCartPage() {
     const {
@@ -31,7 +30,6 @@ function ShoppingCartPage() {
 
     return (
         <>
-            <CustomerHeader />
             <div className="cart-page">
                 <h1>Giỏ hàng của bạn</h1>
 

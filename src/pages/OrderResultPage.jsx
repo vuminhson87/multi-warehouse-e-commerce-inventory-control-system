@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useLocation, Link, Navigate } from 'react-router-dom'
-import CustomerHeader from '../components/CustomerHeader'
 import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrderContext'
 import {
@@ -19,13 +18,12 @@ function OrderResultPage() {
     const [feedback, setFeedback] = useState(null)
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (currentUser.role !== 'CUSTOMER') {
         return (
             <>
-                <CustomerHeader />
                 <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
                     <h1>Không có quyền truy cập</h1>
                     <p>Trang kết quả đặt hàng chỉ dành cho khách hàng.</p>
@@ -44,7 +42,6 @@ function OrderResultPage() {
     if (!order) {
         return (
             <>
-                <CustomerHeader />
                 <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
                     <h1>Kết quả đơn hàng</h1>
                     <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
@@ -87,7 +84,6 @@ function OrderResultPage() {
 
     return (
         <>
-            <CustomerHeader />
             <div
                 style={{
                     maxWidth: '860px',
@@ -104,15 +100,14 @@ function OrderResultPage() {
                         background: isPaid
                             ? '#f0fdf4'
                             : isCancelled
-                              ? '#fef2f2'
-                              : '#eff6ff',
-                        border: `1px solid ${
-                            isPaid
+                                ? '#fef2f2'
+                                : '#eff6ff',
+                        border: `1px solid ${isPaid
                                 ? '#86efac'
                                 : isCancelled
-                                  ? '#fca5a5'
-                                  : '#93c5fd'
-                        }`,
+                                    ? '#fca5a5'
+                                    : '#93c5fd'
+                            }`,
                         padding: '16px 20px',
                         borderRadius: '8px',
                         marginBottom: '20px',
@@ -123,8 +118,8 @@ function OrderResultPage() {
                             color: isPaid
                                 ? '#166534'
                                 : isCancelled
-                                  ? '#991b1b'
-                                  : '#1e40af',
+                                    ? '#991b1b'
+                                    : '#1e40af',
                             margin: '0 0 8px 0',
                             fontSize: '1.5rem',
                         }}
@@ -132,8 +127,8 @@ function OrderResultPage() {
                         {isPaid
                             ? '✓ Đơn hàng đã thanh toán thành công!'
                             : isCancelled
-                              ? '✕ Đơn hàng đã bị hủy'
-                              : 'Đơn hàng đã được khởi tạo — Chờ thanh toán'}
+                                ? '✕ Đơn hàng đã bị hủy'
+                                : 'Đơn hàng đã được khởi tạo — Chờ thanh toán'}
                     </h1>
                     <p style={{ margin: 0, color: '#334155' }}>
                         Mã đơn hàng: <strong>{order.id}</strong> | Ngày tạo:{' '}
@@ -149,20 +144,19 @@ function OrderResultPage() {
                             background: feedback.ok
                                 ? '#f0fdf4'
                                 : feedback.isWarning
-                                  ? '#fffbeb'
-                                  : '#fef2f2',
-                            border: `1px solid ${
-                                feedback.ok
+                                    ? '#fffbeb'
+                                    : '#fef2f2',
+                            border: `1px solid ${feedback.ok
                                     ? '#86efac'
                                     : feedback.isWarning
-                                      ? '#fcd34d'
-                                      : '#fca5a5'
-                            }`,
+                                        ? '#fcd34d'
+                                        : '#fca5a5'
+                                }`,
                             color: feedback.ok
                                 ? '#166534'
                                 : feedback.isWarning
-                                  ? '#92400e'
-                                  : '#991b1b',
+                                    ? '#92400e'
+                                    : '#991b1b',
                             padding: '12px 16px',
                             borderRadius: '6px',
                             marginBottom: '20px',
@@ -198,13 +192,13 @@ function OrderResultPage() {
                                 background: isPaid
                                     ? '#dcfce7'
                                     : isCancelled
-                                      ? '#fee2e2'
-                                      : '#fef3c7',
+                                        ? '#fee2e2'
+                                        : '#fef3c7',
                                 color: isPaid
                                     ? '#166534'
                                     : isCancelled
-                                      ? '#991b1b'
-                                      : '#92400e',
+                                        ? '#991b1b'
+                                        : '#92400e',
                                 padding: '3px 10px',
                                 borderRadius: '4px',
                                 fontWeight: 'bold',
@@ -218,10 +212,10 @@ function OrderResultPage() {
                         {isPaid
                             ? `Đã chuyển hàng giữ thành hàng đã bán (khấu trừ onHand & reserved) tại ${order.fulfillmentWarehouseName}.`
                             : isCancelled
-                              ? 'Đơn đã hủy, tồn kho đã được hoàn trả / giải phóng.'
-                              : order.reservationActive
-                                ? `Đang tạm giữ (reserved) đủ toàn bộ mặt hàng tại ${order.fulfillmentWarehouseName}.`
-                                : 'Đã giải phóng hàng giữ sau lần thanh toán chưa thành công. Khi bấm Thử lại thanh toán, hệ thống sẽ kiểm tra và giữ hàng lại.'}
+                                ? 'Đơn đã hủy, tồn kho đã được hoàn trả / giải phóng.'
+                                : order.reservationActive
+                                    ? `Đang tạm giữ (reserved) đủ toàn bộ mặt hàng tại ${order.fulfillmentWarehouseName}.`
+                                    : 'Đã giải phóng hàng giữ sau lần thanh toán chưa thành công. Khi bấm Thử lại thanh toán, hệ thống sẽ kiểm tra và giữ hàng lại.'}
                     </p>
                 </div>
 
@@ -362,7 +356,7 @@ function OrderResultPage() {
                                                     fontWeight: 'bold',
                                                     color:
                                                         att.result ===
-                                                        PaymentResult.SUCCESS
+                                                            PaymentResult.SUCCESS
                                                             ? '#166534'
                                                             : '#b91c1c',
                                                 }}

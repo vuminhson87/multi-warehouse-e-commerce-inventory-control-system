@@ -1,7 +1,6 @@
 
 import './ProductCatalogPage.css'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import CustomerHeader from '../components/CustomerHeader'
 import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
 
@@ -37,8 +36,6 @@ function ProductCatalogPage() {
 
     return (
         <>
-            <CustomerHeader />
-
             <div className="catalog-page">
                 <div className="catalog-heading">
                     <span className="catalog-heading-label">
