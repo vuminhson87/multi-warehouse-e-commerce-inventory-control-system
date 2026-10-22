@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import CustomerHeader from '../components/CustomerHeader'
 import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrderContext'
 import {
@@ -33,7 +32,6 @@ function OrderTrackingPage() {
     if (currentUser.role !== 'CUSTOMER') {
         return (
             <>
-                <CustomerHeader />
                 <div style={{ maxWidth: '860px', margin: '40px auto', padding: '20px' }}>
                     <h1>Không có quyền truy cập</h1>
                     <p>Chức năng theo dõi đơn hàng chỉ dành cho khách hàng.</p>
@@ -48,7 +46,6 @@ function OrderTrackingPage() {
     if (!lookup.ok) {
         return (
             <>
-                <CustomerHeader />
                 <div
                     style={{
                         maxWidth: '860px',
@@ -128,7 +125,6 @@ function OrderTrackingPage() {
 
     return (
         <>
-            <CustomerHeader />
             <div
                 style={{
                     maxWidth: '900px',

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import CustomerHeader from '../components/CustomerHeader'
 import './HomePage.css'
 import { useProducts } from '../context/ProductContext'
 
@@ -11,8 +10,6 @@ function HomePage() {
         .slice(0, 4)
     return (
         <>
-            <CustomerHeader />
-
             <main className="home-page">
                 <section className="home-hero">
                     <div className="home-hero-content">
