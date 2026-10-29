@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-29T15:22:21.906Z",
+  "k6": "k6 v1.3.0+dirty (commit/5870e99ae8-dirty, go1.25.1, linux/amd64)",
+  "image": "grafana/k6:1.3.0",
+  "dataset": {
+    "products": 120,
+    "warehouses": 3,
+    "customers": 30,
+    "initialStock": 10
+  },
+  "k6ExitCode": 0,
+  "passed": true,
+  "invariants": true,
+  "orders": 10,
+  "activeQuantity": 10,
+  "totalReserved": 10,
+  "inventory": [
+    {
+      "id": 1,
+      "warehouseId": 1,
+      "productId": 1,
+      "onHand": 10,
+      "reserved": 10,
+      "lowStockThreshold": 0,
+      "version": 10,
+      "updatedAt": "2026-10-29T15:22:20.206Z"
+    },
+    {
+      "id": 121,
+      "warehouseId": 2,
+      "productId": 1,
+      "onHand": 0,
+      "reserved": 0,
+      "lowStockThreshold": 0,
+      "version": 0,
+      "updatedAt": "2026-10-29T15:22:18.388Z"
+    },
+    {
+      "id": 241,
+      "warehouseId": 3,
+      "productId": 1,
+      "onHand": 0,
+      "reserved": 0,
+      "lowStockThreshold": 0,
+      "version": 0,
+      "updatedAt": "2026-10-29T15:22:18.388Z"
+    }
+  ],
+  "reservationP95Ms": 1090.15461025
+}

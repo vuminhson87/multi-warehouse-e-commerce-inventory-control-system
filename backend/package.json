@@ -23,7 +23,8 @@
     "test:api": "node scripts/test-acceptance-api.js",
     "test:browser": "node scripts/test-browser.js",
     "test:restore": "node scripts/test-restore.js",
-    "test:ui:load": "node scripts/test-ui-load.js"
+    "test:ui:load": "node scripts/test-ui-load.js",
+    "test:load:k6": "node scripts/test-checkout-load.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1",

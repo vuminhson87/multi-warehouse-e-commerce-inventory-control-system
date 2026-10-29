@@ -1,460 +1,18 @@
 {
-  "at": "2026-10-29T15:03:33.351Z",
+  "at": "2026-10-29T15:22:31.452Z",
   "users": 30,
   "products": 120,
   "warehouses": 3,
   "requests": 30,
   "created": 10,
   "rejected": 20,
-  "reservationHttpP95Ms": 775.9751999999999,
+  "reservationHttpP95Ms": 870.1259999999993,
   "thresholdMs": 5000,
   "invariantViolations": 0,
   "samples": [
     {
       "status": 201,
-      "ms": 514.3927999999996,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 3,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.159Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.509Z",
-          "updatedAt": "2026-10-29T15:03:32.509Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 765.0471000000007,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 716.3616000000002,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 9,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.158Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.710Z",
-          "updatedAt": "2026-10-29T15:03:32.710Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 646.6400999999996,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 7,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.379Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.642Z",
-          "updatedAt": "2026-10-29T15:03:32.642Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 774.5811999999996,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 770.4655999999995,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 775.9751999999999,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 765.0192999999999,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 774.3536000000004,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 542.1733999999997,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 4,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.390Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.544Z",
-          "updatedAt": "2026-10-29T15:03:32.544Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 574.8923000000004,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 5,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.375Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.576Z",
-          "updatedAt": "2026-10-29T15:03:32.576Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 675.8833999999997,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 8,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.398Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.678Z",
-          "updatedAt": "2026-10-29T15:03:32.678Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 754.3541000000005,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 10,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.423Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.748Z",
-          "updatedAt": "2026-10-29T15:03:32.748Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 758.8687,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 761.9508999999998,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 777.2570999999998,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 606.7622999999994,
-      "body": {
-        "success": true,
-        "data": {
-          "orderId": 6,
-          "status": "PendingPayment",
-          "totalAmount": "123.45",
-          "currency": "VND",
-          "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.256Z",
-          "paymentInProgress": false,
-          "canPay": true,
-          "canCancel": true,
-          "items": [
-            {
-              "productId": 1,
-              "productName": "Product 1",
-              "unitPrice": "123.45",
-              "quantity": 1,
-              "lineTotal": "123.45"
-            }
-          ],
-          "payments": [],
-          "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.608Z",
-          "updatedAt": "2026-10-29T15:03:32.608Z",
-          "paidAt": null,
-          "cancelledAt": null,
-          "replayed": false
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 766.1935999999996,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 201,
-      "ms": 473.09450000000015,
+      "ms": 489.8176000000003,
       "body": {
         "success": true,
         "data": {
@@ -463,7 +21,7 @@
           "totalAmount": "123.45",
           "currency": "VND",
           "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.140Z",
+          "reservationExpiresAt": "2026-10-29T15:37:30.155Z",
           "paymentInProgress": false,
           "canPay": true,
           "canCancel": true,
@@ -478,8 +36,8 @@
           ],
           "payments": [],
           "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.417Z",
-          "updatedAt": "2026-10-29T15:03:32.417Z",
+          "createdAt": "2026-10-29T15:22:30.484Z",
+          "updatedAt": "2026-10-29T15:22:30.484Z",
           "paidAt": null,
           "cancelledAt": null,
           "replayed": false
@@ -488,41 +46,7 @@
     },
     {
       "status": 409,
-      "ms": 758.6755000000003,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 753.7356,
-      "body": {
-        "success": false,
-        "error": {
-          "code": "OUT_OF_STOCK",
-          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
-          "details": [
-            {
-              "field": "product:1",
-              "reason": "Không đủ hàng tại một kho."
-            }
-          ]
-        }
-      }
-    },
-    {
-      "status": 409,
-      "ms": 763.2325000000001,
+      "ms": 850.4246999999996,
       "body": {
         "success": false,
         "error": {
@@ -539,16 +63,16 @@
     },
     {
       "status": 201,
-      "ms": 343.45889999999963,
+      "ms": 780.8094000000001,
       "body": {
         "success": true,
         "data": {
-          "orderId": 1,
+          "orderId": 8,
           "status": "PendingPayment",
           "totalAmount": "123.45",
           "currency": "VND",
           "hasActiveReservation": true,
-          "reservationExpiresAt": "2026-10-29T15:18:32.144Z",
+          "reservationExpiresAt": "2026-10-29T15:37:30.181Z",
           "paymentInProgress": false,
           "canPay": true,
           "canCancel": true,
@@ -563,8 +87,42 @@
           ],
           "payments": [],
           "paymentCount": 0,
-          "createdAt": "2026-10-29T15:03:32.156Z",
-          "updatedAt": "2026-10-29T15:03:32.156Z",
+          "createdAt": "2026-10-29T15:22:30.781Z",
+          "updatedAt": "2026-10-29T15:22:30.781Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 442.0797999999995,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 1,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.143Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.168Z",
+          "updatedAt": "2026-10-29T15:22:30.168Z",
           "paidAt": null,
           "cancelledAt": null,
           "replayed": false
@@ -573,7 +131,7 @@
     },
     {
       "status": 409,
-      "ms": 772.8946000000005,
+      "ms": 861.3500999999997,
       "body": {
         "success": false,
         "error": {
@@ -590,7 +148,7 @@
     },
     {
       "status": 409,
-      "ms": 755.1805999999997,
+      "ms": 870.2547000000004,
       "body": {
         "success": false,
         "error": {
@@ -607,7 +165,7 @@
     },
     {
       "status": 409,
-      "ms": 768.0342,
+      "ms": 863.0150000000003,
       "body": {
         "success": false,
         "error": {
@@ -624,7 +182,7 @@
     },
     {
       "status": 409,
-      "ms": 753.8060999999998,
+      "ms": 867.3225000000002,
       "body": {
         "success": false,
         "error": {
@@ -641,7 +199,7 @@
     },
     {
       "status": 409,
-      "ms": 766.5461000000005,
+      "ms": 857.7550000000001,
       "body": {
         "success": false,
         "error": {
@@ -658,7 +216,7 @@
     },
     {
       "status": 409,
-      "ms": 773.3846000000003,
+      "ms": 870.1259999999993,
       "body": {
         "success": false,
         "error": {
@@ -675,7 +233,449 @@
     },
     {
       "status": 409,
-      "ms": 775.1341000000002,
+      "ms": 852.2825999999995,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 812.6490999999996,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 9,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.477Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.816Z",
+          "updatedAt": "2026-10-29T15:22:30.816Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 847.9660000000003,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 845.3209999999999,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 10,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.373Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.851Z",
+          "updatedAt": "2026-10-29T15:22:30.851Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 710.2438000000002,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 6,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.429Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.717Z",
+          "updatedAt": "2026-10-29T15:22:30.717Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 848.5532000000003,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 866.1165999999994,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 851.8062,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 856.0638000000008,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 853.7329,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 676.5014000000001,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 5,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.468Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.649Z",
+          "updatedAt": "2026-10-29T15:22:30.649Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 861.4278999999997,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 516.4210000000003,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 3,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.452Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.524Z",
+          "updatedAt": "2026-10-29T15:22:30.524Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 857.4156000000003,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 851.3872000000001,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 859.3663999999999,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 861.4629999999997,
+      "body": {
+        "success": false,
+        "error": {
+          "code": "OUT_OF_STOCK",
+          "message": "Không có kho nào đủ hàng cho toàn bộ sản phẩm trong đơn.",
+          "details": [
+            {
+              "field": "product:1",
+              "reason": "Không đủ hàng tại một kho."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 739.2218000000003,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 7,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.455Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.749Z",
+          "updatedAt": "2026-10-29T15:22:30.749Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 201,
+      "ms": 599.0496000000003,
+      "body": {
+        "success": true,
+        "data": {
+          "orderId": 4,
+          "status": "PendingPayment",
+          "totalAmount": "123.45",
+          "currency": "VND",
+          "hasActiveReservation": true,
+          "reservationExpiresAt": "2026-10-29T15:37:30.480Z",
+          "paymentInProgress": false,
+          "canPay": true,
+          "canCancel": true,
+          "items": [
+            {
+              "productId": 1,
+              "productName": "Product 1",
+              "unitPrice": "123.45",
+              "quantity": 1,
+              "lineTotal": "123.45"
+            }
+          ],
+          "payments": [],
+          "paymentCount": 0,
+          "createdAt": "2026-10-29T15:22:30.557Z",
+          "updatedAt": "2026-10-29T15:22:30.557Z",
+          "paidAt": null,
+          "cancelledAt": null,
+          "replayed": false
+        }
+      }
+    },
+    {
+      "status": 409,
+      "ms": 846.5830999999998,
       "body": {
         "success": false,
         "error": {
