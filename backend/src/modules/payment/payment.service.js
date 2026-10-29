@@ -1,5 +1,5 @@
 
-import { Prisma } from '@prisma/client'
+
 
 import { runInTransaction } from '../../db/transaction.js'
 import businessConfig from '../../config/business.js'

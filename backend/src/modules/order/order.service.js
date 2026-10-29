@@ -1,7 +1,7 @@
 
 import { Prisma } from '@prisma/client'
 
-import prisma from '../../db/prisma.js'
+
 import { runInTransaction } from '../../db/transaction.js'
 import businessConfig from '../../config/business.js'
 import { AppError, ErrorCodes } from '../../shared/errors.js'

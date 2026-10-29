@@ -1,7 +1,7 @@
 
 import crypto from 'node:crypto'
 
-import businessConfig from '../../config/business.js'
+
 import { SimulateMode } from '../order/order.constants.js'
 
 // Mock gateway chỉ trả kết quả.

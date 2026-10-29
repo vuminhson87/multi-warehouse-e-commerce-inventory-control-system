@@ -1,0 +1,311 @@
+{
+  "at": "2026-10-29T14:46:12.327Z",
+  "users": 30,
+  "products": 120,
+  "source": "frontend localStorage fixture; no catalog API exists yet",
+  "browser": "156.0.8078.48",
+  "catalogSearchP95Ms": 3010.4052999999985,
+  "cartUpdateP95Ms": 966.3518999999942,
+  "samples": [
+    {
+      "user": 2,
+      "group": "catalogSearch",
+      "ms": 2892.7118000000046
+    },
+    {
+      "user": 8,
+      "group": "catalogSearch",
+      "ms": 2891.7897999999986
+    },
+    {
+      "user": 20,
+      "group": "catalogSearch",
+      "ms": 2890.4042000000045
+    },
+    {
+      "user": 12,
+      "group": "catalogSearch",
+      "ms": 2891.498900000006
+    },
+    {
+      "user": 27,
+      "group": "catalogSearch",
+      "ms": 2889.619399999996
+    },
+    {
+      "user": 18,
+      "group": "catalogSearch",
+      "ms": 2891.1650999999983
+    },
+    {
+      "user": 14,
+      "group": "catalogSearch",
+      "ms": 2891.8029000000024
+    },
+    {
+      "user": 11,
+      "group": "catalogSearch",
+      "ms": 2892.3245000000024
+    },
+    {
+      "user": 21,
+      "group": "catalogSearch",
+      "ms": 2891.195599999999
+    },
+    {
+      "user": 19,
+      "group": "catalogSearch",
+      "ms": 2891.693699999996
+    },
+    {
+      "user": 15,
+      "group": "catalogSearch",
+      "ms": 2892.2967999999964
+    },
+    {
+      "user": 23,
+      "group": "catalogSearch",
+      "ms": 2891.3386000000028
+    },
+    {
+      "user": 26,
+      "group": "catalogSearch",
+      "ms": 2890.9634000000005
+    },
+    {
+      "user": 10,
+      "group": "catalogSearch",
+      "ms": 2997.5553
+    },
+    {
+      "user": 7,
+      "group": "catalogSearch",
+      "ms": 2998.998400000004
+    },
+    {
+      "user": 5,
+      "group": "catalogSearch",
+      "ms": 3007.214700000004
+    },
+    {
+      "user": 28,
+      "group": "catalogSearch",
+      "ms": 3003.6396000000022
+    },
+    {
+      "user": 25,
+      "group": "catalogSearch",
+      "ms": 3004.352699999996
+    },
+    {
+      "user": 0,
+      "group": "catalogSearch",
+      "ms": 3009.9752999999982
+    },
+    {
+      "user": 3,
+      "group": "catalogSearch",
+      "ms": 3008.6560000000027
+    },
+    {
+      "user": 16,
+      "group": "catalogSearch",
+      "ms": 3006.305499999995
+    },
+    {
+      "user": 22,
+      "group": "catalogSearch",
+      "ms": 3005.6358000000037
+    },
+    {
+      "user": 29,
+      "group": "catalogSearch",
+      "ms": 3004.1812999999966
+    },
+    {
+      "user": 6,
+      "group": "catalogSearch",
+      "ms": 3008.9570999999996
+    },
+    {
+      "user": 17,
+      "group": "catalogSearch",
+      "ms": 3007.090799999998
+    },
+    {
+      "user": 1,
+      "group": "catalogSearch",
+      "ms": 3010.4509000000035
+    },
+    {
+      "user": 9,
+      "group": "catalogSearch",
+      "ms": 3008.6357999999964
+    },
+    {
+      "user": 24,
+      "group": "catalogSearch",
+      "ms": 3006.631000000001
+    },
+    {
+      "user": 4,
+      "group": "catalogSearch",
+      "ms": 3010.4052999999985
+    },
+    {
+      "user": 13,
+      "group": "catalogSearch",
+      "ms": 3008.6071999999986
+    },
+    {
+      "user": 2,
+      "group": "cartUpdate",
+      "ms": 944.5379999999859
+    },
+    {
+      "user": 7,
+      "group": "cartUpdate",
+      "ms": 943.3010000000068
+    },
+    {
+      "user": 5,
+      "group": "cartUpdate",
+      "ms": 943.7649999999994
+    },
+    {
+      "user": 4,
+      "group": "cartUpdate",
+      "ms": 944.0890999999974
+    },
+    {
+      "user": 6,
+      "group": "cartUpdate",
+      "ms": 943.544900000008
+    },
+    {
+      "user": 3,
+      "group": "cartUpdate",
+      "ms": 944.3299999999872
+    },
+    {
+      "user": 22,
+      "group": "cartUpdate",
+      "ms": 959.8132000000041
+    },
+    {
+      "user": 19,
+      "group": "cartUpdate",
+      "ms": 962.9906999999948
+    },
+    {
+      "user": 28,
+      "group": "cartUpdate",
+      "ms": 962.0944000000018
+    },
+    {
+      "user": 9,
+      "group": "cartUpdate",
+      "ms": 964.2932000000001
+    },
+    {
+      "user": 23,
+      "group": "cartUpdate",
+      "ms": 962.6594999999943
+    },
+    {
+      "user": 10,
+      "group": "cartUpdate",
+      "ms": 964.1647999999986
+    },
+    {
+      "user": 14,
+      "group": "cartUpdate",
+      "ms": 963.6661000000022
+    },
+    {
+      "user": 26,
+      "group": "cartUpdate",
+      "ms": 962.3791000000056
+    },
+    {
+      "user": 18,
+      "group": "cartUpdate",
+      "ms": 963.2375000000029
+    },
+    {
+      "user": 17,
+      "group": "cartUpdate",
+      "ms": 963.3510999999999
+    },
+    {
+      "user": 15,
+      "group": "cartUpdate",
+      "ms": 963.601999999999
+    },
+    {
+      "user": 1,
+      "group": "cartUpdate",
+      "ms": 966.3518999999942
+    },
+    {
+      "user": 12,
+      "group": "cartUpdate",
+      "ms": 963.9398999999976
+    },
+    {
+      "user": 0,
+      "group": "cartUpdate",
+      "ms": 966.8681999999972
+    },
+    {
+      "user": 16,
+      "group": "cartUpdate",
+      "ms": 963.6661999999924
+    },
+    {
+      "user": 11,
+      "group": "cartUpdate",
+      "ms": 964.2387000000017
+    },
+    {
+      "user": 27,
+      "group": "cartUpdate",
+      "ms": 962.531999999992
+    },
+    {
+      "user": 21,
+      "group": "cartUpdate",
+      "ms": 963.1581000000006
+    },
+    {
+      "user": 13,
+      "group": "cartUpdate",
+      "ms": 964.0439000000042
+    },
+    {
+      "user": 24,
+      "group": "cartUpdate",
+      "ms": 962.8637000000017
+    },
+    {
+      "user": 20,
+      "group": "cartUpdate",
+      "ms": 963.2906000000075
+    },
+    {
+      "user": 25,
+      "group": "cartUpdate",
+      "ms": 962.7750000000087
+    },
+    {
+      "user": 29,
+      "group": "cartUpdate",
+      "ms": 962.3773000000074
+    },
+    {
+      "user": 8,
+      "group": "cartUpdate",
+      "ms": 964.8156000000017
+    }
+  ]
+}
