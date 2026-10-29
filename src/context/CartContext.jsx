@@ -124,7 +124,7 @@ export function CartProvider({ children }) {
 
         if (currentQty + 1 > available) {
             alert(
-                `Số lượng trong giỏ không thể vượt quá khả năng đáp ứng của kho (kho có tồn khả dụng cao nhất hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
+                `Số lượng trong giỏ vượt quá tồn khả dụng dự kiến của một kho (hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
             )
             return
         }
@@ -167,7 +167,7 @@ export function CartProvider({ children }) {
 
         if (currentQty + 1 > available) {
             alert(
-                `Số lượng trong giỏ không thể vượt quá khả năng đáp ứng của kho (kho có tồn khả dụng cao nhất hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
+                `Số lượng trong giỏ vượt quá tồn khả dụng dự kiến của một kho (hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
             )
             return
         }

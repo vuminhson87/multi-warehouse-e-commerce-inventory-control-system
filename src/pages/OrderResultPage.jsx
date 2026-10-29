@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { useLocation, Link, Navigate } from 'react-router-dom'
+import { useLocation, useParams, Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useOrders } from '../context/OrderContext'
+import { useCustomerOrder } from '../hooks/useCustomerOrder.js'
+import { payOrderApi } from '../services/orderApi.js'
+import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
 import {
     OrderStatus,
     PaymentResult,
@@ -13,9 +15,21 @@ import {
 
 function OrderResultPage() {
     const location = useLocation()
-    const { currentUser } = useAuth()
-    const { getMyOrders, getMyOrderById, processMockPayment } = useOrders()
+    const { orderId: orderIdFromUrl } = useParams()
+    const { currentUser, token, authLoading } = useAuth()
     const [feedback, setFeedback] = useState(null)
+    const [busy, setBusy] = useState(false)
+    const [needsReconciliation, setNeedsReconciliation] = useState(false)
+    const targetOrderId = orderIdFromUrl || location.state?.orderId || null
+    const { order, loading, error, reload } = useCustomerOrder(token, targetOrderId)
+
+    if (authLoading) {
+        return (
+            <div style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}>
+                Đang kiểm tra phiên...
+            </div>
+        )
+    }
 
     if (!currentUser) {
         return <Navigate to="/" replace />
@@ -32,12 +46,56 @@ function OrderResultPage() {
         )
     }
 
-    // Lấy mã đơn hàng từ state điều hướng hoặc lấy đơn hàng mới nhất của khách hàng
-    const stateOrderId = location.state?.orderId || location.state?.order?.id
-    const myOrders = getMyOrders()
-    const targetOrderId = stateOrderId || myOrders[0]?.id
-    const lookup = targetOrderId ? getMyOrderById(targetOrderId) : null
-    const order = lookup?.ok ? lookup.order : null
+    if (!targetOrderId) {
+        return (
+            <>
+                <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
+                    <h1>Kết quả đơn hàng</h1>
+                    <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                        <Link
+                            to="/orders"
+                            style={{ color: '#2563eb', textDecoration: 'underline' }}
+                        >
+                            Xem lịch sử đơn hàng
+                        </Link>
+                        <Link
+                            to="/products"
+                            style={{ color: '#2563eb', textDecoration: 'underline' }}
+                        >
+                            Quay lại danh sách sản phẩm
+                        </Link>
+                    </div>
+                </div>
+            </>
+        )
+    }
+
+    if (loading) {
+        return (
+            <div style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}>
+                Đang tải đơn hàng...
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div
+                role="alert"
+                style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}
+            >
+                {error.status === 401
+                    ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+                    : error.status === 404
+                        ? 'Không tìm thấy đơn hàng.'
+                        : error.message}
+                <p>
+                    <Link to="/orders">Quay về lịch sử đơn hàng</Link>
+                </p>
+            </div>
+        )
+    }
 
     if (!order) {
         return (
@@ -65,22 +123,50 @@ function OrderResultPage() {
     }
 
     // Thực hiện thanh toán giả lập (Mock Payment - UC04: SR-PAY-01..04)
-    const handleSimulatePayment = (mode) => {
-        const res = processMockPayment(order.id, mode)
-        setFeedback({
-            ok: res.ok && res.paymentResult === PaymentResult.SUCCESS,
-            isWarning:
-                res.ok &&
-                (res.paymentResult === PaymentResult.FAILED ||
-                    res.paymentResult === PaymentResult.INCOMPLETE),
-            message: res.message,
-        })
+    const handleSimulatePayment = async (mode) => {
+        if (!order || busy || !order.canPay || needsReconciliation || order.paymentInProgress) return
+        const scope = `pay:${currentUser.id}:${order.id}:${mode}`
+        setBusy(true)
+        setFeedback(null)
+        try {
+            const key = acquireActionKey(scope)
+            const result = await payOrderApi(token, order.id, mode, key)
+            clearActionKey(scope) // kết quả đã xác định
+            setNeedsReconciliation(false)
+            const success = result.paymentStatus === 'SUCCEEDED'
+            setFeedback({
+                ok: success,
+                isWarning: !success,
+                message: success ? 'Thanh toán thành công.' :
+                    result.paymentStatus === 'INCOMPLETE' ? 'Thanh toán chưa hoàn tất.' :
+                    'Thanh toán thất bại, có thể thử lại nếu kho còn đủ hàng.',
+            })
+            reload() // phải GET /api/orders/:id lại sau mỗi thay đổi
+        } catch (err) {
+            // Giữ nguyên idempotency key khi timeout/không rõ kết quả.
+            const unknown = ['REQUEST_OUTCOME_UNKNOWN', 'PAYMENT_IN_PROGRESS'].includes(err.code)
+                || err.status === 503
+            if (unknown) {
+                setNeedsReconciliation(true)
+            }
+            setFeedback({
+                ok: false,
+                isWarning: true,
+                message: unknown
+                    ? 'Kết quả chưa xác định/cần đối soát. Không thử thanh toán mới trước khi kiểm tra trạng thái đơn.'
+                    : (err.message || 'Không thể thanh toán.'),
+            })
+            reload()
+        } finally {
+            setBusy(false)
+        }
     }
 
     const isPendingPayment = order.status === OrderStatus.PENDING_PAYMENT
     const isPaid = order.status === OrderStatus.PAID
     const isCancelled = order.status === OrderStatus.CANCELLED
     const hasFailedBefore = (order.paymentAttempts?.length || 0) > 0 && isPendingPayment
+    const paymentDisabled = busy || !order.canPay || order.paymentInProgress || needsReconciliation
 
     return (
         <>
@@ -246,61 +332,70 @@ function OrderResultPage() {
                             <strong>{formatCurrency(order.totalAmount)}</strong>:
                         </p>
 
+                        {(order.paymentInProgress || needsReconciliation) && (
+                            <p style={{ margin: '0 0 12px', color: '#b45309', fontWeight: 'bold' }}>
+                                ⚠️ Đang có giao dịch chờ đối soát. Không thể tạo giao dịch thanh toán mới lúc này.
+                            </p>
+                        )}
+
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                             <button
                                 type="button"
+                                disabled={paymentDisabled}
                                 onClick={() =>
                                     handleSimulatePayment(PaymentResult.SUCCESS)
                                 }
                                 style={{
-                                    background: '#16a34a',
+                                    background: paymentDisabled ? '#94a3b8' : '#16a34a',
                                     color: '#ffffff',
                                     border: 'none',
                                     padding: '10px 18px',
                                     borderRadius: '6px',
                                     fontWeight: 'bold',
-                                    cursor: 'pointer',
+                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                ✓ Giả lập Thanh toán Thành công (Paid)
+                                {busy ? 'Đang xử lý...' : '✓ Giả lập Thanh toán Thành công (Paid)'}
                             </button>
 
                             <button
                                 type="button"
+                                disabled={paymentDisabled}
                                 onClick={() =>
                                     handleSimulatePayment(PaymentResult.FAILED)
                                 }
                                 style={{
-                                    background: '#dc2626',
+                                    background: paymentDisabled ? '#94a3b8' : '#dc2626',
                                     color: '#ffffff',
                                     border: 'none',
                                     padding: '10px 18px',
                                     borderRadius: '6px',
                                     fontWeight: 'bold',
-                                    cursor: 'pointer',
+                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                ✕ Giả lập Thanh toán Thất bại (Giải phóng hàng giữ)
+                                {busy ? 'Đang xử lý...' : '✕ Giả lập Thanh toán Thất bại (Giải phóng hàng giữ)'}
                             </button>
 
                             <button
                                 type="button"
+                                disabled={paymentDisabled}
                                 onClick={() =>
                                     handleSimulatePayment(
                                         PaymentResult.INCOMPLETE
                                     )
                                 }
                                 style={{
-                                    background: '#d97706',
+                                    background: paymentDisabled ? '#94a3b8' : '#d97706',
                                     color: '#ffffff',
                                     border: 'none',
                                     padding: '10px 18px',
                                     borderRadius: '6px',
                                     fontWeight: 'bold',
-                                    cursor: 'pointer',
+                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                ⏱ Giả lập Không hoàn tất / Timeout
+                                {busy ? 'Đang xử lý...' : '⏱ Giả lập Không hoàn tất / Timeout'}
                             </button>
                         </div>
                     </div>
@@ -342,7 +437,7 @@ function OrderResultPage() {
                                 <tbody>
                                     {order.paymentAttempts.map((att) => (
                                         <tr
-                                            key={att.attemptNumber}
+                                            key={att.id ?? att.attemptNumber}
                                             style={{
                                                 borderBottom: '1px solid #f1f5f9',
                                             }}
@@ -358,11 +453,15 @@ function OrderResultPage() {
                                                         att.result ===
                                                             PaymentResult.SUCCESS
                                                             ? '#166534'
-                                                            : '#b91c1c',
+                                                            : att.result === 'PENDING'
+                                                                ? '#b45309'
+                                                                : '#b91c1c',
                                                 }}
                                             >
-                                                {PAYMENT_RESULT_LABELS[att.result] ||
-                                                    att.result}
+                                                {att.result === 'PENDING'
+                                                    ? 'Đang xử lý/đối soát'
+                                                    : PAYMENT_RESULT_LABELS[att.result] ||
+                                                      att.result}
                                             </td>
                                             <td style={{ padding: '8px 12px' }}>
                                                 {formatDateTime(att.createdAt)}

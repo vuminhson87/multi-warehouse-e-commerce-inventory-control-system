@@ -1,22 +1,34 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useOrders } from '../context/OrderContext'
+import { useCustomerOrders } from '../hooks/useCustomerOrders.js'
+import { cancelOrderApi } from '../services/orderApi.js'
+import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
 import {
     OrderStatus,
     getOrderStatusLabel,
-    isCustomerCancellable,
     formatCurrency,
     formatDateTime,
 } from '../constants/order'
 
 function PurchaseHistoryPage() {
-    const { currentUser } = useAuth()
-    const { getMyOrders, cancelOrder } = useOrders()
+    const { currentUser, token, authLoading } = useAuth()
     const navigate = useNavigate()
-
     const [statusFilter, setStatusFilter] = useState('ALL')
+    const [page, setPage] = useState(1)
     const [feedback, setFeedback] = useState(null)
+    const [busyOrderId, setBusyOrderId] = useState(null)
+    const { orders: myOrders, pagination, loading, error, reload } =
+        useCustomerOrders(token, statusFilter, page)
+    const filteredOrders = myOrders // backend đã lọc status
+
+    if (authLoading) {
+        return (
+            <div style={{ maxWidth: '900px', margin: '40px auto', padding: '20px' }}>
+                Đang kiểm tra phiên...
+            </div>
+        )
+    }
 
     if (!currentUser) {
         return <Navigate to="/" replace />
@@ -33,30 +45,37 @@ function PurchaseHistoryPage() {
         )
     }
 
-    // Chỉ lấy danh sách đơn hàng của chính khách hàng đang đăng nhập (SR-AUTH-04, SR-HIS-01..02)
-    const myOrders = getMyOrders()
-
-    const filteredOrders = myOrders.filter((order) => {
-        if (statusFilter === 'ALL') return true
-        return order.status === statusFilter
-    })
-
     // Xử lý hủy đơn hàng ngay tại danh sách lịch sử (UC11: SR-CAN-01..04)
-    const handleCancelOrder = (order) => {
-        const confirmMsg =
-            order.status === OrderStatus.PAID
-                ? `Bạn có chắc chắn muốn hủy đơn hàng ${order.id} (Đã thanh toán)? Số lượng hàng sẽ được hoàn trả lại kho ${order.fulfillmentWarehouseName}.`
-                : `Bạn có chắc chắn muốn hủy đơn hàng ${order.id} (Chờ thanh toán)? Lượng hàng đang giữ (nếu có) sẽ được giải phóng.`
-
-        if (!window.confirm(confirmMsg)) {
-            return
+    const handleCancelOrder = async (order) => {
+        if (busyOrderId || !order.canCancel) return
+        if (!window.confirm(`Bạn chắc chắn muốn hủy đơn #${order.id}?`)) return
+        const scope = `cancel:${currentUser.id}:${order.id}`
+        setBusyOrderId(order.id)
+        try {
+            await cancelOrderApi(token, order.id, acquireActionKey(scope))
+            clearActionKey(scope)
+            setFeedback({ ok: true, message: `Đã hủy đơn #${order.id}.` })
+            if (
+                statusFilter !== 'ALL' &&
+                statusFilter !== OrderStatus.CANCELLED &&
+                myOrders.length === 1 &&
+                page > 1
+            ) {
+                setPage((p) => Math.max(1, p - 1))
+            } else {
+                reload()
+            }
+        } catch (err) {
+            setFeedback({
+                ok: false,
+                message: err.status === 503
+                    ? 'Chưa xác định được kết quả hủy. Hãy tải lại lịch sử để kiểm tra, không gửi lệnh hủy mới ngay.'
+                    : err.message,
+            })
+            reload()
+        } finally {
+            setBusyOrderId(null)
         }
-
-        const result = cancelOrder(order.id)
-        setFeedback({
-            ok: result.ok,
-            message: result.message,
-        })
     }
 
     return (
@@ -76,7 +95,7 @@ function PurchaseHistoryPage() {
                         <h1 style={{ margin: '0 0 6px 0' }}>Lịch sử mua hàng</h1>
                         <p style={{ margin: 0, color: '#64748b' }}>
                             Danh sách các đơn hàng của tài khoản{' '}
-                            <strong>{currentUser.username}</strong> ({myOrders.length}{' '}
+                            <strong>{currentUser.username}</strong> ({pagination.total}{' '}
                             đơn)
                         </p>
                     </div>
@@ -92,7 +111,10 @@ function PurchaseHistoryPage() {
                         <select
                             id="order-status-filter"
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            onChange={(e) => {
+                                setStatusFilter(e.target.value)
+                                setPage(1)
+                            }}
                             style={{
                                 padding: '8px 12px',
                                 borderRadius: '6px',
@@ -138,7 +160,51 @@ function PurchaseHistoryPage() {
                     </div>
                 )}
 
-                {filteredOrders.length === 0 ? (
+                {loading ? (
+                    <div
+                        style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            padding: '32px',
+                            textAlign: 'center',
+                        }}
+                    >
+                        <p style={{ color: '#475569', margin: 0 }}>
+                            Đang tải danh sách đơn hàng...
+                        </p>
+                    </div>
+                ) : error ? (
+                    <div
+                        role="alert"
+                        style={{
+                            background: '#fef2f2',
+                            border: '1px solid #fca5a5',
+                            borderRadius: '8px',
+                            padding: '24px',
+                            color: '#991b1b',
+                        }}
+                    >
+                        <p style={{ margin: '0 0 12px 0', fontWeight: '500' }}>
+                            {error.message || 'Không thể tải danh sách đơn hàng.'}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={reload}
+                            style={{
+                                background: '#2563eb',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: '500',
+                            }}
+                        >
+                            Thử lại
+                        </button>
+                    </div>
+                ) : filteredOrders.length === 0 ? (
                     <div
                         style={{
                             background: '#ffffff',
@@ -149,7 +215,7 @@ function PurchaseHistoryPage() {
                         }}
                     >
                         <p style={{ color: '#475569', marginBottom: '16px' }}>
-                            {myOrders.length === 0
+                            {statusFilter === 'ALL'
                                 ? 'Bạn chưa có đơn hàng nào.'
                                 : 'Không có đơn hàng nào khớp với bộ lọc trạng thái.'}
                         </p>
@@ -181,7 +247,7 @@ function PurchaseHistoryPage() {
                                 order.status === OrderStatus.CANCELLED
                             const isPending =
                                 order.status === OrderStatus.PENDING_PAYMENT
-                            const canCancel = isCustomerCancellable(order.status)
+                            const canCancel = order.canCancel && !busyOrderId
 
                             return (
                                 <div
@@ -355,38 +421,40 @@ function PurchaseHistoryPage() {
                                             {isPending && (
                                                 <button
                                                     type="button"
+                                                    disabled={Boolean(order.paymentInProgress)}
                                                     onClick={() =>
                                                         navigate(
-                                                            '/order-result',
-                                                            {
-                                                                state: {
-                                                                    orderId:
-                                                                        order.id,
-                                                                },
-                                                            }
+                                                            `/order-result/${order.id}`
                                                         )
                                                     }
                                                     style={{
-                                                        background: '#16a34a',
+                                                        background: order.paymentInProgress
+                                                            ? '#94a3b8'
+                                                            : '#16a34a',
                                                         color: '#ffffff',
                                                         border: 'none',
                                                         padding: '8px 14px',
                                                         borderRadius: '6px',
                                                         fontWeight: '500',
                                                         fontSize: '0.9rem',
-                                                        cursor: 'pointer',
+                                                        cursor: order.paymentInProgress
+                                                            ? 'not-allowed'
+                                                            : 'pointer',
                                                     }}
                                                 >
-                                                    {order.paymentAttempts
-                                                        ?.length > 0
-                                                        ? 'Thử lại thanh toán'
-                                                        : 'Thanh toán ngay'}
+                                                    {order.paymentInProgress
+                                                        ? 'Đang đối soát'
+                                                        : order.paymentAttempts
+                                                            ?.length > 0
+                                                            ? 'Thử lại thanh toán'
+                                                            : 'Thanh toán ngay'}
                                                 </button>
                                             )}
 
-                                            {canCancel && (
+                                            {order.canCancel && (
                                                 <button
                                                     type="button"
+                                                    disabled={Boolean(busyOrderId) || Boolean(order.paymentInProgress)}
                                                     onClick={() =>
                                                         handleCancelOrder(order)
                                                     }
@@ -398,10 +466,15 @@ function PurchaseHistoryPage() {
                                                         borderRadius: '6px',
                                                         fontWeight: '500',
                                                         fontSize: '0.9rem',
-                                                        cursor: 'pointer',
+                                                        cursor: canCancel
+                                                            ? 'pointer'
+                                                            : 'not-allowed',
+                                                        opacity: canCancel ? 1 : 0.6,
                                                     }}
                                                 >
-                                                    Hủy đơn hàng
+                                                    {busyOrderId === order.id
+                                                        ? 'Đang hủy...'
+                                                        : 'Hủy đơn hàng'}
                                                 </button>
                                             )}
                                         </div>
@@ -411,6 +484,47 @@ function PurchaseHistoryPage() {
                         })}
                     </div>
                 )}
+
+                <div style={{ display: 'flex', gap: 12, marginTop: 20, alignItems: 'center' }}>
+                    <button
+                        type="button"
+                        disabled={loading || page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        style={{
+                            padding: '8px 14px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            background: loading || page <= 1 ? '#f1f5f9' : '#ffffff',
+                            cursor: loading || page <= 1 ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        Trang trước
+                    </button>
+                    <span>
+                        Trang {pagination.page} / {Math.max(1, pagination.totalPages)} —{' '}
+                        {pagination.total} đơn
+                    </span>
+                    <button
+                        type="button"
+                        disabled={loading || page >= pagination.totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        style={{
+                            padding: '8px 14px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            background:
+                                loading || page >= pagination.totalPages
+                                    ? '#f1f5f9'
+                                    : '#ffffff',
+                            cursor:
+                                loading || page >= pagination.totalPages
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                        }}
+                    >
+                        Trang sau
+                    </button>
+                </div>
             </div>
         </>
     )

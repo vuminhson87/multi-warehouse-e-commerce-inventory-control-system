@@ -23,10 +23,6 @@ function ShoppingCartPage() {
     )
     const isOrderUnfulfillable =
         cartItems.length > 0 && !fulfillmentWarehouse
-    const hasInvalidItems =
-        hasDiscontinuedItems ||
-        hasInsufficientStockItems ||
-        isOrderUnfulfillable
 
     return (
         <>
@@ -88,12 +84,12 @@ function ShoppingCartPage() {
                                         {!item.isDiscontinued && item.isOutOfStock && (
                                             <span
                                                 style={{
-                                                    color: '#dc2626',
+                                                    color: '#b45309',
                                                     fontSize: '0.85rem',
                                                     marginLeft: '10px',
                                                 }}
                                             >
-                                                [Đã hết hàng]
+                                                [Dự kiến hết hàng trên dữ liệu tạm]
                                             </span>
                                         )}
                                         {!item.isDiscontinued &&
@@ -106,7 +102,7 @@ function ShoppingCartPage() {
                                                         marginLeft: '10px',
                                                     }}
                                                 >
-                                                    [Tồn khả dụng chỉ còn {item.availableStock}]
+                                                    [Dự kiến tồn khả dụng chỉ còn {item.availableStock}]
                                                 </span>
                                             )}
                                     </h2>
@@ -125,7 +121,6 @@ function ShoppingCartPage() {
                                         <button
                                             disabled={
                                                 item.isDiscontinued ||
-                                                item.quantity >= item.availableStock ||
                                                 item.quantity >= 100
                                             }
                                             onClick={() => increaseQuantity(item.id)}
@@ -159,7 +154,7 @@ function ShoppingCartPage() {
                             </div>
 
                             <p className="cart-summary-total">
-                                Tổng cộng: {totalPrice.toLocaleString('vi-VN')} VNĐ
+                                Tổng tạm tính: {totalPrice.toLocaleString('vi-VN')} VNĐ
                             </p>
 
                             {hasDiscontinuedItems && (
@@ -170,10 +165,9 @@ function ShoppingCartPage() {
                             )}
 
                             {hasInsufficientStockItems && (
-                                <p style={{ color: '#dc2626', fontWeight: 'bold' }}>
-                                    Có sản phẩm không đủ tồn kho hoặc đã hết hàng.
-                                    Vui lòng điều chỉnh lại số lượng hoặc xóa khỏi
-                                    giỏ trước khi thanh toán.
+                                <p style={{ color: '#b45309', fontWeight: 'bold' }}>
+                                    Dữ liệu tạm trên trình duyệt ghi nhận có sản phẩm vượt tồn kho dự kiến.
+                                    Hệ thống sẽ kiểm tra tồn kho thực tế tại máy chủ khi thanh toán.
                                 </p>
                             )}
 
@@ -194,9 +188,9 @@ function ShoppingCartPage() {
                                             fontWeight: '500',
                                         }}
                                     >
-                                        ✓ Đơn hàng sẽ được xuất từ:{' '}
+                                        ✓ Dự kiến kho xuất hàng:{' '}
                                         <strong>{fulfillmentWarehouse.name}</strong>{' '}
-                                        (Kho đáp ứng toàn bộ mặt hàng theo quy định)
+                                        (hệ thống sẽ xác nhận khi đặt hàng)
                                     </p>
                                 </div>
                             )}
@@ -204,8 +198,8 @@ function ShoppingCartPage() {
                             {isOrderUnfulfillable && (
                                 <div
                                     style={{
-                                        background: '#fef2f2',
-                                        border: '1px solid #fca5a5',
+                                        background: '#fffbeb',
+                                        border: '1px solid #fcd34d',
                                         padding: '12px 16px',
                                         borderRadius: '6px',
                                         margin: '15px 0',
@@ -213,32 +207,29 @@ function ShoppingCartPage() {
                                 >
                                     <p
                                         style={{
-                                            color: '#991b1b',
+                                            color: '#92400e',
                                             fontWeight: 'bold',
                                             margin: 0,
                                         }}
                                     >
-                                        ⚠️ Không có kho hàng nào đáp ứng đủ toàn bộ
-                                        đơn hàng!
+                                        ℹ️ Chưa xác định được kho dự kiến trên dữ liệu tạm
                                     </p>
                                     <p
                                         style={{
-                                            color: '#7f1d1d',
+                                            color: '#78350f',
                                             margin: '6px 0 0',
                                             fontSize: '0.9rem',
                                         }}
                                     >
                                         Quy tắc hệ thống yêu cầu một kho phải giao
                                         toàn bộ đơn hàng (Single-Warehouse
-                                        Fulfillment). Hiện không có kho nào có đủ số
-                                        lượng của tất cả sản phẩm bạn chọn. Vui lòng
-                                        giảm số lượng.
+                                        Fulfillment). Máy chủ sẽ xác nhận tồn kho thực tế khi gửi đơn.
                                     </p>
                                 </div>
                             )}
 
                             <button
-                                disabled={hasInvalidItems}
+                                disabled={hasDiscontinuedItems}
                                 onClick={() => navigate('/checkout')}
                             >
                                 Tiến hành thanh toán
