@@ -1,40 +1,41 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import users from '../data/users'
 import { useAuth } from '../context/AuthContext'
 import './LoginPage.css'
 
 
 function LoginPage() {
-    const { setCurrentUser } = useAuth()
+    const { login } = useAuth()
+    const [submitting, setSubmitting] = useState(false)
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
 
     const navigate = useNavigate()
 
-    const handleSubmit = (event) => {
+    
+    const handleSubmit = async (event) => {
         event.preventDefault()
 
-        const user = users.find(
-            (item) =>
-                item.username === username &&
-                item.password === password
-        )
+        if (submitting) return
 
-        if (!user) {
-            setError('Tên đăng nhập hoặc mật khẩu không đúng.')
-            return
-        }
+        setSubmitting(true)
         setError('')
-        setCurrentUser(user)
 
-        if (user.role === 'CUSTOMER') {
-            navigate('/products')
-        } else if (user.role === 'WAREHOUSE_MANAGER') {
-            navigate('/inventory')
-        } else if (user.role === 'ADMIN') {
-            navigate('/admin/products')
+        try {
+            const user = await login(username.trim(), password)
+
+            if (user.role === 'CUSTOMER') {
+                navigate('/products')
+            } else if (user.role === 'WAREHOUSE_MANAGER') {
+                navigate('/inventory')
+            } else if (user.role === 'ADMIN') {
+                navigate('/admin/products')
+            }
+        } catch (error) {
+            setError(error.message || 'Đăng nhập thất bại.')
+        } finally {
+            setSubmitting(false)
         }
     }
 
@@ -71,8 +72,12 @@ function LoginPage() {
 
                     {error && <p className="login-error">{error}</p>}
 
-                    <button className="login-button" type="submit">
-                        Đăng nhập
+                    <button
+                        className="login-button"
+                        type="submit"
+                        disabled={submitting}
+                    >
+                        {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </button>
                 </form>
             </div>

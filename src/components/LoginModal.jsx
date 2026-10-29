@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import users from '../data/users'
 import { useAuth } from '../context/AuthContext'
 import './LoginModal.css'
 
 function LoginModal({ onClose }) {
-    const { setCurrentUser } = useAuth()
+    const { login } = useAuth()
+    const [submitting, setSubmitting] = useState(false)
     const navigate = useNavigate()
 
     const [username, setUsername] = useState('')
@@ -13,31 +13,33 @@ function LoginModal({ onClose }) {
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
 
-    const handleSubmit = (event) => {
+
+    const handleSubmit = async (event) => {
         event.preventDefault()
 
-        const user = users.find(
-            (item) =>
-                item.username === username &&
-                item.password === password
-        )
+        if (submitting) return
 
-        if (!user) {
-            setError('Tên đăng nhập hoặc mật khẩu không đúng.')
-            return
-        }
-
+        setSubmitting(true)
         setError('')
-        setCurrentUser(user)
-        onClose()
 
-        if (user.role === 'WAREHOUSE_MANAGER') {
-            navigate('/inventory')
-        } else if (user.role === 'ADMIN') {
-            navigate('/admin/products')
+        try {
+            const user = await login(username.trim(), password)
+
+            onClose()
+
+            if (user.role === 'WAREHOUSE_MANAGER') {
+                navigate('/inventory')
+            } else if (user.role === 'ADMIN') {
+                navigate('/admin/products')
+            }
+            // CUSTOMER ở lại trang hiện tại.
+        } catch (error) {
+            setError(error.message || 'Đăng nhập thất bại.')
+        } finally {
+            setSubmitting(false)
         }
-        // CUSTOMER: ở lại trang hiện tại
     }
+
 
     return (
         <div
@@ -153,8 +155,9 @@ function LoginModal({ onClose }) {
                         <button
                             className="login-modal-submit"
                             type="submit"
+                            disabled={submitting}
                         >
-                            Đăng nhập
+                            {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                         </button>
                     </form>
                 </div>
