@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-29T15:41:44.143Z",
+  "passed": true,
+  "checks": [
+    {
+      "test": "Catalog/cart ignore forged localStorage and use PostgreSQL product",
+      "passed": true
+    },
+    {
+      "test": "Customer checkout reserves via backend only",
+      "passed": true
+    },
+    {
+      "test": "Manager restock persists, other warehouse is read-only",
+      "passed": true
+    },
+    {
+      "test": "Threshold equality alert comes from database",
+      "passed": true
+    },
+    {
+      "test": "Admin update/discontinue persists and public catalog hides discontinued product",
+      "passed": true
+    }
+  ]
+}

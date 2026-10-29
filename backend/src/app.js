@@ -1,4 +1,3 @@
-
 import express from 'express'
 import cors from 'cors'
 
@@ -10,12 +9,15 @@ import {
   notFoundHandler,
 } from './middlewares/errorHandler.js'
 
+import { catalogRoutes, adminProductRoutes } from './modules/product/product.routes.js'
+import inventoryRoutes from './modules/inventory/inventory.routes.js'
+
 const app = express()
 
 app.disable('x-powered-by')
 
 const allowedOrigins = (
-  process.env.CORS_ORIGIN ?? 'http://localhost:5173'
+  process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://127.0.0.1:5173'
 )
   .split(',')
   .map(origin => origin.trim())
@@ -50,7 +52,9 @@ app.get('/api/health', async (req, res, next) => {
 // Authentication API
 app.use('/api/auth', authRoutes)
 app.use('/api/orders', orderRoutes)
-// Order và Payment API sẽ thêm ở bước tiếp theo.
+app.use('/api/products', catalogRoutes)
+app.use('/api/admin/products', adminProductRoutes)
+app.use('/api/inventory', inventoryRoutes)
 
 app.use(notFoundHandler)
 app.use(errorHandler)

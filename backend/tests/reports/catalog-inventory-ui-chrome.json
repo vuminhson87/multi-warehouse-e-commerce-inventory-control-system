@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-29T16:08:57.836Z",
+  "passed": true,
+  "channel": "chrome",
+  "checks": [
+    {
+      "test": "Catalog/cart ignore forged localStorage and use PostgreSQL product",
+      "passed": true
+    },
+    {
+      "test": "Customer checkout reserves via backend only",
+      "passed": true
+    },
+    {
+      "test": "Manager restock persists, other warehouse is read-only",
+      "passed": true
+    },
+    {
+      "test": "Threshold equality alert comes from database",
+      "passed": true
+    },
+    {
+      "test": "Background refresh is coalesced, preserves draft/focus and heading position",
+      "passed": true
+    },
+    {
+      "test": "Background network failure retains inventory and form without layout shift",
+      "passed": true
+    },
+    {
+      "test": "Warehouse search/filter controls styled and usable at 375px",
+      "passed": true
+    },
+    {
+      "test": "Admin update/discontinue persists and public catalog hides discontinued product",
+      "passed": true
+    },
+    {
+      "test": "Admin reactivation returns product to catalog without changing inventory",
+      "passed": true
+    },
+    {
+      "test": "API failure shows error without local mock fallback",
+      "passed": true
+    }
+  ]
+}

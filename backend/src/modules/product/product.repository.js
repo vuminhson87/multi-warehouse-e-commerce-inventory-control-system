@@ -233,3 +233,10 @@ export async function discontinueProduct(tx, productId) {
     const availableMap = await getAvailableByProduct(tx, [productId])
     return mapProduct(updated, availableMap.get(productId) ?? 0)
 }
+
+// User-authorized extension: reactivate without changing inventory or order snapshots.
+export async function activateProduct(tx,productId) {
+ const updated=await tx.product.update({where:{id:productId},data:{isActive:true,discontinuedAt:null}})
+ const available=await getAvailableByProduct(tx,[productId])
+ return mapProduct(updated,available.get(productId)??0)
+}
