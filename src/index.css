@@ -1,32 +1,159 @@
 * {
-  box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    box-sizing: border-box;
 }
 
 html,
 body,
 #root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
 }
 
 body {
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: #ffffff;
-  color: #222222;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: #ffffff;
+    color: #111111;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 button,
 input,
 select,
 textarea {
-  font: inherit;
+    font: inherit;
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+    color: inherit;
+    text-decoration: none;
+}
+
+/* QUY TẮC NGHIÊM NGẶT: Khung sản phẩm & bố cục vuông góc 100% */
+.sharp-frame {
+    border-radius: 0px !important;
+}
+
+/* QUY TẮC NÚT BẤM: Chỉ nút bấm mới được bo tròn, nằm trên nền trắng, khi chọn/click mới xám nền */
+.icon-btn {
+    border-radius: 9999px !important;
+    background-color: transparent;
+    color: #111111;
+    transition: background-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    outline: none;
+}
+
+.icon-btn:hover {
+    background-color: #f4f4f5;
+}
+
+.icon-btn:active,
+.icon-btn.is-active {
+    background-color: #e4e4e7 !important;
+    color: #000000;
+}
+
+/* Nút bấm chữ dạng viên thuốc (Pill Button) */
+.pill-btn {
+    border-radius: 9999px !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+/* Hiệu ứng khung trưng bày sản phẩm kiểu House of Spoils */
+.gallery-stage {
+    background-color: #f8f8f8;
+    border-radius: 0px;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+.gallery-card:hover .gallery-stage {
+    background-color: #f2f2f2;
+}
+
+/* Khung viền sản phẩm bên trong (tạo chiều sâu tối giản như ảnh mẫu) */
+.product-art-frame {
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 4px 10px -3px rgba(0, 0, 0, 0.06);
+    border: 6px solid #18181b;
+    border-radius: 0px;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.product-clean-item {
+    border-radius: 0px;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gallery-card:hover .product-art-frame,
+.gallery-card:hover .product-clean-item {
+    transform: scale(1.03);
+}
+
+/* Hiệu ứng làm mờ và xám giao diện chính khi mở Dashboard hoặc Ngăn kéo */
+.app-dimmed {
+    filter: grayscale(40%) blur(4px);
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+    transition: filter 0.35s ease, opacity 0.35s ease;
+}
+
+.app-normal {
+    filter: none;
+    opacity: 1;
+    transition: filter 0.35s ease, opacity 0.35s ease;
+}
+
+/* Thanh tiến trình 5 giây tự động chuyển slide */
+.progress-bar-fill {
+    height: 2px;
+    background-color: #111111;
+    transition: width 0.08s linear;
+}
+
+/* Ẩn thanh cuộn phụ */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Thông báo nhỏ (Toast) */
+.atelier-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9990;
+    background-color: #09090b;
+    color: #ffffff;
+    padding: 12px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: none;
+    border-radius: 9999px;
+}
+
+.atelier-toast.is-visible {
+    transform: translateY(0);
+    opacity: 1;
 }

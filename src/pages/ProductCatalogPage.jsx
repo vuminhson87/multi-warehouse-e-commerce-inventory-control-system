@@ -1,12 +1,17 @@
-
 import './ProductCatalogPage.css'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
+import { useCart } from '../context/CartContext'
+import { useWishlist } from '../context/WishlistContext'
+import { getProductVisual } from '../utils/productVisuals'
+import LucideIcon from '../components/LucideIcon'
 
 function ProductCatalogPage() {
     const { products } = useProducts()
     const { getProductAvailableStock } = useInventory()
+    const { cartItems, addToCart } = useCart()
+    const { isWishlisted, toggleWishlist, showToast } = useWishlist()
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
 
@@ -14,7 +19,7 @@ function ProductCatalogPage() {
     const selectedCategory = searchParams.get('category') || 'Tất cả'
 
     const activeProducts = products.filter(
-        (product) => product.status === 'ACTIVE'
+        (product) => (product.status ?? 'ACTIVE') === 'ACTIVE'
     )
 
     const categories = [
@@ -34,22 +39,38 @@ function ProductCatalogPage() {
         return matchesSearch && matchesCategory
     })
 
+    function handleQuickAddToCart(product, availableStock) {
+        if (availableStock <= 0) {
+            showToast(`"${product.name}" hiện đã hết hàng`)
+            return
+        }
+        const existing = cartItems.find(
+            (item) => Number(item.productId ?? item.id) === Number(product.id)
+        )
+        const currentQty = existing ? existing.quantity : 0
+        addToCart(product)
+        if (currentQty + 1 <= availableStock) {
+            showToast(`Đã thêm "${product.name}" vào giỏ hàng`)
+        }
+    }
+
     return (
-        <>
-            <div className="catalog-page">
-                <div className="catalog-heading">
+        <div className="catalog-page">
+            <div className="catalog-container sharp-frame">
+                <div className="catalog-heading sharp-frame">
                     <span className="catalog-heading-label">
-                        MULTI-WAREHOUSE STORE
+                        ATELIER OF MULTI-WAREHOUSE • BỘ SƯU TẬP
                     </span>
 
                     <h1>Khám phá sản phẩm</h1>
 
                     <p>
-                        Khám phá laptop và phụ kiện công nghệ
-                        phù hợp với nhu cầu của bạn.
+                        Tuyển chọn thiết bị công nghệ và phụ kiện chế tác tinh
+                        xảo, phân phối trực tiếp từ hệ thống kho gần nhất.
                     </p>
                 </div>
-                <div className="catalog-toolbar">
+
+                <div className="catalog-toolbar sharp-frame">
                     <div className="category-filter">
                         {categories.map((category) => (
                             <Link
@@ -60,7 +81,9 @@ function ProductCatalogPage() {
                                 to={
                                     category === 'Tất cả'
                                         ? '/products'
-                                        : `/products?category=${encodeURIComponent(category)}`
+                                        : `/products?category=${encodeURIComponent(
+                                              category
+                                          )}`
                                 }
                             >
                                 {category}
@@ -73,7 +96,8 @@ function ProductCatalogPage() {
                         onSubmit={(e) => {
                             e.preventDefault()
 
-                            const keyword = e.currentTarget.elements.search.value.trim()
+                            const keyword =
+                                e.currentTarget.elements.search.value.trim()
                             const params = new URLSearchParams(searchParams)
 
                             if (keyword) {
@@ -93,69 +117,147 @@ function ProductCatalogPage() {
                             defaultValue={searchKeyword}
                             placeholder="Tìm kiếm sản phẩm..."
                             aria-label="Tìm kiếm sản phẩm"
+                            className="sharp-frame"
                         />
 
                         <button type="submit" aria-label="Tìm kiếm">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                            >
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.35-4.35" />
-                            </svg>
+                            <LucideIcon name="search" size={16} />
                         </button>
                     </form>
                 </div>
-                <div className="product-list">
+
+                <div className="product-list sharp-frame">
                     {filteredProducts.length === 0 && (
-                        <p>Không tìm thấy sản phẩm phù hợp.</p>
+                        <p className="catalog-empty">
+                            Không tìm thấy sản phẩm phù hợp.
+                        </p>
                     )}
 
                     {filteredProducts.map((product) => {
-                        const availableStock = getProductAvailableStock(product.id)
+                        const availableStock = getProductAvailableStock(
+                            product.id
+                        )
                         const isInStock = availableStock > 0
+                        const visual = getProductVisual(product)
+                        const liked = isWishlisted(product.id)
+
+                        const aspectClass =
+                            visual.aspect === 'portrait'
+                                ? 'aspect-portrait'
+                                : visual.aspect === 'square'
+                                  ? 'aspect-square'
+                                  : 'aspect-landscape'
+
+                        const frameClass = visual.framed
+                            ? 'product-art-frame is-framed'
+                            : 'product-clean-item'
 
                         return (
-                            <div className="product-card" key={product.id}>
-                                <div className="product-card-image">
-                                    <span>💻</span>
+                            <article
+                                className="gallery-card sharp-frame"
+                                key={product.id}
+                            >
+                                <div className="gallery-stage catalog-stage-box sharp-frame">
+                                    <span
+                                        className={`catalog-stock-badge sharp-frame ${
+                                            isInStock
+                                                ? 'in-stock'
+                                                : 'out-of-stock'
+                                        }`}
+                                    >
+                                        {isInStock
+                                            ? `Còn hàng (${availableStock})`
+                                            : 'Hết hàng'}
+                                    </span>
+
+                                    <Link
+                                        to={`/products/${product.id}`}
+                                        className={`catalog-art-wrapper ${aspectClass} ${frameClass} sharp-frame`}
+                                    >
+                                        <img
+                                            src={visual.image}
+                                            alt={product.name}
+                                            className="sharp-frame"
+                                        />
+                                    </Link>
+
+                                    <div className="catalog-card-actions">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleQuickAddToCart(
+                                                    product,
+                                                    availableStock
+                                                )
+                                            }
+                                            className="icon-btn catalog-icon-btn"
+                                            title="Thêm nhanh vào giỏ hàng"
+                                            aria-label={`Thêm ${product.name} vào giỏ hàng`}
+                                        >
+                                            <LucideIcon
+                                                name="box"
+                                                size={14}
+                                                strokeWidth={1.75}
+                                            />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                toggleWishlist(
+                                                    product.id,
+                                                    product.name
+                                                )
+                                            }
+                                            className={`icon-btn catalog-icon-btn ${
+                                                liked ? 'is-active' : ''
+                                            }`}
+                                            title="Thêm vào mục đã thích"
+                                            aria-label={`Yêu thích ${product.name}`}
+                                        >
+                                            <LucideIcon
+                                                name="heart"
+                                                size={14}
+                                                strokeWidth={1.75}
+                                                fill={
+                                                    liked ? '#18181b' : 'none'
+                                                }
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <h2>{product.name}</h2>
+                                <div className="catalog-card-info sharp-frame">
+                                    <h2>
+                                        <Link to={`/products/${product.id}`}>
+                                            {product.name}
+                                        </Link>
+                                    </h2>
 
-                                <p>Danh mục: {product.category}</p>
+                                    <p className="catalog-card-cat">
+                                        Danh mục: {product.category} •{' '}
+                                        {visual.subtitle}
+                                    </p>
 
-                                <p className="product-price">
-                                    {product.price.toLocaleString('vi-VN')} VNĐ
-                                </p>
+                                    <p className="catalog-card-price">
+                                        Từ{' '}
+                                        {product.price.toLocaleString('vi-VN')}{' '}
+                                        VNĐ
+                                    </p>
 
-                                <p className="product-stock">
-                                    <span
-                                        className={`stock-badge ${isInStock ? 'in-stock' : 'out-of-stock'}`}
+                                    <Link
+                                        to={`/products/${product.id}`}
+                                        className="product-detail-button pill-btn"
                                     >
-                                        {isInStock ? 'Còn hàng' : 'Hết hàng'}
-                                    </span>
-                                </p>
-
-                                <Link
-                                    to={`/products/${product.id}`}
-                                    className="product-detail-button"
-                                >
-                                    Xem chi tiết →
-                                </Link>
-                            </div>
+                                        Xem chi tiết →
+                                    </Link>
+                                </div>
+                            </article>
                         )
                     })}
                 </div>
-            </div >
-        </>
+            </div>
+        </div>
     )
 }
 
