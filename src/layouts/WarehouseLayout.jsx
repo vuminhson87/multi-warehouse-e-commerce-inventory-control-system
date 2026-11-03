@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import ManagementNavigation from '../components/ManagementNavigation'
+import ManagementShell from '../components/ManagementShell'
 
 function WarehouseLayout() {
   const { currentUser } = useAuth()
@@ -15,8 +15,9 @@ function WarehouseLayout() {
 
   return (
     <>
-      <ManagementNavigation />
+      <ManagementShell>
       <Outlet />
+      </ManagementShell>
     </>
   )
 }

@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import {
   Link,
@@ -8,7 +7,6 @@ import {
 } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import './ProductForm.css'
 
 function EditProductPage() {
   const { currentUser } = useAuth()
@@ -35,11 +33,17 @@ function EditProductPage() {
 
   if (!product) {
     return (
-      <main className="product-form-page">
-        <h1>Không tìm thấy sản phẩm</h1>
-        <p>Sản phẩm không tồn tại hoặc đã bị xóa.</p>
-        <Link to="/admin/products">Quay lại danh sách</Link>
-      </main>
+      <div className="mgmt-page">
+        <div className="mgmt-head">
+          <div>
+            <h1>Không tìm thấy sản phẩm</h1>
+            <p>Sản phẩm không tồn tại hoặc đã bị xóa.</p>
+          </div>
+        </div>
+        <Link to="/admin/products" className="mgmt-btn mgmt-btn--ghost">
+          Quay lại danh sách
+        </Link>
+      </div>
     )
   }
 
@@ -81,13 +85,15 @@ function EditProductPage() {
   }
 
   return (
-    <main className="product-form-page">
-      <div className="product-form-header">
-        <h1>Chỉnh sửa sản phẩm</h1>
-        <p>Cập nhật thông tin sản phẩm #{product.id}.</p>
+    <div className="mgmt-page">
+      <div className="mgmt-head">
+        <div>
+          <h1>Chỉnh sửa sản phẩm</h1>
+          <p>Cập nhật thông tin sản phẩm #{product.id}.</p>
+        </div>
       </div>
 
-      <form className="product-form" onSubmit={handleSubmit}>
+      <form className="mgmt-form" onSubmit={handleSubmit}>
         <label htmlFor="edit-product-name">Tên sản phẩm *</label>
         <input
           id="edit-product-name"
@@ -132,31 +138,31 @@ function EditProductPage() {
           rows={4}
         />
 
-        <p className="product-form-note">
+        <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
           Việc chỉnh sửa thông tin không thay đổi tình trạng kho
           hoặc trạng thái kinh doanh của sản phẩm.
         </p>
 
         {error && (
-          <p className="product-form-error" role="alert">
+          <p className="mgmt-form__error" role="alert">
             {error}
           </p>
         )}
 
-        <div className="product-form-actions">
+        <div className="mgmt-form__actions">
           <Link
             to="/admin/products"
-            className="product-form-cancel"
+            className="mgmt-btn mgmt-btn--ghost"
           >
             Hủy
           </Link>
 
-          <button type="submit" className="product-form-submit">
+          <button type="submit" className="mgmt-btn mgmt-btn--primary">
             Lưu thay đổi
           </button>
         </div>
       </form>
-    </main>
+    </div>
   )
 }
 

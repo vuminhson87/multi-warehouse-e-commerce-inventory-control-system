@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import ManagementNavigation from '../components/ManagementNavigation'
+import ManagementShell from '../components/ManagementShell'
 
 function AdminLayout() {
   const { currentUser } = useAuth()
@@ -12,8 +12,9 @@ function AdminLayout() {
 
   return (
     <>
-      <ManagementNavigation />
+      <ManagementShell>
       <Outlet />
+      </ManagementShell>
     </>
   )
 }

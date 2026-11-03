@@ -30,7 +30,7 @@ function LoginPage() {
             } else if (user.role === 'WAREHOUSE_MANAGER') {
                 navigate('/inventory')
             } else if (user.role === 'ADMIN') {
-                navigate('/admin/products')
+                navigate('/admin')
             }
         } catch (error) {
             setError(error.message || 'Đăng nhập thất bại.')

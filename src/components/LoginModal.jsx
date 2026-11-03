@@ -30,7 +30,7 @@ function LoginModal({ onClose }) {
             if (user.role === 'WAREHOUSE_MANAGER') {
                 navigate('/inventory')
             } else if (user.role === 'ADMIN') {
-                navigate('/admin/products')
+                navigate('/admin')
             }
             // CUSTOMER ở lại trang hiện tại.
         } catch (error) {
