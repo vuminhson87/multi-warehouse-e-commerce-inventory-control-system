@@ -1,5 +1,28 @@
+:root {
+    --ui-bg: #ffffff;
+    --ui-surface: #fafafa;
+    --ui-surface-alt: #f5f5f5;
+    --ui-hover: #f1f1f1;
+    --ui-text: #111111;
+    --ui-muted: #737373;
+    --ui-border: #e7e7e7;
+    --ui-primary: #111111;
+    --ui-primary-hover: #303030;
+    --ui-danger: #c62828;
+    --ui-danger-bg: #fdecec;
+    --ui-success: #168045;
+    --ui-success-bg: #e8f6ee;
+    --ui-warning: #ad6800;
+    --ui-warning-bg: #fff4e0;
+    --ui-info: #1f5fbf;
+    --ui-info-bg: #e9f1fd;
+    --ui-radius-card: 2px;
+    --ui-radius-control: 8px;
+    --ui-content-max: 1440px;
+}
+
 * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     box-sizing: border-box;
 }
 
@@ -15,8 +38,8 @@ body,
 body {
     min-width: 320px;
     min-height: 100vh;
-    background-color: #ffffff;
-    color: #111111;
+    background-color: var(--ui-bg);
+    color: var(--ui-text);
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
 }
@@ -33,17 +56,26 @@ a {
     text-decoration: none;
 }
 
-/* QUY TẮC NGHIÊM NGẶT: Khung sản phẩm & bố cục vuông góc 100% */
+img {
+    max-width: 100%;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 2px;
+}
+
+/* Khung vuông góc 100% */
 .sharp-frame {
     border-radius: 0px !important;
 }
 
-/* QUY TẮC NÚT BẤM: Chỉ nút bấm mới được bo tròn, nằm trên nền trắng, khi chọn/click mới xám nền */
+/* Nút icon: nền trong suốt, chỉ xám khi hover/active */
 .icon-btn {
     border-radius: 9999px !important;
     background-color: transparent;
-    color: #111111;
-    transition: background-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+    color: var(--ui-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -54,7 +86,12 @@ a {
 }
 
 .icon-btn:hover {
-    background-color: #f4f4f5;
+    background-color: var(--ui-hover);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 1px;
 }
 
 .icon-btn:active,
@@ -63,67 +100,12 @@ a {
     color: #000000;
 }
 
-/* Nút bấm chữ dạng viên thuốc (Pill Button) */
 .pill-btn {
     border-radius: 9999px !important;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
-/* Hiệu ứng khung trưng bày sản phẩm kiểu House of Spoils */
-.gallery-stage {
-    background-color: #f8f8f8;
-    border-radius: 0px;
-    position: relative;
-    transition: background-color 0.3s ease;
-}
-
-.gallery-card:hover .gallery-stage {
-    background-color: #f2f2f2;
-}
-
-/* Khung viền sản phẩm bên trong (tạo chiều sâu tối giản như ảnh mẫu) */
-.product-art-frame {
-    background-color: #ffffff;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 4px 10px -3px rgba(0, 0, 0, 0.06);
-    border: 6px solid #18181b;
-    border-radius: 0px;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
-}
-
-.product-clean-item {
-    border-radius: 0px;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.gallery-card:hover .product-art-frame,
-.gallery-card:hover .product-clean-item {
-    transform: scale(1.03);
-}
-
-/* Hiệu ứng làm mờ và xám giao diện chính khi mở Dashboard hoặc Ngăn kéo */
-.app-dimmed {
-    filter: grayscale(40%) blur(4px);
-    opacity: 0.45;
-    pointer-events: none;
-    user-select: none;
-    transition: filter 0.35s ease, opacity 0.35s ease;
-}
-
-.app-normal {
-    filter: none;
-    opacity: 1;
-    transition: filter 0.35s ease, opacity 0.35s ease;
-}
-
-/* Thanh tiến trình 5 giây tự động chuyển slide */
-.progress-bar-fill {
-    height: 2px;
-    background-color: #111111;
-    transition: width 0.08s linear;
-}
-
-/* Ẩn thanh cuộn phụ */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
@@ -139,6 +121,7 @@ a {
     bottom: 20px;
     right: 20px;
     z-index: 9990;
+    max-width: calc(100vw - 40px);
     background-color: #09090b;
     color: #ffffff;
     padding: 12px 20px;
@@ -156,4 +139,14 @@ a {
 .atelier-toast.is-visible {
     transform: translateY(0);
     opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
