@@ -1,263 +1,283 @@
-import './ProductCatalogPage.css'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
-import { useInventory } from '../context/InventoryContext'
-import { useCart } from '../context/CartContext'
-import { useWishlist } from '../context/WishlistContext'
-import { getProductVisual } from '../utils/productVisuals'
+import ProductCard from '../components/ProductCard'
 import LucideIcon from '../components/LucideIcon'
+import './ProductCatalogPage.css'
+
+const ALL = 'Tất cả'
+const PAGE_SIZE = 12
+
+const SORT_OPTIONS = [
+    { value: 'default', label: 'Mặc định' },
+    { value: 'price-asc', label: 'Giá tăng dần' },
+    { value: 'price-desc', label: 'Giá giảm dần' },
+    { value: 'name-asc', label: 'Tên A → Z' },
+]
+
+function sortProducts(list, sort) {
+    const copy = [...list]
+    const price = (p) => (Number.isFinite(Number(p.price)) ? Number(p.price) : 0)
+
+    if (sort === 'price-asc') copy.sort((a, b) => price(a) - price(b))
+    else if (sort === 'price-desc') copy.sort((a, b) => price(b) - price(a))
+    else if (sort === 'name-asc')
+        copy.sort((a, b) => String(a.name).localeCompare(String(b.name), 'vi'))
+
+    return copy
+}
+
+function buildUrl({ category, search, sort }) {
+    const params = new URLSearchParams()
+    if (category && category !== ALL) params.set('category', category)
+    if (search) params.set('search', search)
+    if (sort && sort !== 'default') params.set('sort', sort)
+    const query = params.toString()
+    return query ? `/products?${query}` : '/products'
+}
+
+// Kết quả có state riêng (số lượng đang hiển thị); đổi bộ lọc => key đổi => tự về trang đầu.
+function CatalogResults({ products }) {
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+    const visible = products.slice(0, visibleCount)
+
+    return (
+        <>
+            <div className="product-grid">
+                {products.length === 0 ? (
+                    <div className="store-empty">
+                        <strong>Không tìm thấy sản phẩm phù hợp</strong>
+                        Hãy thử đổi từ khóa hoặc danh mục khác.
+                    </div>
+                ) : (
+                    visible.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                    ))
+                )}
+            </div>
+
+            {products.length > visibleCount && (
+                <div className="catalog-more">
+                    <button
+                        type="button"
+                        onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                    >
+                        Xem thêm ({products.length - visibleCount} sản phẩm)
+                    </button>
+                </div>
+            )}
+        </>
+    )
+}
 
 function ProductCatalogPage() {
     const { products } = useProducts()
-    const { getProductAvailableStock } = useInventory()
-    const { cartItems, addToCart } = useCart()
-    const { isWishlisted, toggleWishlist, showToast } = useWishlist()
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
+    const [sheet, setSheet] = useState(null) // null | 'filter' | 'sort'
 
     const searchKeyword = searchParams.get('search') || ''
-    const selectedCategory = searchParams.get('category') || 'Tất cả'
+    const selectedCategory = searchParams.get('category') || ALL
+    const sort = searchParams.get('sort') || 'default'
 
-    const activeProducts = products.filter(
-        (product) => (product.status ?? 'ACTIVE') === 'ACTIVE'
+    const activeProducts = useMemo(
+        () => products.filter((p) => (p.status ?? 'ACTIVE') === 'ACTIVE'),
+        [products]
     )
 
-    const categories = [
-        'Tất cả',
-        ...new Set(activeProducts.map((product) => product.category)),
-    ]
+    const categories = useMemo(
+        () => [
+            ALL,
+            ...new Set(activeProducts.map((p) => p.category).filter(Boolean)),
+        ],
+        [activeProducts]
+    )
 
-    const filteredProducts = activeProducts.filter((product) => {
-        const matchesSearch = product.name
-            .toLowerCase()
-            .includes(searchKeyword.trim().toLowerCase())
+    const filteredProducts = useMemo(() => {
+        const keyword = searchKeyword.trim().toLowerCase()
+        const filtered = activeProducts.filter((product) => {
+            const matchesSearch = String(product.name)
+                .toLowerCase()
+                .includes(keyword)
+            const matchesCategory =
+                selectedCategory === ALL || product.category === selectedCategory
+            return matchesSearch && matchesCategory
+        })
+        return sortProducts(filtered, sort)
+    }, [activeProducts, searchKeyword, selectedCategory, sort])
 
-        const matchesCategory =
-            selectedCategory === 'Tất cả' ||
-            product.category === selectedCategory
+    // Đóng panel mobile bằng Escape và khóa cuộn nền khi đang mở.
+    useEffect(() => {
+        if (!sheet) return undefined
 
-        return matchesSearch && matchesCategory
-    })
-
-    function handleQuickAddToCart(product, availableStock) {
-        if (availableStock <= 0) {
-            showToast(`"${product.name}" hiện đã hết hàng`)
-            return
+        const onKey = (event) => {
+            if (event.key === 'Escape') setSheet(null)
         }
-        const existing = cartItems.find(
-            (item) => Number(item.productId ?? item.id) === Number(product.id)
-        )
-        const currentQty = existing ? existing.quantity : 0
-        addToCart(product)
-        if (currentQty + 1 <= availableStock) {
-            showToast(`Đã thêm "${product.name}" vào giỏ hàng`)
+        document.addEventListener('keydown', onKey)
+        const previous = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+
+        return () => {
+            document.removeEventListener('keydown', onKey)
+            document.body.style.overflow = previous
         }
+    }, [sheet])
+
+    function handleSearch(event) {
+        event.preventDefault()
+        const keyword = event.currentTarget.elements.search.value.trim()
+        navigate(buildUrl({ category: selectedCategory, search: keyword, sort }))
     }
 
+    function go(next) {
+        setSheet(null)
+        navigate(
+            buildUrl({
+                category: selectedCategory,
+                search: searchKeyword,
+                sort,
+                ...next,
+            })
+        )
+    }
+
+    const resultsKey = `${searchKeyword}|${selectedCategory}|${sort}`
+
     return (
-        <div className="catalog-page">
-            <div className="catalog-container sharp-frame">
-                <div className="catalog-heading sharp-frame">
-                    <span className="catalog-heading-label">
-                        ATELIER OF MULTI-WAREHOUSE • BỘ SƯU TẬP
-                    </span>
-
-                    <h1>Khám phá sản phẩm</h1>
-
-                    <p>
-                        Tuyển chọn thiết bị công nghệ và phụ kiện chế tác tinh
-                        xảo, phân phối trực tiếp từ hệ thống kho gần nhất.
-                    </p>
+        <main className="catalog-page">
+            <div className="catalog-container">
+                <div className="catalog-heading">
+                    <h1>Sản phẩm</h1>
+                    <p>{filteredProducts.length} sản phẩm</p>
                 </div>
 
-                <div className="catalog-toolbar sharp-frame">
-                    <div className="category-filter">
+                {/* Thanh công cụ desktop/tablet */}
+                <div className="catalog-toolbar">
+                    <div className="catalog-chips" role="list">
                         {categories.map((category) => (
                             <Link
                                 key={category}
+                                role="listitem"
                                 className={
                                     selectedCategory === category ? 'active' : ''
                                 }
-                                to={
-                                    category === 'Tất cả'
-                                        ? '/products'
-                                        : `/products?category=${encodeURIComponent(
-                                              category
-                                          )}`
-                                }
+                                to={buildUrl({
+                                    category,
+                                    search: searchKeyword,
+                                    sort,
+                                })}
                             >
                                 {category}
                             </Link>
                         ))}
                     </div>
 
-                    <form
-                        className="catalog-search"
-                        onSubmit={(e) => {
-                            e.preventDefault()
-
-                            const keyword =
-                                e.currentTarget.elements.search.value.trim()
-                            const params = new URLSearchParams(searchParams)
-
-                            if (keyword) {
-                                params.set('search', keyword)
-                            } else {
-                                params.delete('search')
-                            }
-
-                            const query = params.toString()
-                            navigate(query ? `/products?${query}` : '/products')
-                        }}
-                    >
-                        <input
-                            type="search"
-                            name="search"
-                            key={searchKeyword}
-                            defaultValue={searchKeyword}
-                            placeholder="Tìm kiếm sản phẩm..."
-                            aria-label="Tìm kiếm sản phẩm"
-                            className="sharp-frame"
-                        />
-
-                        <button type="submit" aria-label="Tìm kiếm">
-                            <LucideIcon name="search" size={16} />
-                        </button>
-                    </form>
+                    <label className="catalog-sort">
+                        <span className="catalog-sr">Sắp xếp</span>
+                        <select
+                            value={sort}
+                            onChange={(event) => go({ sort: event.target.value })}
+                        >
+                            {SORT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                 </div>
 
-                <div className="product-list sharp-frame">
-                    {filteredProducts.length === 0 && (
-                        <p className="catalog-empty">
-                            Không tìm thấy sản phẩm phù hợp.
-                        </p>
-                    )}
+                <form className="catalog-search" onSubmit={handleSearch}>
+                    <LucideIcon
+                        name="search"
+                        size={16}
+                        className="catalog-search__icon"
+                    />
+                    <input
+                        type="search"
+                        name="search"
+                        key={searchKeyword}
+                        defaultValue={searchKeyword}
+                        placeholder="Tìm kiếm sản phẩm..."
+                        aria-label="Tìm kiếm sản phẩm"
+                    />
+                </form>
 
-                    {filteredProducts.map((product) => {
-                        const availableStock = getProductAvailableStock(
-                            product.id
-                        )
-                        const isInStock = availableStock > 0
-                        const visual = getProductVisual(product)
-                        const liked = isWishlisted(product.id)
-
-                        const aspectClass =
-                            visual.aspect === 'portrait'
-                                ? 'aspect-portrait'
-                                : visual.aspect === 'square'
-                                  ? 'aspect-square'
-                                  : 'aspect-landscape'
-
-                        const frameClass = visual.framed
-                            ? 'product-art-frame is-framed'
-                            : 'product-clean-item'
-
-                        return (
-                            <article
-                                className="gallery-card sharp-frame"
-                                key={product.id}
-                            >
-                                <div className="gallery-stage catalog-stage-box sharp-frame">
-                                    <span
-                                        className={`catalog-stock-badge sharp-frame ${
-                                            isInStock
-                                                ? 'in-stock'
-                                                : 'out-of-stock'
-                                        }`}
-                                    >
-                                        {isInStock
-                                            ? `Còn hàng (${availableStock})`
-                                            : 'Hết hàng'}
-                                    </span>
-
-                                    <Link
-                                        to={`/products/${product.id}`}
-                                        className={`catalog-art-wrapper ${aspectClass} ${frameClass} sharp-frame`}
-                                    >
-                                        <img
-                                            src={visual.image}
-                                            alt={product.name}
-                                            className="sharp-frame"
-                                        />
-                                    </Link>
-
-                                    <div className="catalog-card-actions">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleQuickAddToCart(
-                                                    product,
-                                                    availableStock
-                                                )
-                                            }
-                                            className="icon-btn catalog-icon-btn"
-                                            title="Thêm nhanh vào giỏ hàng"
-                                            aria-label={`Thêm ${product.name} vào giỏ hàng`}
-                                        >
-                                            <LucideIcon
-                                                name="box"
-                                                size={14}
-                                                strokeWidth={1.75}
-                                            />
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                toggleWishlist(
-                                                    product.id,
-                                                    product.name
-                                                )
-                                            }
-                                            className={`icon-btn catalog-icon-btn ${
-                                                liked ? 'is-active' : ''
-                                            }`}
-                                            title="Thêm vào mục đã thích"
-                                            aria-label={`Yêu thích ${product.name}`}
-                                        >
-                                            <LucideIcon
-                                                name="heart"
-                                                size={14}
-                                                strokeWidth={1.75}
-                                                fill={
-                                                    liked ? '#18181b' : 'none'
-                                                }
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="catalog-card-info sharp-frame">
-                                    <h2>
-                                        <Link to={`/products/${product.id}`}>
-                                            {product.name}
-                                        </Link>
-                                    </h2>
-
-                                    <p className="catalog-card-cat">
-                                        Danh mục: {product.category} •{' '}
-                                        {visual.subtitle}
-                                    </p>
-
-                                    <p className="catalog-card-price">
-                                        Từ{' '}
-                                        {product.price.toLocaleString('vi-VN')}{' '}
-                                        VNĐ
-                                    </p>
-
-                                    <Link
-                                        to={`/products/${product.id}`}
-                                        className="product-detail-button pill-btn"
-                                    >
-                                        Xem chi tiết →
-                                    </Link>
-                                </div>
-                            </article>
-                        )
-                    })}
+                {/* Nút lọc / sắp xếp trên mobile */}
+                <div className="catalog-mobile-bar">
+                    <button type="button" onClick={() => setSheet('filter')}>
+                        <LucideIcon name="filter" size={18} />
+                        Bộ lọc
+                    </button>
+                    <button type="button" onClick={() => setSheet('sort')}>
+                        <LucideIcon name="sort" size={18} />
+                        Sắp xếp
+                    </button>
                 </div>
+
+                <CatalogResults key={resultsKey} products={filteredProducts} />
             </div>
-        </div>
+
+            {/* Panel mobile */}
+            <div
+                className={`catalog-sheet-overlay ${sheet ? 'is-open' : ''}`}
+                onClick={() => setSheet(null)}
+                aria-hidden="true"
+            />
+            <section
+                className={`catalog-sheet ${sheet ? 'is-open' : ''}`}
+                role="dialog"
+                aria-modal="true"
+                aria-label={sheet === 'sort' ? 'Sắp xếp' : 'Bộ lọc'}
+                inert={!sheet}
+            >
+                <div className="catalog-sheet__head">
+                    <h2>{sheet === 'sort' ? 'Sắp xếp' : 'Bộ lọc danh mục'}</h2>
+                    <button
+                        type="button"
+                        className="icon-btn catalog-sheet__close"
+                        onClick={() => setSheet(null)}
+                        aria-label="Đóng"
+                    >
+                        <LucideIcon name="x" size={20} />
+                    </button>
+                </div>
+
+                <div className="catalog-sheet__list">
+                    {sheet === 'sort' &&
+                        SORT_OPTIONS.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                className={sort === option.value ? 'active' : ''}
+                                onClick={() => go({ sort: option.value })}
+                            >
+                                {option.label}
+                                {sort === option.value && (
+                                    <LucideIcon name="check" size={16} />
+                                )}
+                            </button>
+                        ))}
+
+                    {sheet === 'filter' &&
+                        categories.map((category) => (
+                            <button
+                                key={category}
+                                type="button"
+                                className={
+                                    selectedCategory === category ? 'active' : ''
+                                }
+                                onClick={() => go({ category })}
+                            >
+                                {category}
+                                {selectedCategory === category && (
+                                    <LucideIcon name="check" size={16} />
+                                )}
+                            </button>
+                        ))}
+                </div>
+            </section>
+        </main>
     )
 }
 

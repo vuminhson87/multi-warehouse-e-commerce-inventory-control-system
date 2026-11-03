@@ -1,185 +1,208 @@
-/* ===== Minimalist Atelier ProductDetailPage ===== */
+/* ===== Chi tiết sản phẩm ===== */
 
-.product-detail-page {
-    min-height: calc(100vh - 64px);
-    padding: 48px 32px;
-    background: #ffffff;
-    color: #18181b;
+.pd-page {
+    min-height: calc(100vh - 72px);
+    background: var(--ui-bg);
+    color: var(--ui-text);
 }
 
-.product-detail-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
-    width: 100%;
+.pd-container {
     max-width: 1200px;
     margin: 0 auto;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 0px;
+    padding: 24px 32px 64px;
 }
 
-/* ===== Product Image Stage ===== */
+.pd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 6px 10px 6px 0;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    cursor: pointer;
+}
 
-.product-detail-image {
+.pd-back:hover {
+    text-decoration: underline;
+}
+
+.pd-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+}
+
+.pd-media {
+    aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    min-height: 460px;
-    padding: 40px;
-    background: #f8f8f8;
-    border-right: 1px solid #e4e4e7;
-    position: relative;
+    background: var(--ui-surface-alt);
+    border-radius: var(--ui-radius-card);
+    overflow: hidden;
 }
 
-.product-detail-image img {
-    max-width: 340px;
-    max-height: 340px;
+.pd-media img {
     width: 100%;
-    height: auto;
-    object-fit: cover;
+    height: 100%;
+    object-fit: contain;
     display: block;
 }
 
-/* ===== Product Information ===== */
-
-.product-detail-info {
-    padding: 48px;
+.pd-info {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    min-width: 0;
+    align-items: flex-start;
+    gap: 14px;
 }
 
-.product-detail-category {
-    display: inline-block;
-    margin-bottom: 12px;
-    color: #a1a1aa;
-    font-size: 11px;
+.pd-category {
+    margin: 0;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    color: var(--ui-muted);
 }
 
-.product-detail-info h1 {
-    margin: 0 0 8px;
-    color: #18181b;
-    font-size: 28px;
+.pd-info h1 {
+    margin: 0;
+    font-size: 32px;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.2;
     letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
 }
 
-.product-detail-subtitle {
-    margin: 0 0 20px;
-    color: #71717a;
-    font-size: 13px;
-}
-
-.product-detail-info .product-detail-price {
-    margin: 0 0 20px;
-    color: #18181b;
-    font-size: 22px;
+.pd-price {
+    margin: 0;
+    font-size: 26px;
     font-weight: 700;
 }
 
-.product-detail-info .product-detail-description {
-    margin: 0 0 24px;
-    color: #52525b;
-    font-size: 14px;
-    line-height: 1.75;
-}
-
-/* ===== Stock Status ===== */
-
-.product-detail-info .product-detail-stock {
-    display: inline-block;
-    margin: 0 0 24px;
+.pd-stock {
+    margin: 0;
     padding: 6px 12px;
-    background: #fafafa;
-    border: 1px solid #e4e4e7;
-    color: #18181b;
-    border-radius: 0px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: var(--ui-success);
+    background: var(--ui-success-bg);
 }
 
-.product-detail-info .product-detail-stock.out-of-stock {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #991b1b;
+.pd-stock.is-out {
+    color: var(--ui-danger);
+    background: var(--ui-danger-bg);
 }
 
-/* ===== Action Buttons ===== */
+.pd-description {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #404040;
+    overflow-wrap: anywhere;
+}
 
-.product-detail-actions {
+.pd-actions {
+    width: 100%;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     margin-top: 8px;
-    padding-top: 24px;
-    border-top: 1px solid #e4e4e7;
 }
 
-.add-cart-button,
-.view-cart-link {
+.pd-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 44px;
+    min-height: 48px;
     padding: 12px 24px;
-    border-radius: 9999px;
-    font-size: 12px;
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-control);
+    font-size: 15px;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-decoration: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.add-cart-button {
-    border: none;
-    background: #09090b;
+.pd-btn--grow {
+    flex: 1;
+}
+
+.pd-btn--primary {
+    background: var(--ui-primary);
     color: #ffffff;
 }
 
-.add-cart-button:hover {
-    background: #27272a;
+.pd-btn--primary:hover:not(:disabled) {
+    background: var(--ui-primary-hover);
 }
 
-.view-cart-link {
-    border: 1px solid #d4d4d8;
+.pd-btn--primary:disabled {
+    background: #a3a3a3;
+    cursor: not-allowed;
+}
+
+.pd-btn--ghost {
     background: #ffffff;
-    color: #18181b;
+    border-color: var(--ui-border);
+    color: var(--ui-text);
 }
 
-.view-cart-link:hover {
-    background: #f4f4f5;
+.pd-btn--ghost:hover {
+    background: var(--ui-hover);
 }
 
-/* ===== Responsive ===== */
+.pd-wish {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-control);
+    background: #ffffff;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
 
-@media (max-width: 768px) {
-    .product-detail-page {
-        padding: 24px 16px;
+.pd-wish:hover,
+.pd-wish.is-active {
+    background: var(--ui-hover);
+}
+
+.pd-unavailable {
+    padding-top: 64px;
+}
+
+.pd-unavailable h1 {
+    margin: 0 0 8px;
+}
+
+.pd-unavailable p {
+    margin: 0 0 24px;
+    color: var(--ui-muted);
+}
+
+@media (max-width: 767px) {
+    .pd-container {
+        padding: 12px 12px 48px;
     }
 
-    .product-detail-card {
+    .pd-layout {
         grid-template-columns: 1fr;
+        gap: 20px;
     }
 
-    .product-detail-image {
-        min-height: 300px;
-        border-right: none;
-        border-bottom: 1px solid #e4e4e7;
+    .pd-info h1 {
+        font-size: 24px;
     }
 
-    .product-detail-info {
-        padding: 24px;
+    .pd-price {
+        font-size: 22px;
     }
 }
