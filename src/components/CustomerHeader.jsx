@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import './CustomerHeader.css'
 import { useCart } from '../context/CartContext'
@@ -7,6 +7,7 @@ import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
 import { getProductVisual } from '../utils/productVisuals'
+import { handleImageError } from '../utils/format'
 import LucideIcon from './LucideIcon'
 import LoginModal from './LoginModal'
 
@@ -46,8 +47,39 @@ function CustomerHeader() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchText, setSearchText] = useState('')
     const [isLoginOpen, setIsLoginOpen] = useState(false)
+    const menuBtnRef = useRef(null)
+    const drawerCloseBtnRef = useRef(null)
 
     const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0)
+
+    // Escape đóng ngăn kéo; khóa cuộn nền khi ngăn kéo đang mở; quản lý focus.
+    useEffect(() => {
+        if (!activeDrawer) return undefined
+
+        if (activeDrawer === 'dashboard') {
+            drawerCloseBtnRef.current?.focus()
+        }
+
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                const wasDashboard = activeDrawer === 'dashboard'
+                setActiveDrawer(null)
+                setIsDrawerOpen(false)
+                if (wasDashboard) {
+                    menuBtnRef.current?.focus()
+                }
+            }
+        }
+        window.addEventListener('keydown', onKeyDown)
+        const previousOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown)
+            document.body.style.overflow = previousOverflow
+        }
+    }, [activeDrawer, setIsDrawerOpen])
+
     const activeProducts = products.filter(
         (product) => (product.status ?? 'ACTIVE') === 'ACTIVE'
     )
@@ -153,87 +185,109 @@ function CustomerHeader() {
 
     return (
         <>
-            {/* LỚP PHỦ XÁM & MỜ KHI MỞ DASHBOARD HOẶC NGĂN KÉO */}
+            {/* LỚP PHỦ XÁM & MỜ KHI MỞ MENU HOẶC NGĂN KÉO */}
             <div
                 className={`atelier-backdrop ${activeDrawer ? 'is-open' : ''}`}
-                onClick={closeAllDrawers}
+                onClick={() => {
+                    const wasDashboard = activeDrawer === 'dashboard'
+                    closeAllDrawers()
+                    if (wasDashboard) {
+                        menuBtnRef.current?.focus()
+                    }
+                }}
                 aria-hidden="true"
             />
 
             {/* ===================================================================== */}
-            {/* BẢNG DASHBOARD BÊN TRÁI (LÀM MỜ GIAO DIỆN CHÍNH KHI MỞ)               */}
+            {/* MENU DRAWER BÊN TRÁI (THEO REF-02)                                     */}
             {/* ===================================================================== */}
             <aside
-                className={`atelier-dashboard-drawer sharp-frame ${
+                className={`atelier-dashboard-drawer ch-menu-drawer ${
                     activeDrawer === 'dashboard' ? 'is-open' : ''
                 }`}
-                aria-label="Dashboard điều khiển"
+                aria-label="Menu điều hướng"
+                inert={activeDrawer !== 'dashboard'}
             >
                 <div>
-                    {/* Đầu Dashboard */}
                     <div className="atelier-drawer-header">
-                        <div className="atelier-drawer-brand">
-                            <div className="atelier-monogram sharp-frame">MW</div>
-                            <div>
-                                <p className="atelier-drawer-title">DASHBOARD</p>
-                                <p className="atelier-drawer-subtitle">
-                                    Bảng điều khiển hệ thống
-                                </p>
-                            </div>
-                        </div>
+                        <span className="ch-drawer-title">Menu</span>
                         <button
+                            ref={drawerCloseBtnRef}
                             type="button"
-                            onClick={closeAllDrawers}
+                            onClick={() => {
+                                closeAllDrawers()
+                                menuBtnRef.current?.focus()
+                            }}
                             className="icon-btn atelier-header-btn"
-                            title="Đóng Dashboard"
-                            aria-label="Đóng Dashboard"
+                            title="Đóng menu"
+                            aria-label="Đóng menu"
                         >
                             <LucideIcon name="x" size={20} strokeWidth={1.75} />
                         </button>
                     </div>
 
-                    {/* Tóm tắt tài khoản trên Dashboard */}
-                    <div className="atelier-dash-account sharp-frame">
-                        <div className="atelier-dash-user-row">
-                            <div className="atelier-dash-user-info">
-                                <div className="atelier-avatar">{userInitials}</div>
-                                <div>
-                                    <p className="atelier-user-name">
-                                        {currentUser
-                                            ? currentUser.fullName || currentUser.username
-                                            : 'Khách tham quan'}
-                                    </p>
-                                    <p className="atelier-user-role">
-                                        {currentUser
-                                            ? ROLE_LABELS[currentUser.role] || currentUser.role
-                                            : 'Đăng nhập để theo dõi đơn hàng'}
-                                    </p>
-                                </div>
-                            </div>
-                            {currentUser ? (
-                                <button
-                                    type="button"
-                                    onClick={() => openDrawer('profile')}
-                                    className="pill-btn atelier-dash-profile-btn"
-                                >
-                                    Hồ sơ
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        closeAllDrawers()
-                                        setIsLoginOpen(true)
-                                    }}
-                                    className="pill-btn atelier-dash-profile-btn"
-                                >
-                                    Đăng nhập
-                                </button>
-                            )}
-                        </div>
+                    <div className="atelier-dash-section">
+                        <nav className="atelier-dash-nav" aria-label="Menu khách hàng">
+                            <button
+                                type="button"
+                                onClick={() => handleNavigateAndClose('/')}
+                                className={`atelier-dash-link ch-menu-link ${
+                                    location.pathname === '/' ? 'is-active' : ''
+                                }`}
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="home" size={20} strokeWidth={1.75} />
+                                    <span>Trang chủ</span>
+                                </span>
+                            </button>
 
-                        {/* Thống kê nhanh trong Dashboard */}
-                        <div className="atelier-dash-stats sharp-frame">
+                            <button
+                                type="button"
+                                onClick={() => handleNavigateAndClose('/products')}
+                                className={`atelier-dash-link ch-menu-link ${
+                                    location.pathname === '/products' && !location.search
+                                        ? 'is-active'
+                                        : ''
+                                }`}
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="package" size={20} strokeWidth={1.75} />
+                                    <span>Sản phẩm</span>
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleNavigateAndClose('/cart')}
+                                className={`atelier-dash-link ch-menu-link ${
+                                    location.pathname === '/cart' ? 'is-active' : ''
+                                }`}
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="shopping-cart" size={20} strokeWidth={1.75} />
+                                    <span>Giỏ hàng</span>
+                                </span>
+                                {cartCount > 0 && (
+                                    <span className="atelier-dash-tag">{cartCount}</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => openDrawer('wishlist')}
+                                className="atelier-dash-link ch-menu-link"
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="heart" size={20} strokeWidth={1.75} />
+                                    <span>Yêu thích</span>
+                                </span>
+                                {wishlistIds.length > 0 && (
+                                    <span className="atelier-dash-count">
+                                        {wishlistIds.length}
+                                    </span>
+                                )}
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => {
@@ -244,212 +298,34 @@ function CustomerHeader() {
                                     }
                                     handleNavigateAndClose('/orders')
                                 }}
-                                className="atelier-dash-stat-btn"
-                            >
-                                <p className="atelier-stat-val">
-                                    {currentUser ? 'Xem' : '--'}
-                                </p>
-                                <p className="atelier-stat-lbl">Đơn hàng</p>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => openDrawer('wishlist')}
-                                className="atelier-dash-stat-btn"
-                            >
-                                <p className="atelier-stat-val">
-                                    {String(wishlistIds.length).padStart(2, '0')}
-                                </p>
-                                <p className="atelier-stat-lbl">Đã thích</p>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => openDrawer('cart')}
-                                className="atelier-dash-stat-btn"
-                            >
-                                <p className="atelier-stat-val">
-                                    {String(cartCount).padStart(2, '0')}
-                                </p>
-                                <p className="atelier-stat-lbl">Giỏ hàng</p>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Danh mục điều hướng chính trong Dashboard */}
-                    <div className="atelier-dash-section">
-                        <p className="atelier-dash-heading">Điều hướng nhanh</p>
-                        <nav className="atelier-dash-nav">
-                            <button
-                                type="button"
-                                onClick={() => handleNavigateAndClose('/')}
-                                className="atelier-dash-link pill-btn"
+                                className={`atelier-dash-link ch-menu-link ${
+                                    location.pathname.startsWith('/orders')
+                                        ? 'is-active'
+                                        : ''
+                                }`}
                             >
                                 <span className="atelier-dash-link-left">
-                                    <LucideIcon name="home" size={16} strokeWidth={1.75} />
-                                    <span>Trang chủ</span>
+                                    <LucideIcon name="file-text" size={20} strokeWidth={1.75} />
+                                    <span>Đơn hàng</span>
                                 </span>
-                                <LucideIcon name="chevron-right" size={16} />
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => handleNavigateAndClose('/', 'new-arrivals')}
-                                className="atelier-dash-link pill-btn"
+                                onClick={handleProfileClick}
+                                className="atelier-dash-link ch-menu-link"
                             >
                                 <span className="atelier-dash-link-left">
-                                    <LucideIcon name="sparkles" size={16} strokeWidth={1.75} />
-                                    <span>Hàng mới về (New Arrivals)</span>
+                                    <LucideIcon name="user" size={20} strokeWidth={1.75} />
+                                    <span>Tài khoản</span>
                                 </span>
-                                <span className="atelier-dash-tag">Mới</span>
                             </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleNavigateAndClose('/', 'best-sellers')}
-                                className="atelier-dash-link pill-btn"
-                            >
-                                <span className="atelier-dash-link-left">
-                                    <LucideIcon name="flame" size={16} strokeWidth={1.75} />
-                                    <span>Bán chạy nhất (Best Sellers)</span>
-                                </span>
-                                <LucideIcon name="chevron-right" size={16} />
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleNavigateAndClose('/products')}
-                                className="atelier-dash-link pill-btn"
-                            >
-                                <span className="atelier-dash-link-left">
-                                    <LucideIcon name="layout-grid" size={16} strokeWidth={1.75} />
-                                    <span>Toàn bộ danh mục sản phẩm</span>
-                                </span>
-                                <LucideIcon name="chevron-right" size={16} />
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleNavigateAndClose('/cart')}
-                                className="atelier-dash-link pill-btn"
-                            >
-                                <span className="atelier-dash-link-left">
-                                    <LucideIcon name="shopping-cart" size={16} strokeWidth={1.75} />
-                                    <span>Trang giỏ hàng</span>
-                                </span>
-                                <LucideIcon name="chevron-right" size={16} />
-                            </button>
-
-                            {currentUser && (
-                                <button
-                                    type="button"
-                                    onClick={() => handleNavigateAndClose('/orders')}
-                                    className="atelier-dash-link pill-btn"
-                                >
-                                    <span className="atelier-dash-link-left">
-                                        <LucideIcon name="package" size={16} strokeWidth={1.75} />
-                                        <span>Lịch sử & Theo dõi đơn hàng</span>
-                                    </span>
-                                    <LucideIcon name="chevron-right" size={16} />
-                                </button>
-                            )}
                         </nav>
-
-                        {/* Phân quyền Quản trị & Kho hàng (Giữ nguyên 100% route Admin & Warehouse) */}
-                        {(currentUser?.role === 'ADMIN' ||
-                            currentUser?.role === 'WAREHOUSE_MANAGER') && (
-                            <>
-                                <div className="atelier-dash-divider" />
-                                <p className="atelier-dash-heading">
-                                    Quản trị & Điều phối kho
-                                </p>
-                                <nav className="atelier-dash-nav">
-                                    {currentUser.role === 'ADMIN' && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleNavigateAndClose('/admin/products')
-                                            }
-                                            className="atelier-dash-link pill-btn"
-                                        >
-                                            <span className="atelier-dash-link-left">
-                                                <LucideIcon
-                                                    name="shield"
-                                                    size={16}
-                                                    strokeWidth={1.75}
-                                                />
-                                                <span>Quản lý sản phẩm (Admin)</span>
-                                            </span>
-                                            <LucideIcon name="chevron-right" size={16} />
-                                        </button>
-                                    )}
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigateAndClose('/inventory')
-                                        }
-                                        className="atelier-dash-link pill-btn"
-                                    >
-                                        <span className="atelier-dash-link-left">
-                                            <LucideIcon
-                                                name="warehouse"
-                                                size={16}
-                                                strokeWidth={1.75}
-                                            />
-                                            <span>Inventory Dashboard</span>
-                                        </span>
-                                        <LucideIcon name="chevron-right" size={16} />
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigateAndClose('/inventory/warehouses')
-                                        }
-                                        className="atelier-dash-link pill-btn"
-                                    >
-                                        <span className="atelier-dash-link-left">
-                                            <LucideIcon name="box" size={16} strokeWidth={1.75} />
-                                            <span>Tồn kho theo từng kho</span>
-                                        </span>
-                                        <LucideIcon name="chevron-right" size={16} />
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigateAndClose('/inventory/alerts')
-                                        }
-                                        className="atelier-dash-link pill-btn"
-                                    >
-                                        <span className="atelier-dash-link-left">
-                                            <LucideIcon
-                                                name="alert-triangle"
-                                                size={16}
-                                                strokeWidth={1.75}
-                                            />
-                                            <span>Cảnh báo tồn kho thấp</span>
-                                        </span>
-                                        <LucideIcon name="chevron-right" size={16} />
-                                    </button>
-                                </nav>
-                            </>
-                        )}
 
                         <div className="atelier-dash-divider" />
 
-                        <p className="atelier-dash-heading">Bộ lọc danh mục</p>
+                        <p className="atelier-dash-heading">Danh mục</p>
                         <div className="atelier-dash-nav">
-                            <button
-                                type="button"
-                                onClick={() => handleNavigateAndClose('/products')}
-                                className="atelier-dash-link pill-btn"
-                            >
-                                <span>Tất cả mặt hàng</span>
-                                <span className="atelier-dash-count">
-                                    {String(activeProducts.length).padStart(2, '0')}
-                                </span>
-                            </button>
-
                             {Object.entries(categoryCounts).map(([cat, count]) => (
                                 <button
                                     key={cat}
@@ -459,28 +335,93 @@ function CustomerHeader() {
                                             `/products?category=${encodeURIComponent(cat)}`
                                         )
                                     }
-                                    className="atelier-dash-link pill-btn"
+                                    className="atelier-dash-link ch-menu-link"
                                 >
-                                    <span>{cat}</span>
-                                    <span className="atelier-dash-count">
-                                        {String(count).padStart(2, '0')}
+                                    <span className="atelier-dash-link-left">
+                                        <LucideIcon
+                                            name="layout-grid"
+                                            size={18}
+                                            strokeWidth={1.75}
+                                        />
+                                        <span>{cat}</span>
                                     </span>
+                                    <span className="atelier-dash-count">{count}</span>
                                 </button>
                             ))}
                         </div>
+
+                        {(currentUser?.role === 'ADMIN' ||
+                            currentUser?.role === 'WAREHOUSE_MANAGER') && (
+                            <>
+                                <div className="atelier-dash-divider" />
+                                <p className="atelier-dash-heading">
+                                    Khu vực quản lý
+                                </p>
+                                <nav className="atelier-dash-nav">
+                                    {currentUser.role === 'ADMIN' && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleNavigateAndClose('/admin')
+                                            }
+                                            className="atelier-dash-link ch-menu-link"
+                                        >
+                                            <span className="atelier-dash-link-left">
+                                                <LucideIcon
+                                                    name="shield"
+                                                    size={18}
+                                                    strokeWidth={1.75}
+                                                />
+                                                <span>Quản trị hệ thống</span>
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleNavigateAndClose('/inventory')
+                                        }
+                                        className="atelier-dash-link ch-menu-link"
+                                    >
+                                        <span className="atelier-dash-link-left">
+                                            <LucideIcon
+                                                name="warehouse"
+                                                size={18}
+                                                strokeWidth={1.75}
+                                            />
+                                            <span>Quản lý tồn kho</span>
+                                        </span>
+                                    </button>
+                                </nav>
+                            </>
+                        )}
                     </div>
                 </div>
 
-                {/* Chân Dashboard */}
                 <div className="atelier-dash-footer">
-                    <p className="atelier-dash-footer-note">
-                        Hệ thống điều phối tồn kho tự động: TP.HCM • Hà Nội • Đà Nẵng
-                    </p>
+                    <div className="atelier-dash-user-row">
+                        <div className="atelier-dash-user-info">
+                            <div className="atelier-avatar">{userInitials}</div>
+                            <div>
+                                <p className="atelier-user-name">
+                                    {currentUser
+                                        ? currentUser.fullName || currentUser.username
+                                        : 'Khách tham quan'}
+                                </p>
+                                <p className="atelier-user-role">
+                                    {currentUser
+                                        ? ROLE_LABELS[currentUser.role] || currentUser.role
+                                        : 'Chưa đăng nhập'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                     {currentUser ? (
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="pill-btn atelier-dash-footer-btn"
+                            className="atelier-dash-footer-btn"
                         >
                             Đăng xuất ({currentUser.username})
                         </button>
@@ -491,7 +432,7 @@ function CustomerHeader() {
                                 closeAllDrawers()
                                 setIsLoginOpen(true)
                             }}
-                            className="pill-btn atelier-dash-footer-btn"
+                            className="atelier-dash-footer-btn"
                         >
                             Đăng nhập tài khoản
                         </button>
@@ -507,6 +448,7 @@ function CustomerHeader() {
                     activeDrawer && activeDrawer !== 'dashboard' ? 'is-open' : ''
                 }`}
                 aria-label="Ngăn kéo tiện ích"
+                inert={!activeDrawer || activeDrawer === 'dashboard'}
             >
                 <div className="atelier-drawer-header">
                     <h3 className="atelier-drawer-title">
@@ -526,7 +468,6 @@ function CustomerHeader() {
                 </div>
 
                 <div className="atelier-side-body">
-                    {/* NỘI DUNG GIỎ HÀNG */}
                     {activeDrawer === 'cart' &&
                         (cartItems.length === 0 ? (
                             <div className="atelier-side-empty">
@@ -542,6 +483,7 @@ function CustomerHeader() {
                                             src={visual.image}
                                             alt={item.name}
                                             className="atelier-drawer-item-img sharp-frame"
+                                            onError={handleImageError}
                                         />
                                         <div className="atelier-drawer-item-info">
                                             <h4 className="atelier-drawer-item-title">
@@ -583,7 +525,6 @@ function CustomerHeader() {
                             })
                         ))}
 
-                    {/* NỘI DUNG MỤC HÀNG ĐÃ THÍCH */}
                     {activeDrawer === 'wishlist' &&
                         (wishlistedProducts.length === 0 ? (
                             <div className="atelier-side-empty">
@@ -598,6 +539,7 @@ function CustomerHeader() {
                                             src={visual.image}
                                             alt={product.name}
                                             className="atelier-drawer-item-img sharp-frame"
+                                            onError={handleImageError}
                                         />
                                         <div className="atelier-drawer-item-info">
                                             <h4 className="atelier-drawer-item-title">
@@ -639,7 +581,6 @@ function CustomerHeader() {
                             })
                         ))}
 
-                    {/* NỘI DUNG TRANG CÁ NHÂN */}
                     {activeDrawer === 'profile' && currentUser && (
                         <div style={{ paddingTop: '16px' }}>
                             <div className="atelier-dash-user-info">
@@ -687,7 +628,6 @@ function CustomerHeader() {
                     )}
                 </div>
 
-                {/* CHÂN NGĂN KÉO PHẢI */}
                 <div className="atelier-side-footer">
                     {activeDrawer === 'cart' && cartItems.length > 0 && (
                         <>
@@ -757,7 +697,7 @@ function CustomerHeader() {
                                 onClick={() => openDrawer('dashboard')}
                                 className="pill-btn atelier-side-secondary-btn"
                             >
-                                Mở toàn bộ Dashboard
+                                Mở Menu điều hướng
                             </button>
                             <button
                                 type="button"
@@ -774,168 +714,198 @@ function CustomerHeader() {
             {/* ===================================================================== */}
             {/* THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION)                           */}
             {/* ===================================================================== */}
-            <header className="atelier-header">
-                <div className="atelier-header-inner">
-                    {/* Cụm nút chức năng bên trái (Menu Dashboard, Trang chủ, Sản phẩm, Tìm kiếm) */}
-                    <div className="atelier-nav-cluster">
-                        <button
-                            type="button"
-                            onClick={() => openDrawer('dashboard')}
-                            className={`icon-btn atelier-header-btn ${
-                                activeDrawer === 'dashboard' ? 'is-active' : ''
-                            }`}
-                            title="Mở Dashboard điều khiển"
-                            aria-label="Mở Dashboard điều khiển"
-                        >
-                            <LucideIcon name="menu" size={20} strokeWidth={1.6} />
-                        </button>
+            <header className="ch-header">
+                <div className="ch-inner">
+                    <button
+                        ref={menuBtnRef}
+                        type="button"
+                        onClick={() => openDrawer('dashboard')}
+                        className="icon-btn ch-menu"
+                        aria-label="Mở menu"
+                        aria-expanded={activeDrawer === 'dashboard'}
+                    >
+                        <LucideIcon name="menu" size={22} strokeWidth={1.75} />
+                    </button>
 
-                        <Link
-                            to="/"
-                            onClick={closeAllDrawers}
-                            className={`icon-btn atelier-header-btn ${
-                                location.pathname === '/' && !activeDrawer
-                                    ? 'is-active'
-                                    : ''
-                            }`}
-                            title="Trang chủ"
-                            aria-label="Trang chủ"
-                        >
-                            <LucideIcon name="home" size={20} strokeWidth={1.6} />
-                        </Link>
-
-                        <Link
-                            to="/products"
-                            onClick={closeAllDrawers}
-                            className={`icon-btn atelier-header-btn ${
-                                location.pathname.startsWith('/products') &&
-                                !activeDrawer
-                                    ? 'is-active'
-                                    : ''
-                            }`}
-                            title="Danh sách Sản phẩm"
-                            aria-label="Danh sách Sản phẩm"
-                        >
-                            <LucideIcon
-                                name="layout-grid"
-                                size={20}
-                                strokeWidth={1.6}
-                            />
-                        </Link>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsSearchOpen((prev) => !prev)}
-                            className={`icon-btn atelier-header-btn ${
-                                isSearchOpen ? 'is-active' : ''
-                            }`}
-                            title="Tìm kiếm sản phẩm"
-                            aria-label="Tìm kiếm sản phẩm"
-                        >
-                            <LucideIcon name="search" size={20} strokeWidth={1.6} />
-                        </button>
-                    </div>
-
-                    {/* Logo tối giản ở chính giữa */}
                     <Link
                         to="/"
                         onClick={closeAllDrawers}
-                        className="atelier-brand-logo"
+                        className="ch-brand"
                     >
-                        ATELIER <span>OF</span> MULTI-WAREHOUSE
+                        Multi-Warehouse
                     </Link>
 
-                    {/* Cụm nút chức năng bên phải: Đã thích, Giỏ hàng, Trang cá nhân */}
-                    <div className="atelier-nav-cluster">
+                    <nav className="ch-nav" aria-label="Điều hướng chính">
+                        <Link
+                            to="/"
+                            onClick={closeAllDrawers}
+                            className={`ch-nav__link ${
+                                location.pathname === '/' ? 'is-active' : ''
+                            }`}
+                        >
+                            <LucideIcon name="home" size={20} strokeWidth={1.75} />
+                            <span>Trang chủ</span>
+                        </Link>
+                        <Link
+                            to="/products"
+                            onClick={closeAllDrawers}
+                            className={`ch-nav__link ${
+                                location.pathname.startsWith('/products')
+                                    ? 'is-active'
+                                    : ''
+                            }`}
+                        >
+                            <LucideIcon name="package" size={20} strokeWidth={1.75} />
+                            <span>Sản phẩm</span>
+                        </Link>
+                        {(currentUser?.role === 'ADMIN' ||
+                            currentUser?.role === 'WAREHOUSE_MANAGER') && (
+                            <Link
+                                to={
+                                    currentUser.role === 'ADMIN'
+                                        ? '/admin'
+                                        : '/inventory'
+                                }
+                                onClick={closeAllDrawers}
+                                className="ch-nav__link"
+                            >
+                                <LucideIcon
+                                    name="dashboard"
+                                    size={20}
+                                    strokeWidth={1.75}
+                                />
+                                <span>Quản lý</span>
+                            </Link>
+                        )}
+                    </nav>
+
+                    <form
+                        className="ch-search"
+                        onSubmit={handleSearchSubmit}
+                        role="search"
+                    >
+                        <LucideIcon
+                            name="search"
+                            size={18}
+                            className="ch-search__icon"
+                        />
+                        <input
+                            type="search"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Tìm kiếm sản phẩm..."
+                            aria-label="Tìm kiếm sản phẩm"
+                        />
+                    </form>
+
+                    <div className="ch-actions">
                         <button
                             type="button"
-                            onClick={() => openDrawer('wishlist')}
-                            className={`icon-btn atelier-header-btn ${
-                                activeDrawer === 'wishlist' ? 'is-active' : ''
+                            onClick={() => setIsSearchOpen((prev) => !prev)}
+                            className={`ch-action ch-action--search ${
+                                isSearchOpen ? 'is-active' : ''
                             }`}
-                            title="Mục hàng đã thích"
-                            aria-label="Mục hàng đã thích"
+                            aria-label="Tìm kiếm sản phẩm"
+                            aria-expanded={isSearchOpen}
                         >
-                            <LucideIcon name="heart" size={20} strokeWidth={1.6} />
-                            <span className="atelier-badge">
-                                {wishlistIds.length}
+                            <span className="ch-action__icon">
+                                <LucideIcon name="search" size={22} strokeWidth={1.75} />
                             </span>
                         </button>
 
                         <button
                             type="button"
+                            onClick={() => openDrawer('wishlist')}
+                            className={`ch-action ${
+                                activeDrawer === 'wishlist' ? 'is-active' : ''
+                            }`}
+                            aria-label={`Yêu thích (${wishlistIds.length})`}
+                        >
+                            <span className="ch-action__icon">
+                                <LucideIcon name="heart" size={22} strokeWidth={1.75} />
+                                {wishlistIds.length > 0 && (
+                                    <span className="ch-badge">
+                                        {wishlistIds.length}
+                                    </span>
+                                )}
+                            </span>
+                            <span className="ch-action__label">Yêu thích</span>
+                        </button>
+
+                        <button
+                            type="button"
                             onClick={() => openDrawer('cart')}
-                            className={`icon-btn atelier-header-btn ${
+                            className={`ch-action ${
                                 activeDrawer === 'cart' ||
                                 location.pathname === '/cart'
                                     ? 'is-active'
                                     : ''
                             }`}
-                            title="Giỏ hàng"
-                            aria-label="Giỏ hàng"
+                            aria-label={`Giỏ hàng (${cartCount})`}
                         >
-                            <LucideIcon
-                                name="shopping-cart"
-                                size={20}
-                                strokeWidth={1.6}
-                            />
-                            <span className="atelier-badge">{cartCount}</span>
+                            <span className="ch-action__icon">
+                                <LucideIcon
+                                    name="shopping-cart"
+                                    size={22}
+                                    strokeWidth={1.75}
+                                />
+                                {cartCount > 0 && (
+                                    <span className="ch-badge ch-badge--cart">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </span>
+                            <span className="ch-action__label">Giỏ hàng</span>
                         </button>
 
                         <button
                             type="button"
                             onClick={handleProfileClick}
-                            className={`icon-btn atelier-header-btn ${
+                            className={`ch-action ${
                                 activeDrawer === 'profile' ? 'is-active' : ''
                             }`}
-                            title={
+                            aria-label={
                                 currentUser
                                     ? `Tài khoản: ${currentUser.username}`
                                     : 'Đăng nhập'
                             }
-                            aria-label={
-                                currentUser ? 'Trang cá nhân' : 'Đăng nhập'
-                            }
                         >
-                            <LucideIcon name="user" size={20} strokeWidth={1.6} />
+                            <span className="ch-action__icon">
+                                <LucideIcon name="user" size={22} strokeWidth={1.75} />
+                            </span>
+                            <span className="ch-action__label">
+                                {currentUser ? 'Tài khoản' : 'Đăng nhập'}
+                            </span>
                         </button>
                     </div>
                 </div>
 
-                {/* THANH TÌM KIẾM MỞ RỘNG (Khung vuông góc, xuất hiện khi nhấn icon Tìm kiếm) */}
                 {isSearchOpen && (
                     <form
                         onSubmit={handleSearchSubmit}
-                        className="atelier-search-bar sharp-frame"
+                        className="ch-search-bar"
+                        role="search"
                     >
-                        <div className="atelier-search-inner">
-                            <LucideIcon
-                                name="search"
-                                size={16}
-                                className="atelier-search-icon"
-                            />
-                            <input
-                                type="text"
-                                value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
-                                placeholder="Tìm kiếm sản phẩm nổi bật, laptop, bàn phím, phụ kiện..."
-                                className="atelier-search-input sharp-frame"
-                                autoFocus
-                            />
-                            <button
-                                type="submit"
-                                className="pill-btn atelier-search-submit"
-                            >
-                                Tìm kiếm
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleClearSearch}
-                                className="pill-btn atelier-search-close"
-                            >
-                                Đóng
-                            </button>
-                        </div>
+                        <LucideIcon
+                            name="search"
+                            size={18}
+                            className="ch-search__icon"
+                        />
+                        <input
+                            type="search"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Tìm kiếm sản phẩm..."
+                            aria-label="Tìm kiếm sản phẩm"
+                            autoFocus
+                        />
+                        <button
+                            type="button"
+                            onClick={handleClearSearch}
+                            className="ch-search-bar__close"
+                        >
+                            Đóng
+                        </button>
                     </form>
                 )}
             </header>

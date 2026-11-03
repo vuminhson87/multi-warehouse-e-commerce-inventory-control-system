@@ -191,6 +191,67 @@ export default function LucideIcon({
                     <path d="M5 12h14" />
                 </svg>
             )
+        case 'dashboard':
+            return (
+                <svg {...commonProps}>
+                    <rect width="7" height="9" x="3" y="3" rx="1" />
+                    <rect width="7" height="5" x="14" y="3" rx="1" />
+                    <rect width="7" height="9" x="14" y="12" rx="1" />
+                    <rect width="7" height="5" x="3" y="16" rx="1" />
+                </svg>
+            )
+        case 'arrow-right':
+            return (
+                <svg {...commonProps}>
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                </svg>
+            )
+        case 'arrow-left':
+            return (
+                <svg {...commonProps}>
+                    <path d="M19 12H5" />
+                    <path d="m12 19-7-7 7-7" />
+                </svg>
+            )
+        case 'filter':
+            return (
+                <svg {...commonProps}>
+                    <line x1="21" x2="14" y1="4" y2="4" />
+                    <line x1="10" x2="3" y1="4" y2="4" />
+                    <line x1="21" x2="12" y1="12" y2="12" />
+                    <line x1="8" x2="3" y1="12" y2="12" />
+                    <line x1="21" x2="16" y1="20" y2="20" />
+                    <line x1="12" x2="3" y1="20" y2="20" />
+                    <line x1="14" x2="14" y1="2" y2="6" />
+                    <line x1="8" x2="8" y1="10" y2="14" />
+                    <line x1="16" x2="16" y1="18" y2="22" />
+                </svg>
+            )
+        case 'sort':
+            return (
+                <svg {...commonProps}>
+                    <path d="m21 16-4 4-4-4" />
+                    <path d="M17 20V4" />
+                    <path d="m3 8 4-4 4 4" />
+                    <path d="M7 4v16" />
+                </svg>
+            )
+        case 'store':
+            return (
+                <svg {...commonProps}>
+                    <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+                    <path d="M2 7h20" />
+                </svg>
+            )
+        case 'check':
+            return (
+                <svg {...commonProps}>
+                    <path d="M20 6 9 17l-5-5" />
+                </svg>
+            )
         default:
             return null
     }

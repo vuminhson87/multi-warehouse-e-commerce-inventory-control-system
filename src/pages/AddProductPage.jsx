@@ -1,9 +1,7 @@
-
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import './ProductForm.css'
 
 function AddProductPage() {
     const { currentUser } = useAuth()
@@ -61,13 +59,15 @@ function AddProductPage() {
     }
 
     return (
-        <main className="product-form-page">
-            <div className="product-form-header">
-                <h1>Thêm sản phẩm</h1>
-                <p>Nhập thông tin sản phẩm mới vào hệ thống.</p>
+        <div className="mgmt-page">
+            <div className="mgmt-head">
+                <div>
+                    <h1>Thêm sản phẩm</h1>
+                    <p>Nhập thông tin sản phẩm mới vào hệ thống.</p>
+                </div>
             </div>
 
-            <form className="product-form" onSubmit={handleSubmit}>
+            <form className="mgmt-form" onSubmit={handleSubmit}>
                 <label htmlFor="product-name">Tên sản phẩm *</label>
                 <input
                     id="product-name"
@@ -115,30 +115,30 @@ function AddProductPage() {
                     placeholder="Nhập mô tả sản phẩm..."
                 />
 
-                <p className="product-form-note">
+                <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
                     Trạng thái kinh doanh mặc định: Đang kinh doanh. Tồn kho khởi tạo tại các kho là 0 (cập nhật tại mục Quản lý kho).
                 </p>
 
                 {error && (
-                    <p className="product-form-error" role="alert">
+                    <p className="mgmt-form__error" role="alert">
                         {error}
                     </p>
                 )}
 
-                <div className="product-form-actions">
+                <div className="mgmt-form__actions">
                     <Link
                         to="/admin/products"
-                        className="product-form-cancel"
+                        className="mgmt-btn mgmt-btn--ghost"
                     >
                         Hủy
                     </Link>
 
-                    <button type="submit" className="product-form-submit">
+                    <button type="submit" className="mgmt-btn mgmt-btn--primary">
                         Lưu sản phẩm
                     </button>
                 </div>
             </form>
-        </main>
+        </div>
     )
 }
 

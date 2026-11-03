@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import ProductCatalogPage from './pages/ProductCatalogPage'
 import InventoryDashboardPage from './pages/InventoryDashboardPage'
 import ProductManagementPage from './pages/ProductManagementPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ShoppingCartPage from './pages/ShoppingCartPage'
@@ -71,6 +72,10 @@ function App() {
 
                   {/* Admin */}
                   <Route element={<AdminLayout />}>
+                    <Route
+                      path="/admin"
+                      element={<AdminDashboardPage />}
+                    />
                     <Route
                       path="/admin/products"
                       element={<ProductManagementPage />}
