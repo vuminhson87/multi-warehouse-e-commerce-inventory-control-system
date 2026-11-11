@@ -59,6 +59,10 @@ const ADMIN_TRANSITIONS = Object.freeze({
     [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED],
 })
 
+const WAREHOUSE_MANAGER_TRANSITIONS = Object.freeze({
+    [OrderStatus.PAID]: [OrderStatus.PROCESSING],
+})
+
 export function isOrderStatus(value) {
     return Object.values(OrderStatus).includes(value)
 }
@@ -74,4 +78,8 @@ export function canCustomerPay(status, paymentInProgress) {
 
 export function canAdminTransition(fromStatus, toStatus) {
     return (ADMIN_TRANSITIONS[fromStatus] ?? []).includes(toStatus)
+}
+
+export function canWarehouseManagerTransition(fromStatus, toStatus) {
+    return (WAREHOUSE_MANAGER_TRANSITIONS[fromStatus] ?? []).includes(toStatus)
 }
