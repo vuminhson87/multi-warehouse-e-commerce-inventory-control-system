@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useProducts } from './ProductContext'
 import { useInventory } from './InventoryContext'
@@ -45,6 +45,7 @@ export function CartProvider({ children }) {
     const [cartByUser, setCartByUser] = useState(() => ({
         [storageKey]: loadSavedCart(storageKey),
     }))
+    const cartByUserRef = useRef(cartByUser)
 
     const rawItems = cartByUser[storageKey] ?? loadSavedCart(storageKey)
 
@@ -93,58 +94,71 @@ export function CartProvider({ children }) {
     }, [rawItems, findFulfillmentWarehouse])
 
     const updateRawItems = (updater) => {
-        setCartByUser((prev) => {
-            const currentItems = prev[storageKey] ?? loadSavedCart(storageKey)
-            const nextItems =
-                typeof updater === 'function' ? updater(currentItems) : updater
-            return {
-                ...prev,
-                [storageKey]: nextItems,
-            }
-        })
+        const previousCart = cartByUserRef.current
+        const currentItems = previousCart[storageKey] ?? loadSavedCart(storageKey)
+        const nextItems = typeof updater === 'function' ? updater(currentItems) : updater
+
+        if (nextItems === currentItems) return false
+
+        const nextCart = {
+            ...previousCart,
+            [storageKey]: nextItems,
+        }
+
+        cartByUserRef.current = nextCart
+        setCartByUser(nextCart)
+        return true
     }
 
-    const addToCart = (product) => {
-        const productId = Number(product.id)
-        const currentProduct = products.find((p) => Number(p.id) === productId)
+    const addToCart = (product, quantity = 1, { warehouseStock } = {}) => {
+        const productId = Number(product?.id)
+        const currentProduct = products.find((item) => Number(item.id) === productId)
 
-        if (currentProduct && currentProduct.status === 'DISCONTINUED') {
-            alert('Sản phẩm đã ngừng kinh doanh, không thể thêm vào giỏ hàng.')
-            return
+        if (!currentProduct || (currentProduct.status ?? 'ACTIVE') !== 'ACTIVE') {
+            alert('Sản phẩm không khả dụng để thêm vào giỏ hàng.')
+            return false
         }
 
-        const available = getProductAvailableStock(productId)
-        if (available <= 0) {
-            alert('Sản phẩm hiện đã hết hàng, không thể thêm vào giỏ hàng.')
-            return
+        if (!Number.isSafeInteger(quantity) || quantity < 1) {
+            alert('Số lượng thêm phải là số nguyên dương.')
+            return false
         }
 
-        const existingItem = rawItems.find((item) => item.productId === productId)
-        const currentQty = existingItem ? existingItem.quantity : 0
+        if (warehouseStock !== undefined
+            && (!Number.isSafeInteger(warehouseStock) || warehouseStock < 0)) {
+            alert('Thông tin tồn kho không hợp lệ.')
+            return false
+        }
 
-        if (currentQty + 1 > available) {
-            alert(
-                `Số lượng trong giỏ vượt quá tồn khả dụng dự kiến của một kho (hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
+        const singleWarehouseStock = getProductAvailableStock(productId)
+        const available = Math.min(singleWarehouseStock, warehouseStock ?? singleWarehouseStock)
+
+        if (!Number.isSafeInteger(available) || available <= 0) {
+            alert(warehouseStock === undefined
+                ? 'Sản phẩm hiện đã hết hàng, không thể thêm vào giỏ hàng.'
+                : 'Sản phẩm hiện đã hết hàng tại kho đang xem.')
+            return false
+        }
+
+        const limit = Math.min(available, MAX_QUANTITY_PER_PRODUCT)
+        const added = updateRawItems((items) => {
+            const existing = items.find((item) => item.productId === productId)
+            const nextQty = (existing?.quantity ?? 0) + quantity
+
+            if (nextQty > limit) return items
+
+            if (!existing) return [...items, { productId, quantity }]
+
+            return items.map((item) =>
+                item.productId === productId ? { ...item, quantity: nextQty } : item
             )
-            return
-        }
-
-        if (currentQty + 1 > MAX_QUANTITY_PER_PRODUCT) {
-            alert(`Số lượng tối đa cho mỗi sản phẩm là ${MAX_QUANTITY_PER_PRODUCT}.`)
-            return
-        }
-
-        updateRawItems((prev) => {
-            const existing = prev.find((item) => item.productId === productId)
-            if (existing) {
-                return prev.map((item) =>
-                    item.productId === productId
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                )
-            }
-            return [...prev, { productId, quantity: 1 }]
         })
+
+        if (!added) {
+            alert(`Tổng số lượng sản phẩm trong giỏ không được vượt quá ${limit}.`)
+        }
+
+        return added
     }
 
     const increaseQuantity = (productId) => {
@@ -162,7 +176,8 @@ export function CartProvider({ children }) {
             return
         }
 
-        const existingItem = rawItems.find((item) => item.productId === targetId)
+        const latestItems = cartByUserRef.current[storageKey] ?? loadSavedCart(storageKey)
+        const existingItem = latestItems.find((item) => item.productId === targetId)
         const currentQty = existingItem ? existingItem.quantity : 0
 
         if (currentQty + 1 > available) {

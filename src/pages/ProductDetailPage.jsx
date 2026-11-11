@@ -1,22 +1,31 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import './ProductDetailPage.css'
 import { useCart } from '../context/CartContext'
 import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
-import { getProductVisual } from '../utils/productVisuals'
-import { formatPrice, handleImageError } from '../utils/format'
+import { warehouses } from '../data/inventory'
+import { formatPrice } from '../utils/format'
 import LucideIcon from '../components/LucideIcon'
+import ProductImage from '../components/ProductImage'
 
 const MAX_QUANTITY_PER_PRODUCT = 100
 
 function ProductDetailPage() {
     const { productId } = useParams()
+    return <ProductDetailContent key={productId} productId={productId} />
+}
+
+function ProductDetailContent({ productId }) {
     const navigate = useNavigate()
     const { cartItems, addToCart } = useCart()
     const { products } = useProducts()
-    const { getProductAvailableStock } = useInventory()
+    const { inventory } = useInventory()
     const { isWishlisted, toggleWishlist, showToast } = useWishlist()
+
+    const [warehouseId, setWarehouseId] = useState('')
+    const [requestedQuantity, setRequestedQuantity] = useState(1)
 
     const product = products.find(
         (item) => String(item.id) === String(productId)
@@ -36,19 +45,58 @@ function ProductDetailPage() {
         )
     }
 
-    const visual = getProductVisual(product)
-    const availableStock = getProductAvailableStock(product.id)
+    const warehouseOptions = warehouses.map((warehouse) => {
+        const row = inventory.find((item) =>
+            Number(item.productId) === Number(product.id)
+            && Number(item.warehouseId) === Number(warehouse.id)
+        )
+
+        return {
+            ...warehouse,
+            available: row ? Math.max(0, row.onHand - row.reserved) : 0,
+        }
+    })
+
+    const defaultWarehouse = warehouseOptions.reduce(
+        (best, option) => !best || option.available > best.available ? option : best,
+        null
+    )
+    const selectedWarehouse = warehouseOptions.find(
+        (warehouse) => String(warehouse.id) === warehouseId
+    ) ?? defaultWarehouse
+
+    const availableStock = selectedWarehouse?.available ?? 0
     const isInStock = availableStock > 0
     const liked = isWishlisted(product.id)
+    const inCart = cartItems.find(
+        (item) => Number(item.productId ?? item.id) === Number(product.id)
+    )?.quantity ?? 0
+
+    const maxCanAdd = Math.max(
+        0,
+        Math.min(availableStock, MAX_QUANTITY_PER_PRODUCT) - inCart
+    )
+    const quantity = Math.min(requestedQuantity, maxCanAdd)
+
+    let stockLabel = 'Chưa có thông tin tồn kho'
+    if (selectedWarehouse) {
+        stockLabel = isInStock
+            ? `Còn hàng tại ${selectedWarehouse.name} (${availableStock} sản phẩm)`
+            : `Hết hàng tại ${selectedWarehouse.name}`
+    }
+
+    function handleWarehouseChange(event) {
+        setWarehouseId(event.target.value)
+        setRequestedQuantity(1)
+    }
 
     function handleAddToCart() {
-        const existing = cartItems.find(
-            (item) => Number(item.productId ?? item.id) === Number(product.id)
-        )
-        const nextQty = (existing ? existing.quantity : 0) + 1
-        addToCart(product)
-        if (nextQty <= availableStock && nextQty <= MAX_QUANTITY_PER_PRODUCT) {
-            showToast(`Đã thêm "${product.name}" vào giỏ hàng`)
+        if (quantity < 1) return
+
+        const added = addToCart(product, quantity, { warehouseStock: availableStock })
+        if (added) {
+            showToast(`Đã thêm ${quantity} sản phẩm "${product.name}" vào giỏ hàng`)
+            setRequestedQuantity(1)
         }
     }
 
@@ -65,11 +113,11 @@ function ProductDetailPage() {
                 </button>
 
                 <div className="pd-layout">
-                    <div className="pd-media">
-                        <img
-                            src={visual.image}
-                            alt={product.name}
-                            onError={handleImageError}
+                    <div className="pd-media product-detail-image">
+                        <ProductImage
+                            imageUrl={product.imageUrl}
+                            name={product.name}
+                            loading="eager"
                         />
                     </div>
 
@@ -87,21 +135,65 @@ function ProductDetailPage() {
                             className={`pd-stock ${isInStock ? '' : 'is-out'}`}
                             role="status"
                         >
-                            {isInStock
-                                ? `Còn hàng (${availableStock} sản phẩm khả dụng tại một kho)`
-                                : 'Hết hàng'}
+                            {stockLabel}
                         </p>
 
                         {product.description && (
                             <p className="pd-description">{product.description}</p>
                         )}
 
+                        <div className="pd-warehouse-field">
+                            <label htmlFor="pd-warehouse">Xem tồn theo kho</label>
+                            <select
+                                id="pd-warehouse"
+                                value={selectedWarehouse ? String(selectedWarehouse.id) : ''}
+                                onChange={handleWarehouseChange}
+                                disabled={warehouseOptions.length === 0}
+                                aria-describedby="pd-warehouse-note"
+                            >
+                                {warehouseOptions.length === 0 && <option value="">Chưa có kho</option>}
+                                {warehouseOptions.map((warehouse) => (
+                                    <option key={warehouse.id} value={warehouse.id}>
+                                        {warehouse.name} — {warehouse.available > 0
+                                            ? `Còn ${warehouse.available} sản phẩm`
+                                            : 'Hết hàng'}
+                                    </option>
+                                ))}
+                            </select>
+                            <p id="pd-warehouse-note" className="pd-warehouse-note">
+                                Hệ thống xác nhận kho xuất hàng khi đặt đơn.
+                            </p>
+                        </div>
+
                         <div className="pd-actions">
+                            <div className="pd-quantity-field">
+                                <span id="pd-quantity-label">Số lượng</span>
+                                <div className="pd-stepper" role="group" aria-labelledby="pd-quantity-label">
+                                    <button
+                                        type="button"
+                                        aria-label="Giảm số lượng"
+                                        onClick={() => setRequestedQuantity(quantity - 1)}
+                                        disabled={quantity <= 1}
+                                    >
+                                        <LucideIcon name="minus" size={16} />
+                                    </button>
+                                    <output aria-label="Số lượng muốn thêm">{quantity}</output>
+                                    <button
+                                        type="button"
+                                        aria-label="Tăng số lượng"
+                                        onClick={() => setRequestedQuantity(quantity + 1)}
+                                        disabled={quantity >= maxCanAdd}
+                                    >
+                                        <LucideIcon name="plus" size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
                             <button
                                 type="button"
                                 className="pd-btn pd-btn--primary pd-btn--grow"
                                 onClick={handleAddToCart}
-                                disabled={!isInStock}
+                                disabled={quantity < 1}
                             >
                                 {isInStock ? 'Thêm vào giỏ hàng' : 'Tạm hết hàng'}
                             </button>
@@ -125,9 +217,30 @@ function ProductDetailPage() {
                             </button>
                         </div>
 
+                        {isInStock && maxCanAdd === 0 && (
+                            <p className="pd-warehouse-note" role="status">
+                                Số lượng trong giỏ đã đạt giới hạn tại kho đang xem.
+                            </p>
+                        )}
+
                         <Link to="/cart" className="pd-btn pd-btn--ghost">
                             Xem giỏ hàng
                         </Link>
+
+                        <ul className="pd-service-badges" aria-label="Chính sách cửa hàng">
+                            <li>
+                                <LucideIcon name="package" size={20} />
+                                <span>Giao hàng nhanh</span>
+                            </li>
+                            <li>
+                                <LucideIcon name="shield" size={20} />
+                                <span>Bảo hành 24 tháng</span>
+                            </li>
+                            <li>
+                                <LucideIcon name="check" size={20} />
+                                <span>Hoàn hàng trong 7 ngày</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>

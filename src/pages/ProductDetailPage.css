@@ -52,6 +52,24 @@
     display: block;
 }
 
+.product-detail-image > img {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    border-radius: inherit;
+}
+
+.product-detail-image > span,
+.pd-media > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 54px;
+    line-height: 1;
+    user-select: none;
+}
+
 .pd-info {
     min-width: 0;
     display: flex;
@@ -109,6 +127,7 @@
 .pd-actions {
     width: 100%;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     margin-top: 8px;
@@ -188,9 +207,122 @@
     color: var(--ui-muted);
 }
 
+.pd-warehouse-field {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+}
+
+.pd-warehouse-field label,
+.pd-quantity-field > span {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.pd-warehouse-field select {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-control);
+    background: #fff;
+    color: var(--ui-text);
+    font: inherit;
+}
+
+.pd-warehouse-note {
+    margin: 0;
+    color: var(--ui-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.pd-quantity-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pd-stepper {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-control);
+}
+
+.pd-stepper button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--ui-radius-control);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.pd-stepper button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.pd-stepper output {
+    min-width: 30px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-warehouse-field select:focus-visible,
+.pd-stepper button:focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 2px;
+}
+
+.pd-service-badges {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pd-service-badges li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--ui-radius-control);
+    background: var(--ui-surface-alt);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pd-service-badges svg {
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .pd-quantity-field {
+        flex-basis: 100%;
+    }
+
+    .pd-service-badges {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 767px) {
     .pd-container {
         padding: 12px 12px 48px;
+    }
+
+    .product-detail-image > img {
+        max-height: 260px;
     }
 
     .pd-layout {
