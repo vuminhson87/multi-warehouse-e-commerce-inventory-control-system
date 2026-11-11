@@ -16,6 +16,7 @@ function AddProductPage() {
     })
 
     const [error, setError] = useState('')
+    const [saving, setSaving] = useState(false)
 
     if (currentUser?.role !== 'ADMIN') {
         return <Navigate to="/products" replace />
@@ -32,8 +33,9 @@ function AddProductPage() {
         setError('')
     }
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault()
+      if (saving) return
 
         if (!form.name.trim()) {
             setError('Vui lòng nhập tên sản phẩm.')
@@ -54,8 +56,15 @@ function AddProductPage() {
             return
         }
 
-        addProduct(form)
-        navigate('/admin/products')
+        setSaving(true)
+        try {
+          await addProduct(form)
+          navigate('/admin/products')
+        } catch (error) {
+          setError(error.message)
+        } finally {
+          setSaving(false)
+        }
     }
 
     return (
@@ -133,7 +142,7 @@ function AddProductPage() {
                         Hủy
                     </Link>
 
-                    <button type="submit" className="mgmt-btn mgmt-btn--primary">
+                    <button type="submit" disabled={saving} className="mgmt-btn mgmt-btn--primary">
                         Lưu sản phẩm
                     </button>
                 </div>

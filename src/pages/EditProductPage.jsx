@@ -10,6 +10,13 @@ import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 
 function EditProductPage() {
+  const { productId } = useParams()
+  const { loading, error } = useProducts()
+  if (loading || error) return <p role={error ? "alert" : "status"}>{error?.message ?? "Đang tải sản phẩm…"}</p>
+  return <EditProductForm key={productId} />
+}
+
+function EditProductForm() {
   const { currentUser } = useAuth()
   const { products, updateProduct } = useProducts()
   const { productId } = useParams()
@@ -37,6 +44,7 @@ function EditProductPage() {
   }))
 
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   if (currentUser?.role !== 'ADMIN') {
     return <Navigate to="/products" replace />
@@ -69,8 +77,9 @@ function EditProductPage() {
     setError('')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    if (saving) return
 
     if (!form.name.trim()) {
       setError('Vui lòng nhập tên sản phẩm.')
@@ -91,8 +100,15 @@ function EditProductPage() {
       return
     }
 
-    updateProduct(productId, form)
-    navigate(listDestination)
+    setSaving(true)
+    try {
+      await updateProduct(productId, form)
+      navigate(listDestination)
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -168,7 +184,7 @@ function EditProductPage() {
             Hủy
           </Link>
 
-          <button type="submit" className="mgmt-btn mgmt-btn--primary">
+          <button type="submit" disabled={saving} className="mgmt-btn mgmt-btn--primary">
             Lưu thay đổi
           </button>
         </div>

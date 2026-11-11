@@ -1,8 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import { useInventory } from '../context/InventoryContext'
 import ProductThumb from '../components/ProductThumb'
 import ProductPagination from '../components/ProductPagination'
 import FeaturedProductsPanel from '../components/FeaturedProductsPanel'
@@ -21,8 +20,21 @@ function readAdminProductsPage(value) {
 
 function ProductManagementPage() {
     const { currentUser } = useAuth()
-    const { products, updateProductStatus } = useProducts()
-    const { getProductAvailableStock } = useInventory()
+    const { products, updateProductStatus, loading, error } = useProducts()
+    const [pending, setPending] = useState(false)
+    const [statusError, setStatusError] = useState(null)
+
+    async function changeStatus(id, status) {
+        setPending(true)
+        setStatusError(null)
+        try {
+            await updateProductStatus(id, status)
+        } catch (error) {
+            setStatusError(error.message)
+        } finally {
+            setPending(false)
+        }
+    }
 
     const [searchParams, setSearchParams] = useSearchParams()
     const rawPage = searchParams.get('page')
@@ -104,6 +116,8 @@ function ProductManagementPage() {
 
     return (
         <div className="mgmt-page">
+            {loading && <p role="status">Đang tải sản phẩm…</p>}
+            {(error || statusError) && <p role="alert">{error?.message ?? statusError}</p>}
             <div className="mgmt-head">
                 <div>
                     <h1>Quản lý sản phẩm</h1>
@@ -184,9 +198,7 @@ function ProductManagementPage() {
 
                         <tbody>
                             {pageProducts.map((product) => {
-                                const available = getProductAvailableStock(
-                                    product.id
-                                )
+                                const available = product.maxAvailable ?? 0
                                 const isInStock = available > 0
 
                                 return (
@@ -219,8 +231,9 @@ function ProductManagementPage() {
                                             <select
                                                 className="mgmt-select"
                                                 value={product.status ?? 'ACTIVE'}
+                                                disabled={pending}
                                                 onChange={(event) =>
-                                                    updateProductStatus(
+                                                    changeStatus(
                                                         product.id,
                                                         event.target.value
                                                     )
