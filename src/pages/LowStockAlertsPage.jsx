@@ -19,8 +19,6 @@ import {
 function ThresholdForm({ products, selectedProductId, currentThreshold, onProductChange, onSave, pending }) {
     const [input, setInput] = useState(String(currentThreshold))
 
-    useEffect(() => setInput(String(currentThreshold)), [currentThreshold, selectedProductId])
-
     return (
         <div className="mgmt-toolbar" style={{ alignItems: 'center' }}>
             <label className="mgmt-field" htmlFor="low-stock-product-select">
