@@ -32,7 +32,6 @@ function InventoryDashboardPage() {
     const [reloadKey, setReloadKey] = useState(0)
 
     const [searchParams, setSearchParams] = useSearchParams()
-    const isAdmin = currentUser?.role === 'ADMIN'
     const warehouses = inventoryData.warehouses
 
     useEffect(() => {
