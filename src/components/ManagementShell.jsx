@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { flushSync } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
-import { warehouses } from '../data/inventory'
+import { loadWarehouses } from '../services/inventoryApi.js'
 import LucideIcon from './LucideIcon'
 import './management.css'
 
@@ -14,9 +14,34 @@ const ROLE_LABELS = {
 // Khung điều hướng dùng chung cho Quản lý kho và Admin.
 // Chỉ liệt kê các route thực sự tồn tại và đúng quyền của người dùng.
 function ManagementShell({ children }) {
-    const { currentUser, setCurrentUser } = useAuth()
+    const { currentUser, token, setCurrentUser } = useAuth()
     const navigate = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
+    const [warehouseState, setWarehouseState] = useState(null)
+    const warehouseRequestKey = `${token ?? ''}:${currentUser?.assignedWarehouseId ?? ''}`
+
+    useEffect(() => {
+        if (
+            !token ||
+            currentUser?.role !== 'WAREHOUSE_MANAGER' ||
+            !currentUser.assignedWarehouseId
+        ) return undefined
+
+        const controller = new AbortController()
+        loadWarehouses(token, controller.signal)
+            .then(warehouses => {
+                if (!controller.signal.aborted) {
+                    setWarehouseState({ requestKey: warehouseRequestKey, warehouses })
+                }
+            })
+            .catch(error => {
+                if (!controller.signal.aborted) {
+                    setWarehouseState({ requestKey: warehouseRequestKey, warehouses: [], error })
+                }
+            })
+
+        return () => controller.abort()
+    }, [token, currentUser?.role, currentUser?.assignedWarehouseId, warehouseRequestKey])
 
     // Escape đóng sidebar trên mobile.
     useEffect(() => {
@@ -36,6 +61,9 @@ function ManagementShell({ children }) {
     }
 
     const isAdmin = currentUser.role === 'ADMIN'
+    const warehouses = warehouseState?.requestKey === warehouseRequestKey
+        ? warehouseState.warehouses
+        : []
     const assignedWarehouse = warehouses.find(
         (w) => Number(w.id) === Number(currentUser.assignedWarehouseId)
     )
@@ -142,7 +170,9 @@ function ManagementShell({ children }) {
                                 {ROLE_LABELS[currentUser.role]}
                                 {assignedWarehouse
                                     ? ` • ${assignedWarehouse.name}`
-                                    : ''}
+                                    : currentUser.role === 'WAREHOUSE_MANAGER'
+                                        ? ` • ${currentUser.assignedWarehouseId ? `Kho #${currentUser.assignedWarehouseId}` : 'Chưa được phân công kho'}`
+                                        : ''}
                             </small>
                         </span>
                     </div>

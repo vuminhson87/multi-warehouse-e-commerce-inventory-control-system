@@ -24,7 +24,6 @@ import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import './App.css'
 import { ProductProvider } from './context/ProductContext'
-import InventoryProvider from './context/InventoryProvider'
 import { WishlistProvider } from './context/WishlistContext'
 import HomePage from './pages/HomePage'
 import CustomerLayout from './layouts/CustomerLayout'
@@ -35,10 +34,9 @@ function App() {
   return (
     <AuthProvider>
       <ProductProvider>
-        <InventoryProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <BrowserRouter>
+        <CartProvider>
+          <WishlistProvider>
+            <BrowserRouter>
                 <Routes>
                   <Route element={<CustomerLayout />}>
                     <Route path="/" element={<HomePage />} />
@@ -96,10 +94,9 @@ function App() {
 
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-              </BrowserRouter>
-            </WishlistProvider>
-          </CartProvider>
-        </InventoryProvider>
+            </BrowserRouter>
+          </WishlistProvider>
+        </CartProvider>
       </ProductProvider>
     </AuthProvider>
   )
