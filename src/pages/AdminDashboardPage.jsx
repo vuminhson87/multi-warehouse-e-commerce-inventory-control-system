@@ -1,110 +1,126 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { warehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
-import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
+import { loadWarehouseAlerts, loadWarehouseInventory, loadWarehouses } from '../services/inventoryApi.js'
 import ProductThumb from '../components/ProductThumb'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber, formatPrice } from '../utils/format'
-import {
-    getStockStatus,
-    getStoredThresholds,
-    getThreshold,
-} from '../utils/stockThresholds'
-
-const WAREHOUSE_COLORS = ['#2f6fed', '#2fa866', '#f08a3c', '#9b8cf0', '#e0b341']
+import { getStockStatus } from '../utils/stockThresholds'
+import { buildWarehouseDistribution, summarizeDashboardInventory } from '../utils/adminDashboardData.js'
 
 function AdminDashboardPage() {
-    const { currentUser } = useAuth()
-    const { products } = useProducts()
-    const { inventory, getProductAvailableStock, getTotalAvailableStock } =
-        useInventory()
-    const thresholds = useMemo(() => getStoredThresholds(), [])
+    const { currentUser, token, authLoading } = useAuth()
+    const { products, loading: productsLoading, error: productsError } = useProducts()
+    const [reloadKey, setReloadKey] = useState(0)
+    const [dashboardData, setDashboardData] = useState({ requestKey: null, warehouses: [], inventory: [], alerts: [], error: null })
+    const requestKey = `${token ?? ''}:${reloadKey}`
+
+    useEffect(() => {
+        if (!token || currentUser?.role !== 'ADMIN') return undefined
+        const controller = new AbortController()
+
+        async function loadDashboard() {
+            try {
+                const [warehouses, alerts] = await Promise.all([
+                    loadWarehouses(token, controller.signal),
+                    loadWarehouseAlerts(token, undefined, controller.signal),
+                ])
+                const inventoryPages = await Promise.all(warehouses.map(warehouse =>
+                    loadWarehouseInventory(token, warehouse.id, controller.signal)
+                ))
+                if (!controller.signal.aborted) {
+                    setDashboardData({
+                        requestKey,
+                        warehouses,
+                        inventory: inventoryPages.flat(),
+                        alerts,
+                        error: null,
+                    })
+                }
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    setDashboardData({ requestKey, warehouses: [], inventory: [], alerts: [], error })
+                }
+            }
+        }
+
+        void loadDashboard()
+        return () => controller.abort()
+    }, [token, currentUser?.role, requestKey])
+
+    const dashboardLoading = authLoading || productsLoading || dashboardData.requestKey !== requestKey
+    const dashboardError = productsError || (dashboardData.requestKey === requestKey ? dashboardData.error : null)
+    const warehouses = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.warehouses : [],
+        [dashboardData, requestKey]
+    )
+    const inventory = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.inventory : [],
+        [dashboardData, requestKey]
+    )
+    const rawAlerts = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.alerts : [],
+        [dashboardData, requestKey]
+    )
 
     const stats = useMemo(() => {
         const activeCount = products.filter(
             (p) => (p.status ?? 'ACTIVE') === 'ACTIVE'
         ).length
         const discontinuedCount = products.length - activeCount
-        const totalOnHand = inventory.reduce((sum, i) => sum + i.onHand, 0)
-        const totalReserved = inventory.reduce((sum, i) => sum + i.reserved, 0)
-        const totalAvailable = totalOnHand - totalReserved
+        const inventorySummary = summarizeDashboardInventory(inventory)
 
         return {
             totalProducts: products.length,
             activeCount,
             discontinuedCount,
-            totalOnHand,
-            totalReserved,
-            totalAvailable,
+            ...inventorySummary,
         }
     }, [products, inventory])
 
-    const alerts = useMemo(
-        () =>
-            inventory
-                .map((item) => {
-                    const product = products.find(
-                        (p) => Number(p.id) === Number(item.productId)
-                    )
-                    const warehouse = warehouses.find(
-                        (w) => Number(w.id) === Number(item.warehouseId)
-                    )
-                    const available = item.onHand - item.reserved
-                    const threshold = getThreshold(
-                        thresholds,
-                        item.warehouseId,
-                        item.productId
-                    )
-                    return {
-                        ...item,
-                        product,
-                        warehouse,
-                        available,
-                        threshold,
-                        status: getStockStatus(available, threshold),
-                    }
-                })
-                .filter((row) => row.product && row.status !== 'NORMAL')
-                .sort((a, b) => a.available - b.available),
-        [inventory, products, thresholds]
-    )
+    const alerts = useMemo(() => {
+        const inventoryByKey = new Map(inventory.map(item => [`${item.warehouseId}:${item.productId}`, item]))
+        return rawAlerts.map(alert => {
+            const inventoryRow = inventoryByKey.get(`${alert.warehouseId}:${alert.productId}`)
+            const product = products.find(item => Number(item.id) === Number(alert.productId))
+            const warehouse = warehouses.find(item => Number(item.id) === Number(alert.warehouseId))
+            const available = Number(alert.currentAvailable)
+            const threshold = Number(alert.threshold)
+            return {
+                ...alert,
+                product,
+                warehouse,
+                onHand: inventoryRow?.onHand ?? available,
+                reserved: inventoryRow?.reserved ?? 0,
+                available,
+                threshold,
+                status: getStockStatus(available, threshold),
+            }
+        }).filter(row => row.product && row.status !== 'NORMAL')
+            .sort((a, b) => a.available - b.available)
+    }, [inventory, products, rawAlerts, warehouses])
 
     const distribution = useMemo(() => {
-        const rows = warehouses.map((warehouse, index) => ({
-            warehouse,
-            color: WAREHOUSE_COLORS[index % WAREHOUSE_COLORS.length],
-            onHand: inventory
-                .filter((i) => Number(i.warehouseId) === Number(warehouse.id))
-                .reduce((sum, i) => sum + i.onHand, 0),
-        }))
-        const total = rows.reduce((sum, r) => sum + r.onHand, 0)
-        const { stops } = rows
-            .filter((r) => r.onHand > 0)
-            .reduce(
-                (acc, r) => {
-                    const start = acc.cursor
-                    const nextCursor = start + (r.onHand / total) * 100
-                    return {
-                        cursor: nextCursor,
-                        stops: [...acc.stops, `${r.color} ${start}% ${nextCursor}%`],
-                    }
-                },
-                { cursor: 0, stops: [] }
-            )
-        return {
-            total,
-            rows: rows.map((r) => ({
-                ...r,
-                percent: total > 0 ? Math.round((r.onHand / total) * 100) : 0,
-            })),
-            gradient: stops.length ? `conic-gradient(${stops.join(', ')})` : null,
-        }
-    }, [inventory])
+        return buildWarehouseDistribution(warehouses, inventory)
+    }, [inventory, warehouses])
 
     if (currentUser?.role !== 'ADMIN') {
         return <Navigate to="/" replace />
+    }
+
+    if (dashboardLoading) {
+        return <div className="mgmt-page"><h1>Tổng quan hệ thống</h1><p role="status">Đang tải dữ liệu từ máy chủ…</p></div>
+    }
+
+    if (dashboardError) {
+        return (
+            <div className="mgmt-page">
+                <h1>Tổng quan hệ thống</h1>
+                <p role="alert">{dashboardError.message || 'Không thể tải dữ liệu dashboard.'}</p>
+                <button className="mgmt-btn mgmt-btn--primary" type="button" onClick={() => setReloadKey(value => value + 1)}>Thử tải lại</button>
+            </div>
+        )
     }
 
     return (
@@ -318,10 +334,16 @@ function AdminDashboardPage() {
                             </thead>
                             <tbody>
                                 {products.slice(0, 6).map((product) => {
-                                    const maxSingleOrder =
-                                        getProductAvailableStock(product.id)
-                                    const totalAvail = getTotalAvailableStock(
-                                        product.id
+                                    const productInventory = inventory.filter(
+                                        item => Number(item.productId) === Number(product.id)
+                                    )
+                                    const maxSingleOrder = Math.max(
+                                        0,
+                                        ...productInventory.map(item => Number(item.available))
+                                    )
+                                    const totalAvail = productInventory.reduce(
+                                        (sum, item) => sum + Number(item.available),
+                                        0
                                     )
                                     const isDiscontinued =
                                         product.status === 'DISCONTINUED'
