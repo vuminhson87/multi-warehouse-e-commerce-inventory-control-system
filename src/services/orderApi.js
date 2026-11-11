@@ -37,3 +37,16 @@ export function cancelOrderApi(token, orderId, idempotencyKey) {
     method: 'POST', token, body: { idempotencyKey },
   })
 }
+
+export function getAdminOrdersApi(token, { page = 1, limit = 20, status = 'Paid', signal } = {}) {
+  const q = new URLSearchParams({ page: String(page), limit: String(limit), status })
+  return apiRequest(`/api/admin/orders?${q}`, { token, signal })
+}
+
+export function transitionAdminOrderToProcessingApi(token, orderId) {
+  return apiRequest(`/api/admin/orders/${id(orderId)}/status`, {
+    method: 'PATCH',
+    token,
+    body: { status: 'Processing' },
+  })
+}

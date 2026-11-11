@@ -73,6 +73,7 @@ function ManagementShell({ children }) {
             ? [
                   { label: 'Tổng quan', path: '/admin', icon: 'dashboard', end: true },
                   { label: 'Quản lý sản phẩm', path: '/admin/products', icon: 'package' },
+                  { label: 'Xử lý đơn hàng', path: '/admin/orders/processing', icon: 'box' },
               ]
             : []),
         { label: 'Tổng quan tồn kho', path: '/inventory', icon: 'warehouse', end: true },

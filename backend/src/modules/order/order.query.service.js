@@ -1,6 +1,6 @@
 import prisma from '../../db/prisma.js'
 import businessConfig from '../../config/business.js'
-import { AppError, ErrorCodes } from '../../shared/errors.js'
+import { AppError, ErrorCodes, validationError } from '../../shared/errors.js'
 import { parsePositiveIntId, validateListQuery } from './order.validator.js'
 import { OrderStatus, PaymentAttemptStatus } from './order.constants.js'
 
@@ -82,6 +82,34 @@ export async function listCustomerOrders(customerId, query) {
     }),
     prisma.order.count({ where }),
   ])
+  return {
+    orders: orders.map(order => formatOrder(order)),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
+}
+
+export async function listAdminOrders(query = {}) {
+  const { page, limit, status } = validateListQuery(query)
+  const orderStatus = status ?? OrderStatus.PAID
+
+  if (![OrderStatus.PAID, OrderStatus.PROCESSING].includes(orderStatus)) {
+    throw validationError([
+      { field: 'status', reason: 'Admin chỉ được lọc đơn đã thanh toán hoặc đang xử lý.' },
+    ])
+  }
+
+  const where = { status: orderStatus }
+  const [orders, total] = await prisma.$transaction([
+    prisma.order.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+      include: orderInclude,
+    }),
+    prisma.order.count({ where }),
+  ])
+
   return {
     orders: orders.map(order => formatOrder(order)),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

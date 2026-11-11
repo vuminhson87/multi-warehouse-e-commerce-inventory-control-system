@@ -20,6 +20,7 @@ import LowStockAlertsPage from './pages/LowStockAlertsPage'
 import AddProductPage from './pages/AddProductPage'
 import EditProductPage from './pages/EditProductPage'
 import DiscontinueProductPage from './pages/DiscontinueProductPage'
+import AdminOrderProcessingPage from './pages/AdminOrderProcessingPage'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import './App.css'
@@ -77,6 +78,10 @@ function App() {
                     <Route
                       path="/admin/products"
                       element={<ProductManagementPage />}
+                    />
+                    <Route
+                      path="/admin/orders/processing"
+                      element={<AdminOrderProcessingPage />}
                     />
                     <Route
                       path="/admin/products/add"
