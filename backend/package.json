@@ -22,6 +22,7 @@
     "test:soak": "node scripts/test-soak.js",
     "test:api": "node scripts/test-acceptance-api.js",
     "test:browser": "node scripts/test-browser.js",
+    "test:ui:order-confirmation": "node scripts/test-customer-order-confirmation-ui.js",
     "test:restore": "node scripts/test-restore.js",
     "test:ui:load": "node scripts/test-ui-load.js",
     "test:load:k6": "node scripts/test-checkout-load.js",

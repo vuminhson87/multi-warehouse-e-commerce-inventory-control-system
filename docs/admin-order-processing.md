@@ -104,6 +104,13 @@ cd backend
 npm.cmd test -- tests/unit/admin-order-processing.test.js tests/unit/admin-order-list.test.js tests/unit/admin-order-api-client.test.js
 ```
 
+Kiểm thử giao diện Customer bằng Playwright (khởi chạy Vite và giả lập API):
+
+```powershell
+cd backend
+npm.cmd run test:ui:order-confirmation
+```
+
 ## Phạm vi chưa có
 
 Trang Admin hiện hỗ trợ chuyển `Paid → Processing` và xem danh sách đơn `Processing`; trang theo dõi Customer có nút xác nhận `Processing → Completed`. Theo dõi chi tiết tiến độ giao/nhận hàng và lịch sử thao tác Admin chưa nằm trong phần triển khai này.
