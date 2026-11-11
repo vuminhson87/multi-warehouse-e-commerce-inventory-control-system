@@ -9,6 +9,7 @@ import {
 import { createCheckoutOrder } from './order.service.js'
 import { payOrder } from '../payment/payment.service.js'
 import { cancelCustomerOrder } from './order.cancel.service.js'
+import { confirmCustomerOrderReceived } from './order.confirm-receipt.service.js'
 
 import {
   listCustomerOrders,
@@ -108,6 +109,20 @@ router.post('/:orderId/cancel', async (req, res, next) => {
     return res.status(result.statusCode).json(
       result.body
     )
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Customer xác nhận đã nhận hàng để hoàn tất đơn đang xử lý.
+router.post('/:orderId/confirm-received', async (req, res, next) => {
+  try {
+    const data = await confirmCustomerOrderReceived(
+      req.user.id,
+      req.params.orderId
+    )
+
+    return res.status(200).json({ success: true, data })
   } catch (error) {
     next(error)
   }

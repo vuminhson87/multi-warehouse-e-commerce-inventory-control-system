@@ -53,10 +53,9 @@ const CUSTOMER_CANCELLABLE = new Set([
     OrderStatus.PAID,
 ])
 
-// Backend currently exposes only Paid → Processing; the next transition remains unavailable.
+// Admin bắt đầu xử lý đơn; Customer xác nhận đã nhận để hoàn tất.
 const ADMIN_TRANSITIONS = Object.freeze({
     [OrderStatus.PAID]: [OrderStatus.PROCESSING],
-    [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED],
 })
 
 export function isOrderStatus(value) {
@@ -65,6 +64,10 @@ export function isOrderStatus(value) {
 
 export function canCustomerCancel(status) {
     return CUSTOMER_CANCELLABLE.has(status)
+}
+
+export function canCustomerConfirmReceipt(status) {
+    return status === OrderStatus.PROCESSING
 }
 
 // canPay không bảo đảm kho còn hàng khi thử lại (contract mục 3.2).

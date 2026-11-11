@@ -4,6 +4,7 @@ import {
     canCustomerCancel,
     canCustomerPay,
     canAdminTransition,
+    canCustomerConfirmReceipt,
     isOrderStatus,
 } from '../../src/modules/order/order.constants.js'
 import { loadBusinessConfig } from '../../src/config/business.js'
@@ -25,9 +26,11 @@ describe('order.constants', () => {
         expect(canCustomerPay(OrderStatus.CANCELLED, false)).toBe(false)
     })
 
-    it('Admin chỉ chuyển Paid→Processing→Completed (phụ lục đề xuất)', () => {
+    it('Admin chuyển Paid→Processing; Customer xác nhận Processing→Completed', () => {
         expect(canAdminTransition(OrderStatus.PAID, OrderStatus.PROCESSING)).toBe(true)
-        expect(canAdminTransition(OrderStatus.PROCESSING, OrderStatus.COMPLETED)).toBe(true)
+        expect(canAdminTransition(OrderStatus.PROCESSING, OrderStatus.COMPLETED)).toBe(false)
+        expect(canCustomerConfirmReceipt(OrderStatus.PROCESSING)).toBe(true)
+        expect(canCustomerConfirmReceipt(OrderStatus.PAID)).toBe(false)
         expect(canAdminTransition(OrderStatus.PAID, OrderStatus.COMPLETED)).toBe(false)
         expect(canAdminTransition(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID)).toBe(false)
         expect(canAdminTransition(OrderStatus.CANCELLED, OrderStatus.PROCESSING)).toBe(false)

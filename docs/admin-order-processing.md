@@ -11,9 +11,10 @@ stateDiagram-v2
     [*] --> PendingPayment: Khách tạo đơn
     PendingPayment --> Paid: Thanh toán thành công
     Paid --> Processing: Admin bấm Bắt đầu xử lý
+    Processing --> Completed: Customer xác nhận đã nhận (API backend)
     PendingPayment --> Cancelled: Khách hủy hợp lệ
     Paid --> Cancelled: Khách hủy hợp lệ
-    note right of Processing: Chưa có thao tác chuyển sang Completed trong phần triển khai này
+    note right of Processing: Frontend Customer chưa có nút xác nhận nhận hàng
 ```
 
 1. Khi thanh toán thành công, backend chuyển đơn sang `Paid`, tiêu thụ reservation và trừ tồn kho theo luồng thanh toán hiện có.
@@ -21,12 +22,16 @@ stateDiagram-v2
 3. Tab **Chờ xử lý** gọi API danh sách với `status=Paid`; Admin chọn **Bắt đầu xử lý** và xác nhận.
 4. Backend khóa bản ghi đơn trong transaction, xác nhận đơn đang `Paid`, đổi trạng thái thành `Processing` và tăng `version`.
 5. Frontend tải lại danh sách. Đơn rời tab **Chờ xử lý** và xuất hiện trong tab **Đang xử lý**.
+6. Khi đã nhận hàng, Customer có thể gọi API xác nhận `POST /api/orders/:orderId/confirm-received`; backend kiểm tra quyền sở hữu và trạng thái rồi chuyển đơn sang `Completed`.
 
 ## Quy tắc tồn kho và hủy đơn
 
 - Bước `Paid → Processing` chỉ cập nhật trạng thái và version của đơn; **không trừ tồn kho lần nữa**.
 - Đơn ở trạng thái `Processing` không thể bị khách hàng hủy. Backend chỉ cho phép khách hủy đơn `PendingPayment` hoặc `Paid`.
+- Chỉ chủ sở hữu đơn được xác nhận nhận hàng; xác nhận đơn ở trạng thái khác `Processing` bị từ chối.
+- Gửi lại xác nhận cho đơn đã `Completed` trả về trạng thái hiện tại mà không cập nhật version thêm.
 - Việc chuyển đơn sang `Processing` không tạo thao tác nhập/xuất kho riêng hoặc ghi nhận giao hàng.
+- Xác nhận nhận hàng chỉ đổi trạng thái, không thay đổi tồn kho.
 
 ## API liên quan
 
@@ -59,11 +64,24 @@ Content-Type: application/json
 - Gọi lại với đơn đã `Processing` trả về trạng thái hiện tại mà không tăng version thêm.
 - Đơn không tồn tại trả `ORDER_NOT_FOUND`; trạng thái khác `Paid`/`Processing` trả `INVALID_ORDER_STATE`.
 
+### Customer xác nhận đã nhận hàng
+
+```http
+POST /api/orders/:orderId/confirm-received
+Authorization: Bearer <customer-token>
+```
+
+- Endpoint chỉ dành cho role `CUSTOMER`; backend lấy customer ID từ JWT, không nhận customer ID từ request body.
+- Chỉ chủ sở hữu đơn ở trạng thái `Processing` được chuyển sang `Completed`.
+- Đơn không tồn tại hoặc thuộc khách hàng khác trả `ORDER_NOT_FOUND`.
+- Xác nhận lặp trên đơn đã `Completed` trả thành công idempotently; trạng thái khác không được xác nhận.
+
 ## Vị trí mã nguồn
 
 - Route Admin: `backend/src/modules/order/order.admin.routes.js`
 - Truy vấn và định dạng danh sách: `backend/src/modules/order/order.query.service.js`
 - Cập nhật trạng thái có khóa transaction: `backend/src/modules/order/order.admin.service.js`
+- Customer xác nhận nhận hàng có khóa transaction: `backend/src/modules/order/order.confirm-receipt.service.js`
 - Trang Admin: `src/pages/AdminOrderProcessingPage.jsx`
 - Khai báo route: `src/App.jsx`
 - Mục menu Admin: `src/components/ManagementShell.jsx`
@@ -76,6 +94,7 @@ Các unit test cho query danh sách, chuyển trạng thái và API client nằm
 - `backend/tests/unit/admin-order-list.test.js`
 - `backend/tests/unit/admin-order-processing.test.js`
 - `backend/tests/unit/admin-order-api-client.test.js`
+- `backend/tests/unit/customer-order-confirm-receipt.test.js`
 
 Chạy các test riêng:
 
@@ -86,4 +105,4 @@ npm.cmd test -- tests/unit/admin-order-processing.test.js tests/unit/admin-order
 
 ## Phạm vi chưa có
 
-Trang hiện chỉ hỗ trợ chuyển `Paid → Processing` và xem danh sách đơn `Processing`. Thao tác tiếp theo như hoàn tất đơn `Processing → Completed`, cập nhật tiến độ giao/nhận hàng và lịch sử thao tác Admin chưa nằm trong phần triển khai này.
+Trang hiện chỉ hỗ trợ Admin chuyển `Paid → Processing` và xem danh sách đơn `Processing`. Backend đã có API để Customer xác nhận `Processing → Completed`, nhưng giao diện Customer chưa có nút thao tác. Theo dõi tiến độ giao/nhận hàng và lịch sử thao tác Admin cũng chưa nằm trong phần triển khai này.
