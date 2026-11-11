@@ -4,7 +4,6 @@ import './CustomerHeader.css'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
 import { getProductVisual } from '../utils/productVisuals'
 import { handleImageError } from '../utils/format'
@@ -30,7 +29,6 @@ function CustomerHeader() {
     )
     const { currentUser, logout } = useAuth()
     const { products } = useProducts()
-    const { getProductAvailableStock } = useInventory()
     const {
         wishlistIds,
         toggleWishlist,
@@ -153,7 +151,7 @@ function CustomerHeader() {
     }
 
     function handleQuickAddFromWishlist(product) {
-        const available = getProductAvailableStock(product.id)
+        const available = Number(product.maxAvailable ?? 0)
         if (available <= 0) {
             showToast(`"${product.name}" hiện đã hết hàng`)
             return
@@ -162,7 +160,7 @@ function CustomerHeader() {
             (item) => Number(item.productId ?? item.id) === Number(product.id)
         )
         const currentQty = inCart ? inCart.quantity : 0
-        addToCart(product)
+        addToCart(product, 1, { warehouseStock: available })
         if (currentQty + 1 <= available) {
             showToast(`Đã thêm "${product.name}" vào giỏ hàng`)
         }
@@ -476,7 +474,7 @@ function CustomerHeader() {
                         ) : (
                             cartItems.map((item) => {
                                 const visual = getProductVisual(item)
-                                const maxStock = getProductAvailableStock(item.id)
+                                const maxStock = item.availableStock
                                 return (
                                     <div key={item.id} className="atelier-drawer-item">
                                         <img

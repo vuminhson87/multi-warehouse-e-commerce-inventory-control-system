@@ -29,6 +29,36 @@ export async function managementProducts(query, warehouseId) {
 }
 const handle = fn => async (req,res,next) => { try { await fn(req,res) } catch(e) { next(e) } }
 export const catalogRoutes = Router()
+catalogRoutes.get('/availability', handle(async (req, res) => {
+  const rawProductIds = req.query.productIds
+  if (typeof rawProductIds !== 'string' || !rawProductIds.trim() || rawProductIds.length > 1000) {
+    throw validationError([{ field: 'productIds', reason: 'Danh sách productIds không hợp lệ.' }])
+  }
+  const productIds = [...new Set(rawProductIds.split(',').map(value => parsePositiveIntId(value, 'productId')))]
+  if (productIds.length > 50) {
+    throw validationError([{ field: 'productIds', reason: 'Tối đa 50 sản phẩm.' }])
+  }
+
+  const [warehouses, rows] = await Promise.all([
+    prisma.warehouse.findMany({ select: { id: true, name: true }, orderBy: { id: 'asc' } }),
+    prisma.inventory.findMany({
+      where: { productId: { in: productIds } },
+      select: { warehouseId: true, productId: true, onHand: true, reserved: true },
+    }),
+  ])
+
+  res.set('Cache-Control', 'no-store').json({
+    success: true,
+    data: {
+      warehouses,
+      items: rows.map(row => ({
+        warehouseId: row.warehouseId,
+        productId: row.productId,
+        available: Math.max(0, row.onHand - row.reserved),
+      })),
+    },
+  })
+}))
 catalogRoutes.get('/', handle(async (req,res) => {
   const data = await listActiveProducts(prisma, paging(req.query))
   data.items = await attachStock(prisma, data.items)

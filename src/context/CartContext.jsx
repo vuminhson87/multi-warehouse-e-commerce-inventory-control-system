@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useProducts } from './ProductContext'
-import { useInventory } from './InventoryContext'
+import { loadProductAvailability } from '../services/productApi.js'
 
 const CartContext = createContext()
 const MAX_QUANTITY_PER_PRODUCT = 100
@@ -39,15 +39,40 @@ function loadSavedCart(storageKey) {
 export function CartProvider({ children }) {
     const { currentUser } = useAuth()
     const { products } = useProducts()
-    const { getProductAvailableStock, findFulfillmentWarehouse } = useInventory()
 
     const storageKey = getStorageKey(currentUser)
     const [cartByUser, setCartByUser] = useState(() => ({
         [storageKey]: loadSavedCart(storageKey),
     }))
+    const [stockData, setStockData] = useState({ warehouses: [], items: [], productIds: [], queryKey: '', error: null })
     const cartByUserRef = useRef(cartByUser)
+    const cartVersionRef = useRef(0)
 
     const rawItems = cartByUser[storageKey] ?? loadSavedCart(storageKey)
+    const cartProductIds = [...new Set(rawItems.map(item => Number(item.productId)))].sort((a, b) => a - b)
+    const cartProductIdsKey = cartProductIds.join(',')
+    const stockQueryKey = `${storageKey}:${cartVersionRef.current}:${cartProductIdsKey}`
+
+    useEffect(() => {
+        if (!cartProductIdsKey) {
+            return undefined
+        }
+
+        const controller = new AbortController()
+        const productIds = cartProductIdsKey.split(',').map(Number)
+        loadProductAvailability(productIds, controller.signal)
+            .then(data => {
+                if (!controller.signal.aborted) setStockData({ ...data, productIds, queryKey: stockQueryKey, error: null })
+            })
+            .catch(error => {
+                if (!controller.signal.aborted) setStockData(previous => ({ ...previous, productIds, queryKey: stockQueryKey, error }))
+            })
+        return () => controller.abort()
+    }, [stockQueryKey])
+
+    const stockMatchesCart = rawItems.length === 0 || stockData.queryKey === stockQueryKey
+    const stockLoading = rawItems.length > 0 && !stockMatchesCart
+    const stockError = rawItems.length > 0 && stockMatchesCart ? stockData.error : null
 
     // Lưu giỏ hàng của tài khoản hiện tại vào localStorage khi có thay đổi
     useEffect(() => {
@@ -66,7 +91,9 @@ export function CartProvider({ children }) {
             )
 
             const isDiscontinued = !product || product.status === 'DISCONTINUED'
-            const availableStock = getProductAvailableStock(item.productId)
+            const availableStock = Math.max(0, ...stockData.items
+                .filter(row => Number(row.productId) === Number(item.productId))
+                .map(row => Number(row.available)))
             const isOutOfStock = availableStock <= 0
             const isInsufficientStock = item.quantity > availableStock
 
@@ -85,13 +112,22 @@ export function CartProvider({ children }) {
                 quantity: item.quantity,
             }
         })
-    }, [rawItems, products, getProductAvailableStock])
+    }, [rawItems, products, stockData.items])
 
     // Xác định kho có thể đáp ứng trọn vẹn toàn bộ các món trong giỏ hàng (Single-Warehouse Fulfillment)
     const fulfillmentWarehouse = useMemo(() => {
         if (!rawItems.length) return null
-        return findFulfillmentWarehouse(rawItems)
-    }, [rawItems, findFulfillmentWarehouse])
+        if (stockLoading || stockError) return null
+        return [...stockData.warehouses]
+            .sort((a, b) => Number(a.id) - Number(b.id))
+            .find(warehouse => rawItems.every(item => {
+                const row = stockData.items.find(stock =>
+                    Number(stock.warehouseId) === Number(warehouse.id) &&
+                    Number(stock.productId) === Number(item.productId)
+                )
+                return Number(row?.available ?? 0) >= item.quantity
+            })) ?? null
+    }, [rawItems, stockData.items, stockData.warehouses, stockLoading, stockError])
 
     const updateRawItems = (updater) => {
         const previousCart = cartByUserRef.current
@@ -106,6 +142,7 @@ export function CartProvider({ children }) {
         }
 
         cartByUserRef.current = nextCart
+        cartVersionRef.current += 1
         setCartByUser(nextCart)
         return true
     }
@@ -130,8 +167,7 @@ export function CartProvider({ children }) {
             return false
         }
 
-        const singleWarehouseStock = getProductAvailableStock(productId)
-        const available = Math.min(singleWarehouseStock, warehouseStock ?? singleWarehouseStock)
+        const available = warehouseStock ?? Number(currentProduct.maxAvailable ?? 0)
 
         if (!Number.isSafeInteger(available) || available <= 0) {
             alert(warehouseStock === undefined
@@ -162,6 +198,10 @@ export function CartProvider({ children }) {
     }
 
     const increaseQuantity = (productId) => {
+        if (stockLoading || stockError) {
+            alert('Đang tải tồn kho máy chủ. Vui lòng thử lại sau.')
+            return
+        }
         const targetId = Number(productId)
         const currentProduct = products.find((p) => Number(p.id) === targetId)
 
@@ -170,7 +210,9 @@ export function CartProvider({ children }) {
             return
         }
 
-        const available = getProductAvailableStock(targetId)
+        const available = Math.max(0, ...stockData.items
+            .filter(item => Number(item.productId) === targetId)
+            .map(item => Number(item.available)))
         if (available <= 0) {
             alert('Sản phẩm hiện đã hết hàng trong kho.')
             return
@@ -235,6 +277,8 @@ export function CartProvider({ children }) {
                 removeFromCart,
                 clearCart,
                 fulfillmentWarehouse,
+                stockLoading,
+                stockError,
             }}
         >
             {children}
