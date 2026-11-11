@@ -37,7 +37,7 @@ function ManagementShell({ children }) {
 
     const isAdmin = currentUser.role === 'ADMIN'
     const assignedWarehouse = warehouses.find(
-        (w) => Number(w.id) === Number(currentUser.warehouseId)
+        (w) => Number(w.id) === Number(currentUser.assignedWarehouseId)
     )
 
     const menuItems = [
@@ -155,4 +155,3 @@ function ManagementShell({ children }) {
 }
 
 export default ManagementShell
-

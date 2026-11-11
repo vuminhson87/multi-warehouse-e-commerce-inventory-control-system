@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { warehouses } from '../data/inventory'
+import { warehouses as allWarehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
 import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
@@ -18,9 +18,12 @@ function WarehouseInventoryPage() {
     const { products } = useProducts()
 
     const [searchParams, setSearchParams] = useSearchParams()
+    const warehouses = currentUser?.role === 'ADMIN'
+        ? allWarehouses
+        : allWarehouses.filter(warehouse => warehouse.id === currentUser?.assignedWarehouseId)
     const warehouseParam = searchParams.get('warehouseId')
     const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === warehouseParam)
-    const selectedWarehouseId = Number(selectedWarehouse?.id ?? (Number(currentUser?.warehouseId) || 1))
+    const selectedWarehouseId = selectedWarehouse?.id ?? warehouses[0]?.id
 
     const [editingWarehouseId, setEditingWarehouseId] = useState(null)
     const [editingProductId, setEditingProductId] = useState(null)
@@ -28,7 +31,8 @@ function WarehouseInventoryPage() {
 
     const canEditInventory =
         currentUser?.role === 'WAREHOUSE_MANAGER' &&
-        currentUser?.warehouseId === selectedWarehouseId
+        selectedWarehouseId !== undefined &&
+        currentUser?.assignedWarehouseId === selectedWarehouseId
 
     const warehouseInventory = inventory.filter(
         (item) => item.warehouseId === selectedWarehouseId
@@ -122,7 +126,7 @@ function WarehouseInventoryPage() {
                         <select
                             id="warehouse-select"
                             className="mgmt-select"
-                            value={selectedWarehouseId}
+                            value={selectedWarehouseId ?? ''}
                             onChange={(event) => {
                                 const params = new URLSearchParams(searchParams)
                                 params.set('warehouseId', event.target.value)

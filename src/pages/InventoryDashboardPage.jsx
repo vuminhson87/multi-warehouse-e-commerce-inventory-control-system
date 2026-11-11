@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
-import { warehouses } from '../data/inventory'
+import { warehouses as allWarehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
 import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
@@ -34,6 +34,11 @@ function InventoryDashboardPage() {
     const { products } = useProducts()
 
     const [searchParams, setSearchParams] = useSearchParams()
+    const isAdmin = currentUser?.role === 'ADMIN'
+    const assignedWarehouseId = currentUser?.assignedWarehouseId
+    const warehouses = useMemo(() => isAdmin ? allWarehouses : allWarehouses.filter(
+        warehouse => warehouse.id === assignedWarehouseId
+    ), [isAdmin, assignedWarehouseId])
     const warehouseParam = searchParams.get('warehouseId')
     const selectedWarehouse = warehouses.some((warehouse) => String(warehouse.id) === warehouseParam)
         ? warehouseParam
@@ -59,10 +64,10 @@ function InventoryDashboardPage() {
         () =>
             inventory.filter(
                 (item) =>
-                    selectedWarehouse === 'all' ||
-                    Number(item.warehouseId) === Number(selectedWarehouse)
+                    warehouses.some(warehouse => warehouse.id === Number(item.warehouseId)) &&
+                    (selectedWarehouse === 'all' || Number(item.warehouseId) === Number(selectedWarehouse))
             ),
-        [inventory, selectedWarehouse]
+        [inventory, selectedWarehouse, warehouses]
     )
 
     const totals = useMemo(() => {
@@ -84,7 +89,7 @@ function InventoryDashboardPage() {
         [products, scopedInventory]
     )
 
-    // Phân bổ tồn theo kho (luôn trên toàn hệ thống).
+    // Phân bổ tồn theo các kho được phép xem.
     const distribution = useMemo(() => {
         const rows = warehouses.map((warehouse, index) => ({
             warehouse,
@@ -115,7 +120,7 @@ function InventoryDashboardPage() {
             })),
             gradient: stops.length ? `conic-gradient(${stops.join(', ')})` : null,
         }
-    }, [inventory])
+    }, [inventory, warehouses])
 
     // Sản phẩm sắp hết / hết hàng theo ngưỡng thực tế của từng kho.
     const lowStock = useMemo(
@@ -198,7 +203,7 @@ function InventoryDashboardPage() {
                             value={selectedWarehouse}
                             onChange={handleWarehouseChange}
                         >
-                            <option value="all">Tất cả kho</option>
+                            <option value="all">Các kho được phép xem</option>
                             {warehouses.map((warehouse) => (
                                 <option key={warehouse.id} value={warehouse.id}>
                                     {warehouse.name}

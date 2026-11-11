@@ -652,7 +652,8 @@ export async function listInventory(client, { warehouseId, productId, search, pa
 }
 
 /** Tổng hợp toàn hệ thống theo sản phẩm (SR-INV-04 – chế độ aggregate). */
-export async function getInventorySummary(client, { productId } = {}) {
+export async function getInventorySummary(client, { productId, warehouseId } = {}) {
+    const warehouseFilter = warehouseId === undefined ? Prisma.empty : Prisma.sql`AND i.warehouse_id = ${warehouseId}`
     const productFilter = productId ? Prisma.sql`WHERE p.id = ${productId}` : Prisma.empty
 
     const rows = await client.$queryRaw`
@@ -661,7 +662,7 @@ export async function getInventorySummary(client, { productId } = {}) {
                COALESCE(SUM(i.reserved), 0)::int AS reserved,
                COUNT(i.id)::int AS "warehouseCount"
         FROM products p
-        LEFT JOIN inventories i ON i.product_id = p.id
+        LEFT JOIN inventories i ON i.product_id = p.id ${warehouseFilter}
         ${productFilter}
         GROUP BY p.id
         ORDER BY p.id`
@@ -671,7 +672,7 @@ export async function getInventorySummary(client, { productId } = {}) {
 
 /** Cảnh báo OPEN của MỘT kho – service phải truyền kho được phân công của Manager (BR-10). */
 export async function listOpenAlerts(client, { warehouseId }) {
-    assertId(warehouseId, 'warehouseId')
+    if (warehouseId !== undefined) assertId(warehouseId, 'warehouseId')
 
     const alerts = await client.lowStockAlert.findMany({
         where: { warehouseId, status: 'OPEN' },
@@ -682,10 +683,10 @@ export async function listOpenAlerts(client, { warehouseId }) {
     const inventories = await client.inventory.findMany({
         where: { warehouseId, productId: { in: alerts.map((a) => a.productId) } },
     })
-    const current = new Map(inventories.map((row) => [row.productId, row]))
+    const current = new Map(inventories.map((row) => [`${row.warehouseId}:${row.productId}`, row]))
 
     return alerts.map((alert) => {
-        const row = current.get(alert.productId)
+        const row = current.get(`${alert.warehouseId}:${alert.productId}`)
 
         return {
             id: alert.id,

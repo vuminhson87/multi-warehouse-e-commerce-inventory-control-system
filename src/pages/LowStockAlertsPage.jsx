@@ -117,7 +117,7 @@ function LowStockAlertsPage() {
 
     const isWarehouseManager = currentUser?.role === 'WAREHOUSE_MANAGER'
     const isAdmin = currentUser?.role === 'ADMIN'
-    const assignedWarehouseId = currentUser?.warehouseId
+    const assignedWarehouseId = currentUser?.assignedWarehouseId
 
     const canEditThreshold = isWarehouseManager && Boolean(assignedWarehouseId)
 

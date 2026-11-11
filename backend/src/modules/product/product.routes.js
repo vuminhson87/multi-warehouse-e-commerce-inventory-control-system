@@ -17,15 +17,15 @@ export function paging(query) {
 export function validateBody(body, allowed) {
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => !allowed.includes(k))) throw validationError([{ field: 'body', reason: 'Du lieu khong hop le hoac co truong khong duoc phep.' }])
 }
-export async function attachStock(client, items) {
-  const rows = await client.inventory.findMany({ where: { productId: { in: items.map(p => p.id) } }, select: { productId: true, onHand: true, reserved: true } })
+export async function attachStock(client, items, warehouseId) {
+  const rows = await client.inventory.findMany({ where: { warehouseId, productId: { in: items.map(p => p.id) } }, select: { productId: true, onHand: true, reserved: true } })
   return items.map(p => ({ ...p, price: Number(p.price), status: p.isActive ? 'ACTIVE' : 'DISCONTINUED', maxAvailable: Math.max(0, ...rows.filter(r => r.productId === p.id).map(r => r.onHand - r.reserved)) }))
 }
-export async function managementProducts(query) {
+export async function managementProducts(query, warehouseId) {
   const { page, limit, search } = paging(query)
   const where = search ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { category: { contains: search, mode: 'insensitive' } }] } : {}
   const [total, items] = await prisma.$transaction([prisma.product.count({ where }), prisma.product.findMany({ where, orderBy: { id: 'asc' }, skip: (page-1)*limit, take: limit })])
-  return { total, page, limit, items: await attachStock(prisma, items) }
+  return { total, page, limit, items: await attachStock(prisma, items, warehouseId) }
 }
 const handle = fn => async (req,res,next) => { try { await fn(req,res) } catch(e) { next(e) } }
 export const catalogRoutes = Router()
