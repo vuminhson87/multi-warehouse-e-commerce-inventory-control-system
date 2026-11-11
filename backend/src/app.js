@@ -11,6 +11,7 @@ import {
 
 import { catalogRoutes, adminProductRoutes } from './modules/product/product.routes.js'
 import inventoryRoutes from './modules/inventory/inventory.routes.js'
+import { publicFeaturedRoutes, adminFeaturedRoutes } from './modules/featured-products/featured-products.routes.js'
 
 const app = express()
 
@@ -55,6 +56,8 @@ app.use('/api/orders', orderRoutes)
 app.use('/api/products', catalogRoutes)
 app.use('/api/admin/products', adminProductRoutes)
 app.use('/api/inventory', inventoryRoutes)
+app.use('/api/featured-products', publicFeaturedRoutes)
+app.use('/api/admin/featured-products', adminFeaturedRoutes)
 
 app.use(notFoundHandler)
 app.use(errorHandler)

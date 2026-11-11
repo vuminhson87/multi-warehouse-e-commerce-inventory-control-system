@@ -58,6 +58,17 @@ async function main() {
     // Không ghi đè onHand/reserved nếu dòng đã tồn tại để tránh phá dữ liệu đơn đang giữ hàng.
     await prisma.inventory.createMany({ data: inventories, skipDuplicates: true })
 
+    const existingSlideCount = await prisma.homeFeaturedSlide.count()
+    if (existingSlideCount === 0) {
+        const defaultFeatured = [1, 2, 4, 5, 6].map((productId, index) => ({
+            productId,
+            position: index + 1,
+            imageUrlOverride: null,
+            descriptionOverride: null,
+        }))
+        await prisma.homeFeaturedSlide.createMany({ data: defaultFeatured, skipDuplicates: true })
+    }
+
     for (const table of ['warehouses', 'users', 'products']) {
         await resetSequence(table)
     }

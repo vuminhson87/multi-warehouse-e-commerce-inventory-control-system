@@ -353,3 +353,20 @@
         font-size: 16px;
     }
 }
+
+.home-product-image > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: inherit;
+}
+
+.home-product-image > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    line-height: 1;
+    user-select: none;
+}
