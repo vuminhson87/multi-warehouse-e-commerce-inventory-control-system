@@ -28,3 +28,18 @@ export function restockWarehouseProduct(token, warehouseId, productId, quantity)
         body: { productId, quantity },
     })
 }
+
+export function loadWarehouseAlerts(token, warehouseId, signal) {
+    const query = warehouseId === undefined
+        ? ''
+        : `?warehouseId=${encodeURIComponent(warehouseId)}`
+    return apiRequest(`/api/inventory/alerts${query}`, { token, signal })
+}
+
+export function saveWarehouseThreshold(token, warehouseId, productId, threshold) {
+    return apiRequest(`/api/inventory/${warehouseId}/threshold`, {
+        token,
+        method: 'PATCH',
+        body: { productId, threshold },
+    })
+}
