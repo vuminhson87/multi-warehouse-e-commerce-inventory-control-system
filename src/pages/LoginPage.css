@@ -78,3 +78,34 @@
 .login-button:hover {
   background-color: #444444;
 }
+
+.login-success {
+  margin: 0 0 18px;
+  color: #166534;
+  font-size: 14px;
+  text-align: center;
+}
+
+.register-login-link {
+  margin: 20px 0 0;
+  color: #666666;
+  text-align: center;
+  font-size: 14px;
+}
+
+.register-login-link a,
+.register-login-link button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #18181b;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.register-login-link a:hover,
+.register-login-link button:hover {
+  text-decoration: underline;
+}

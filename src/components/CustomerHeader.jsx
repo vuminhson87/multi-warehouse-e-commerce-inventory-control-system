@@ -9,6 +9,7 @@ import { getProductVisual } from '../utils/productVisuals'
 import { handleImageError } from '../utils/format'
 import LucideIcon from './LucideIcon'
 import LoginModal from './LoginModal'
+import RegisterModal from './RegisterModal'
 
 const ROLE_LABELS = {
     CUSTOMER: 'Khách hàng thành viên',
@@ -45,6 +46,8 @@ function CustomerHeader() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchText, setSearchText] = useState('')
     const [isLoginOpen, setIsLoginOpen] = useState(false)
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false)
+    const [registeredUsername, setRegisteredUsername] = useState('')
     const menuBtnRef = useRef(null)
     const drawerCloseBtnRef = useRef(null)
 
@@ -920,7 +923,31 @@ function CustomerHeader() {
             </div>
 
             {isLoginOpen && (
-                <LoginModal onClose={() => setIsLoginOpen(false)} />
+                <LoginModal
+                    onClose={() => setIsLoginOpen(false)}
+                    initialUsername={registeredUsername}
+                    registered={Boolean(registeredUsername)}
+                    onRegister={() => {
+                        setRegisteredUsername('')
+                        setIsLoginOpen(false)
+                        setIsRegisterOpen(true)
+                    }}
+                />
+            )}
+
+            {isRegisterOpen && (
+                <RegisterModal
+                    onClose={() => setIsRegisterOpen(false)}
+                    onSwitchToLogin={() => {
+                        setIsRegisterOpen(false)
+                        setIsLoginOpen(true)
+                    }}
+                    onSuccess={username => {
+                        setRegisteredUsername(username)
+                        setIsRegisterOpen(false)
+                        setIsLoginOpen(true)
+                    }}
+                />
             )}
         </>
     )
