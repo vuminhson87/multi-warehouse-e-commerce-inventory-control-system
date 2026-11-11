@@ -7,8 +7,7 @@ import ProductThumb from '../components/ProductThumb'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber, formatPrice } from '../utils/format'
 import { getStockStatus } from '../utils/stockThresholds'
-
-const WAREHOUSE_COLORS = ['#2f6fed', '#2fa866', '#f08a3c', '#9b8cf0', '#e0b341']
+import { buildWarehouseDistribution, summarizeDashboardInventory } from '../utils/adminDashboardData.js'
 
 function AdminDashboardPage() {
     const { currentUser, token, authLoading } = useAuth()
@@ -52,26 +51,31 @@ function AdminDashboardPage() {
 
     const dashboardLoading = authLoading || productsLoading || dashboardData.requestKey !== requestKey
     const dashboardError = productsError || (dashboardData.requestKey === requestKey ? dashboardData.error : null)
-    const warehouses = dashboardData.requestKey === requestKey ? dashboardData.warehouses : []
-    const inventory = dashboardData.requestKey === requestKey ? dashboardData.inventory : []
-    const rawAlerts = dashboardData.requestKey === requestKey ? dashboardData.alerts : []
+    const warehouses = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.warehouses : [],
+        [dashboardData, requestKey]
+    )
+    const inventory = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.inventory : [],
+        [dashboardData, requestKey]
+    )
+    const rawAlerts = useMemo(
+        () => dashboardData.requestKey === requestKey ? dashboardData.alerts : [],
+        [dashboardData, requestKey]
+    )
 
     const stats = useMemo(() => {
         const activeCount = products.filter(
             (p) => (p.status ?? 'ACTIVE') === 'ACTIVE'
         ).length
         const discontinuedCount = products.length - activeCount
-        const totalOnHand = inventory.reduce((sum, i) => sum + i.onHand, 0)
-        const totalReserved = inventory.reduce((sum, i) => sum + i.reserved, 0)
-        const totalAvailable = totalOnHand - totalReserved
+        const inventorySummary = summarizeDashboardInventory(inventory)
 
         return {
             totalProducts: products.length,
             activeCount,
             discontinuedCount,
-            totalOnHand,
-            totalReserved,
-            totalAvailable,
+            ...inventorySummary,
         }
     }, [products, inventory])
 
@@ -98,35 +102,7 @@ function AdminDashboardPage() {
     }, [inventory, products, rawAlerts, warehouses])
 
     const distribution = useMemo(() => {
-        const rows = warehouses.map((warehouse, index) => ({
-            warehouse,
-            color: WAREHOUSE_COLORS[index % WAREHOUSE_COLORS.length],
-            onHand: inventory
-                .filter((i) => Number(i.warehouseId) === Number(warehouse.id))
-                .reduce((sum, i) => sum + i.onHand, 0),
-        }))
-        const total = rows.reduce((sum, r) => sum + r.onHand, 0)
-        const { stops } = rows
-            .filter((r) => r.onHand > 0)
-            .reduce(
-                (acc, r) => {
-                    const start = acc.cursor
-                    const nextCursor = start + (r.onHand / total) * 100
-                    return {
-                        cursor: nextCursor,
-                        stops: [...acc.stops, `${r.color} ${start}% ${nextCursor}%`],
-                    }
-                },
-                { cursor: 0, stops: [] }
-            )
-        return {
-            total,
-            rows: rows.map((r) => ({
-                ...r,
-                percent: total > 0 ? Math.round((r.onHand / total) * 100) : 0,
-            })),
-            gradient: stops.length ? `conic-gradient(${stops.join(', ')})` : null,
-        }
+        return buildWarehouseDistribution(warehouses, inventory)
     }, [inventory, warehouses])
 
     if (currentUser?.role !== 'ADMIN') {
