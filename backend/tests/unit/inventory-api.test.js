@@ -6,8 +6,10 @@ vi.mock('../../../src/services/apiClient.js', () => ({
 
 import { apiRequest } from '../../../src/services/apiClient.js'
 import {
+    loadWarehouseAlerts,
     loadWarehouseInventory,
     restockWarehouseProduct,
+    saveWarehouseThreshold,
 } from '../../../src/services/inventoryApi.js'
 
 afterEach(() => vi.clearAllMocks())
@@ -54,5 +56,39 @@ describe('inventory API client', () => {
             method: 'POST',
             body: { productId: 27, quantity: 5 },
         })
+    })
+
+    it('loads alerts for one warehouse and forwards the abort signal', async () => {
+        const signal = new AbortController().signal
+        const alerts = [{ warehouseId: 3, productId: 27, currentAvailable: 2, threshold: 5 }]
+        apiRequest.mockResolvedValue(alerts)
+
+        await expect(loadWarehouseAlerts('manager-token', 3, signal)).resolves.toBe(alerts)
+
+        expect(apiRequest).toHaveBeenCalledWith('/api/inventory/alerts?warehouseId=3', {
+            token: 'manager-token',
+            signal,
+        })
+    })
+
+    it('saves the threshold for the selected warehouse using PATCH', async () => {
+        const result = { warehouseId: 3, productId: 27, lowStockThreshold: 8 }
+        apiRequest.mockResolvedValue(result)
+
+        await expect(saveWarehouseThreshold('manager-token', 3, 27, 8)).resolves.toBe(result)
+
+        expect(apiRequest).toHaveBeenCalledWith('/api/inventory/3/threshold', {
+            token: 'manager-token',
+            method: 'PATCH',
+            body: { productId: 27, threshold: 8 },
+        })
+    })
+
+    it('surfaces API errors from alert loading and threshold saving', async () => {
+        const apiError = new Error('Yêu cầu bị từ chối.')
+        apiRequest.mockRejectedValueOnce(apiError).mockRejectedValueOnce(apiError)
+
+        await expect(loadWarehouseAlerts('manager-token')).rejects.toBe(apiError)
+        await expect(saveWarehouseThreshold('manager-token', 3, 27, 8)).rejects.toBe(apiError)
     })
 })
