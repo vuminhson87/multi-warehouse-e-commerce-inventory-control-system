@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCustomerOrder } from '../hooks/useCustomerOrder.js'
-import { payOrderApi, cancelOrderApi } from '../services/orderApi.js'
+import { payOrderApi, cancelOrderApi, confirmOrderReceivedApi } from '../services/orderApi.js'
 import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
 import {
     OrderStatus,
@@ -105,10 +105,12 @@ function OrderTrackingPage() {
 
     const isPendingPayment = order.status === OrderStatus.PENDING_PAYMENT
     const isPaid = order.status === OrderStatus.PAID
+    const isProcessing = order.status === OrderStatus.PROCESSING
     const isCancelled = order.status === OrderStatus.CANCELLED
     const isReconciling = Boolean(order.paymentInProgress) || needsReconciliation
     const canCancel = order.canCancel && !busy && !isReconciling
     const paymentDisabled = busy || !order.canPay || isReconciling
+    const canConfirmReceipt = isProcessing && !busy
 
     const currentStepIndex = PROGRESS_STEPS.findIndex(
         (step) => step.key === order.status
@@ -169,6 +171,37 @@ function OrderTrackingPage() {
                 isWarning: unknown,
                 message: unknown
                     ? 'Chưa rõ kết quả hủy. Kiểm tra lại trạng thái trước khi thử lại.'
+                    : err.message,
+            })
+            reload()
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const handleConfirmReceipt = async () => {
+        if (!canConfirmReceipt) return
+        const confirmed = window.confirm(
+            `Xác nhận bạn đã nhận đơn hàng #${order.id}? Sau khi xác nhận, đơn sẽ chuyển sang Hoàn tất.`
+        )
+        if (!confirmed) return
+
+        setBusy(true)
+        setFeedback(null)
+        try {
+            await confirmOrderReceivedApi(token, order.id)
+            setFeedback({
+                ok: true,
+                isWarning: false,
+                message: 'Đã xác nhận nhận hàng. Đơn hàng đã được hoàn tất.',
+            })
+            reload()
+        } catch (err) {
+            setFeedback({
+                ok: false,
+                isWarning: err.status === 503 || err.isNetworkError,
+                message: err.status === 503 || err.isNetworkError
+                    ? 'Chưa rõ kết quả xác nhận. Đang tải lại trạng thái đơn hàng; bạn có thể xác nhận lại nếu đơn vẫn đang xử lý.'
                     : err.message,
             })
             reload()
@@ -602,6 +635,41 @@ function OrderTrackingPage() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                )}
+
+                {isProcessing && (
+                    <div
+                        style={{
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            padding: '16px 20px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                        }}
+                    >
+                        <h2 style={{ fontSize: '1.1rem', margin: '0 0 8px', color: '#166534' }}>
+                            Bạn đã nhận được hàng?
+                        </h2>
+                        <p style={{ margin: '0 0 12px', color: '#166534', fontSize: '0.92rem' }}>
+                            Chỉ xác nhận sau khi bạn đã nhận đơn hàng. Xác nhận sẽ chuyển trạng thái đơn sang Hoàn tất.
+                        </p>
+                        <button
+                            type="button"
+                            disabled={!canConfirmReceipt}
+                            onClick={handleConfirmReceipt}
+                            style={{
+                                background: canConfirmReceipt ? '#16a34a' : '#94a3b8',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '10px 18px',
+                                borderRadius: '6px',
+                                fontWeight: 'bold',
+                                cursor: canConfirmReceipt ? 'pointer' : 'not-allowed',
+                            }}
+                        >
+                            {busy ? 'Đang xác nhận…' : '✓ Xác nhận đã nhận hàng'}
+                        </button>
                     </div>
                 )}
 

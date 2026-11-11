@@ -6,6 +6,7 @@ vi.mock('../../../src/services/apiClient.js', () => ({
 
 import { apiRequest } from '../../../src/services/apiClient.js'
 import {
+    confirmOrderReceivedApi,
     getAdminOrdersApi,
     transitionAdminOrderToProcessingApi,
 } from '../../../src/services/orderApi.js'
@@ -41,6 +42,20 @@ describe('Admin order API client', () => {
             method: 'PATCH',
             token: 'admin-token',
             body: { status: 'Processing' },
+        })
+    })
+})
+
+describe('Customer order confirmation API client', () => {
+    it('POSTs the authenticated customer receipt confirmation', async () => {
+        const response = { orderId: 31, status: 'Completed' }
+        apiRequest.mockResolvedValue(response)
+
+        await expect(confirmOrderReceivedApi('customer-token', 31)).resolves.toBe(response)
+
+        expect(apiRequest).toHaveBeenCalledWith('/api/orders/31/confirm-received', {
+            method: 'POST',
+            token: 'customer-token',
         })
     })
 })

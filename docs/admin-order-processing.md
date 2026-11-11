@@ -14,7 +14,7 @@ stateDiagram-v2
     Processing --> Completed: Customer xác nhận đã nhận (API backend)
     PendingPayment --> Cancelled: Khách hủy hợp lệ
     Paid --> Cancelled: Khách hủy hợp lệ
-    note right of Processing: Frontend Customer chưa có nút xác nhận nhận hàng
+    note right of Processing: Customer xác nhận tại trang theo dõi đơn hàng
 ```
 
 1. Khi thanh toán thành công, backend chuyển đơn sang `Paid`, tiêu thụ reservation và trừ tồn kho theo luồng thanh toán hiện có.
@@ -22,7 +22,7 @@ stateDiagram-v2
 3. Tab **Chờ xử lý** gọi API danh sách với `status=Paid`; Admin chọn **Bắt đầu xử lý** và xác nhận.
 4. Backend khóa bản ghi đơn trong transaction, xác nhận đơn đang `Paid`, đổi trạng thái thành `Processing` và tăng `version`.
 5. Frontend tải lại danh sách. Đơn rời tab **Chờ xử lý** và xuất hiện trong tab **Đang xử lý**.
-6. Khi đã nhận hàng, Customer có thể gọi API xác nhận `POST /api/orders/:orderId/confirm-received`; backend kiểm tra quyền sở hữu và trạng thái rồi chuyển đơn sang `Completed`.
+6. Khi đơn đang xử lý, trang theo dõi hiển thị nút **Xác nhận đã nhận hàng**. Sau khi Customer xác nhận, frontend gọi `POST /api/orders/:orderId/confirm-received`; backend kiểm tra quyền sở hữu và trạng thái rồi chuyển đơn sang `Completed`.
 
 ## Quy tắc tồn kho và hủy đơn
 
@@ -83,6 +83,7 @@ Authorization: Bearer <customer-token>
 - Cập nhật trạng thái có khóa transaction: `backend/src/modules/order/order.admin.service.js`
 - Customer xác nhận nhận hàng có khóa transaction: `backend/src/modules/order/order.confirm-receipt.service.js`
 - Trang Admin: `src/pages/AdminOrderProcessingPage.jsx`
+- Trang theo dõi đơn Customer: `src/pages/OrderTrackingPage.jsx`
 - Khai báo route: `src/App.jsx`
 - Mục menu Admin: `src/components/ManagementShell.jsx`
 - Hàm gọi API frontend: `src/services/orderApi.js`
@@ -105,4 +106,4 @@ npm.cmd test -- tests/unit/admin-order-processing.test.js tests/unit/admin-order
 
 ## Phạm vi chưa có
 
-Trang hiện chỉ hỗ trợ Admin chuyển `Paid → Processing` và xem danh sách đơn `Processing`. Backend đã có API để Customer xác nhận `Processing → Completed`, nhưng giao diện Customer chưa có nút thao tác. Theo dõi tiến độ giao/nhận hàng và lịch sử thao tác Admin cũng chưa nằm trong phần triển khai này.
+Trang Admin hiện hỗ trợ chuyển `Paid → Processing` và xem danh sách đơn `Processing`; trang theo dõi Customer có nút xác nhận `Processing → Completed`. Theo dõi chi tiết tiến độ giao/nhận hàng và lịch sử thao tác Admin chưa nằm trong phần triển khai này.

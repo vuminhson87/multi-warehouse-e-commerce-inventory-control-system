@@ -38,6 +38,13 @@ export function cancelOrderApi(token, orderId, idempotencyKey) {
   })
 }
 
+export function confirmOrderReceivedApi(token, orderId) {
+  return apiRequest(`/api/orders/${id(orderId)}/confirm-received`, {
+    method: 'POST',
+    token,
+  })
+}
+
 export function getAdminOrdersApi(token, { page = 1, limit = 20, status = 'Paid', signal } = {}) {
   const q = new URLSearchParams({ page: String(page), limit: String(limit), status })
   return apiRequest(`/api/admin/orders?${q}`, { token, signal })
