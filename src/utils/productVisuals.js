@@ -4,7 +4,7 @@
 const SPECIFIC_PRODUCT_VISUALS = {
     1: {
         subtitle: 'Dell Workstation Series • 15.6"',
-        image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=85',
+        image: '/images/products/p1.jpg',
         lifestyleImg: 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=1400&q=85',
         tag: 'BÁN CHẠY SỐ 1 TUẦN QUA',
         headline: 'Đánh thức hiệu năng làm việc & sáng tạo nguyên bản',
@@ -15,7 +15,7 @@ const SPECIFIC_PRODUCT_VISUALS = {
     },
     2: {
         subtitle: 'Logitech Studio Wireless • Lightspeed',
-        image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=800&q=85',
+        image: '/images/products/p2.jpg',
         lifestyleImg: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&w=1400&q=85',
         tag: 'PHỤ KIỆN ĐƯỢC YÊU THÍCH NHẤT',
         headline: 'Độ chính xác tuyệt đối không độ trễ cho mọi thao tác',
@@ -26,7 +26,7 @@ const SPECIFIC_PRODUCT_VISUALS = {
     },
     3: {
         subtitle: 'Keychron Mechanical • Tactile Edition',
-        image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=85',
+        image: '/images/products/p3.jpg',
         lifestyleImg: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?auto=format&fit=crop&w=1400&q=85',
         tag: 'PHIÊN BẢN CƠ HỌC TỐI GIẢN',
         headline: 'Âm hưởng gõ phím cơ học tinh tế trong từng điểm chạm',
@@ -111,8 +111,25 @@ export function getProductVisual(product) {
     if (!product) return DEFAULT_FALLBACK
 
     const numId = Number(product.id)
-    if (SPECIFIC_PRODUCT_VISUALS[numId]) {
-        return SPECIFIC_PRODUCT_VISUALS[numId]
+    const specific = SPECIFIC_PRODUCT_VISUALS[numId]
+    const imageUrl = product.imageUrl || product.image
+
+    if (imageUrl) {
+        if (specific) {
+            return {
+                ...specific,
+                image: imageUrl,
+            }
+        }
+        return {
+            ...DEFAULT_FALLBACK,
+            image: imageUrl,
+            subtitle: `${product.category || 'Bộ sưu tập'} • Chính hãng`,
+        }
+    }
+
+    if (specific) {
+        return specific
     }
 
     const categoryList = CATEGORY_FALLBACK_VISUALS[product.category]
