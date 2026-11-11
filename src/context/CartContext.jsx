@@ -46,12 +46,12 @@ export function CartProvider({ children }) {
     }))
     const [stockData, setStockData] = useState({ warehouses: [], items: [], productIds: [], queryKey: '', error: null })
     const cartByUserRef = useRef(cartByUser)
-    const cartVersionRef = useRef(0)
+    const [cartRevision, setCartRevision] = useState(0)
 
     const rawItems = cartByUser[storageKey] ?? loadSavedCart(storageKey)
     const cartProductIds = [...new Set(rawItems.map(item => Number(item.productId)))].sort((a, b) => a - b)
     const cartProductIdsKey = cartProductIds.join(',')
-    const stockQueryKey = `${storageKey}:${cartVersionRef.current}:${cartProductIdsKey}`
+    const stockQueryKey = `${storageKey}:${cartRevision}:${cartProductIdsKey}`
 
     useEffect(() => {
         if (!cartProductIdsKey) {
@@ -68,7 +68,7 @@ export function CartProvider({ children }) {
                 if (!controller.signal.aborted) setStockData(previous => ({ ...previous, productIds, queryKey: stockQueryKey, error }))
             })
         return () => controller.abort()
-    }, [stockQueryKey])
+    }, [cartProductIdsKey, stockQueryKey])
 
     const stockMatchesCart = rawItems.length === 0 || stockData.queryKey === stockQueryKey
     const stockLoading = rawItems.length > 0 && !stockMatchesCart
@@ -142,8 +142,8 @@ export function CartProvider({ children }) {
         }
 
         cartByUserRef.current = nextCart
-        cartVersionRef.current += 1
         setCartByUser(nextCart)
+        setCartRevision(revision => revision + 1)
         return true
     }
 

@@ -68,14 +68,20 @@ try{
  await guest.getByText('Số lượng: 1').first().waitFor()
  checks.push({test:'Catalog/cart ignore forged localStorage and use PostgreSQL product',passed:true})
  const customer=await pageFor(1)
+ let availabilityRequests=0
+ customer.on('request',request=>{if(request.url().includes('/api/products/availability?productIds=1'))availabilityRequests++})
  await customer.goto(ui+'/products/1')
  await customer.getByText('Còn hàng tại Warehouse 1 (2 sản phẩm)',{exact:true}).waitFor()
- await customer.getByRole('button',{name:'Tăng số lượng',exact:true}).click()
- assert.equal(await customer.getByLabel('Số lượng muốn thêm').textContent(),'2')
+ assert.equal(await customer.getByLabel('Số lượng muốn thêm').textContent(),'1')
  await customer.getByRole('button',{name:'Thêm vào giỏ hàng',exact:true}).click()
  await customer.goto(ui+'/cart')
  await customer.getByText('Dự kiến kho xuất hàng:',{exact:false}).waitFor()
+ const requestsBeforeCartIncrease=availabilityRequests
+ const refreshedAvailability=customer.waitForResponse(response=>response.url().includes('/api/products/availability?productIds=1')&&response.ok())
+ await customer.locator('.cart-items').getByRole('button',{name:'+',exact:true}).click()
+ await refreshedAvailability
  await customer.getByText('Số lượng: 2',{exact:false}).first().waitFor()
+ assert.equal(availabilityRequests,requestsBeforeCartIncrease+1)
  await db.inventory.updateMany({where:{warehouseId:1,productId:1},data:{onHand:1}})
  await customer.getByRole('button',{name:'Tiến hành thanh toán',exact:true}).click()
  const confirmOrder=customer.getByRole('button',{name:'Xác nhận đặt hàng',exact:true})
