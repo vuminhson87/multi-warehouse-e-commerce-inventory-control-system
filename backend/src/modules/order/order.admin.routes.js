@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../../middlewares/requireAuth.js'
-import { startWarehouseOrderProcessing } from './order.fulfillment.service.js'
-import { validateWarehouseOrderStatusBody } from './order.validator.js'
+import { transitionAdminOrderToProcessing } from './order.admin.service.js'
+import { validateAdminOrderStatusBody } from './order.validator.js'
 
 const router = Router()
 
-router.use(requireAuth, requireRole('WAREHOUSE_MANAGER'))
+router.use(requireAuth, requireRole('ADMIN'))
 router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store')
     next()
@@ -13,8 +13,8 @@ router.use((req, res, next) => {
 
 router.patch('/:orderId/status', async (req, res, next) => {
     try {
-        validateWarehouseOrderStatusBody(req.body)
-        const data = await startWarehouseOrderProcessing(req.user, req.params.orderId)
+        validateAdminOrderStatusBody(req.body)
+        const data = await transitionAdminOrderToProcessing(req.params.orderId)
         return res.status(200).json({ success: true, data })
     } catch (error) {
         next(error)

@@ -4,7 +4,7 @@ import cors from 'cors'
 import prisma from './db/prisma.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import orderRoutes from './modules/order/order.routes.js'
-import warehouseOrderRoutes from './modules/order/order.fulfillment.routes.js'
+import adminOrderRoutes from './modules/order/order.admin.routes.js'
 import {
   errorHandler,
   notFoundHandler,
@@ -54,7 +54,7 @@ app.get('/api/health', async (req, res, next) => {
 // Authentication API
 app.use('/api/auth', authRoutes)
 app.use('/api/orders', orderRoutes)
-app.use('/api/warehouse/orders', warehouseOrderRoutes)
+app.use('/api/admin/orders', adminOrderRoutes)
 app.use('/api/products', catalogRoutes)
 app.use('/api/admin/products', adminProductRoutes)
 app.use('/api/inventory', inventoryRoutes)

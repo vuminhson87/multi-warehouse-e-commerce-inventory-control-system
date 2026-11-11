@@ -53,14 +53,10 @@ const CUSTOMER_CANCELLABLE = new Set([
     OrderStatus.PAID,
 ])
 
-// Phụ lục Admin (contract mục 10) - chỉ dùng nếu nhóm chấp nhận. Chưa phải yêu cầu SRS.
+// Backend currently exposes only Paid → Processing; the next transition remains unavailable.
 const ADMIN_TRANSITIONS = Object.freeze({
     [OrderStatus.PAID]: [OrderStatus.PROCESSING],
     [OrderStatus.PROCESSING]: [OrderStatus.COMPLETED],
-})
-
-const WAREHOUSE_MANAGER_TRANSITIONS = Object.freeze({
-    [OrderStatus.PAID]: [OrderStatus.PROCESSING],
 })
 
 export function isOrderStatus(value) {
@@ -78,8 +74,4 @@ export function canCustomerPay(status, paymentInProgress) {
 
 export function canAdminTransition(fromStatus, toStatus) {
     return (ADMIN_TRANSITIONS[fromStatus] ?? []).includes(toStatus)
-}
-
-export function canWarehouseManagerTransition(fromStatus, toStatus) {
-    return (WAREHOUSE_MANAGER_TRANSITIONS[fromStatus] ?? []).includes(toStatus)
 }

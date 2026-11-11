@@ -173,14 +173,14 @@ export function validateCancelBody(body) {
     return { idempotencyKey: validateIdempotencyKey(body.idempotencyKey) }
 }
 
-// Warehouse manager may start processing only after successful payment.
-export function validateWarehouseOrderStatusBody(body) {
+// Admin may start order processing only after successful payment.
+export function validateAdminOrderStatusBody(body) {
     assertBodyObject(body)
     assertOnlyAllowedFields(body, ['status'])
 
     if (body.status !== OrderStatus.PROCESSING) {
         throw validationError([
-            { field: 'status', reason: 'Quản lý kho chỉ được chuyển đơn sang Processing.' },
+            { field: 'status', reason: 'Admin chỉ được chuyển đơn sang Processing.' },
         ])
     }
 
