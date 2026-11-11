@@ -17,10 +17,22 @@ function getInitialProducts() {
             const parsed = JSON.parse(stored)
 
             if (Array.isArray(parsed)) {
-                return parsed.map((product) => ({
-                    ...product,
-                    status: product.status ?? 'ACTIVE',
-                }))
+                const storedIds = new Set(parsed.map((product) => String(product.id)))
+                const missingProducts = initialProducts.filter(
+                    (product) => !storedIds.has(String(product.id))
+                )
+                const merged = [...parsed, ...missingProducts]
+
+                return merged.map((product) => {
+                    const matched = initialProducts.find(
+                        (p) => String(p.id) === String(product.id)
+                    )
+                    return {
+                        ...product,
+                        imageUrl: product.imageUrl || matched?.imageUrl || null,
+                        status: product.status ?? 'ACTIVE',
+                    }
+                })
             }
         }
     } catch (error) {
@@ -61,6 +73,7 @@ export function ProductProvider({ children }) {
                 category: productData.category.trim(),
                 price: Number(productData.price),
                 description: productData.description.trim(),
+                imageUrl: productData.imageUrl ? productData.imageUrl.trim() : null,
                 inStock: false,
                 status: 'ACTIVE',
             }
@@ -83,6 +96,9 @@ export function ProductProvider({ children }) {
                     category: productData.category.trim(),
                     price: Number(productData.price),
                     description: productData.description.trim(),
+                    ...(productData.imageUrl !== undefined
+                        ? { imageUrl: productData.imageUrl }
+                        : {}),
                 }
             })
         )

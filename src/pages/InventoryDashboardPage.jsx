@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { warehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
 import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
 import ProductThumb from '../components/ProductThumb'
+import ProductPagination from '../components/ProductPagination'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber } from '../utils/format'
 import {
@@ -12,6 +13,11 @@ import {
     getStoredThresholds,
     getThreshold,
 } from '../utils/stockThresholds'
+import {
+    getInventoryPage,
+    getInventoryPageHref,
+    useNormalizeInventoryPages,
+} from '../hooks/useInventoryPagination'
 
 const WAREHOUSE_COLORS = ['#2f6fed', '#2fa866', '#f08a3c', '#9b8cf0', '#e0b341']
 
@@ -26,7 +32,27 @@ function InventoryDashboardPage() {
     const { currentUser } = useAuth()
     const { inventory } = useInventory()
     const { products } = useProducts()
-    const [selectedWarehouse, setSelectedWarehouse] = useState('all')
+
+    const [searchParams, setSearchParams] = useSearchParams()
+    const warehouseParam = searchParams.get('warehouseId')
+    const selectedWarehouse = warehouses.some((warehouse) => String(warehouse.id) === warehouseParam)
+        ? warehouseParam
+        : 'all'
+
+    function handleWarehouseChange(event) {
+        const params = new URLSearchParams(searchParams)
+        const value = event.target.value
+
+        if (value === 'all') {
+            params.delete('warehouseId')
+        } else {
+            params.set('warehouseId', value)
+        }
+
+        params.delete('detailPage')
+        setSearchParams(params)
+    }
+
     const thresholds = useMemo(() => getStoredThresholds(), [])
 
     const scopedInventory = useMemo(
@@ -118,6 +144,21 @@ function InventoryDashboardPage() {
         [scopedInventory, products, thresholds]
     )
 
+    const productPage = getInventoryPage(productSummary.length, searchParams.get('productPage'))
+    const detailPage = getInventoryPage(scopedInventory.length, searchParams.get('detailPage'))
+    const productPageRows = productSummary.slice(productPage.start, productPage.end)
+    const detailPageRows = scopedInventory.slice(detailPage.start, detailPage.end)
+
+    const canViewInventory = currentUser?.role === 'ADMIN'
+        || currentUser?.role === 'WAREHOUSE_MANAGER'
+
+    useNormalizeInventoryPages(
+        searchParams,
+        setSearchParams,
+        { productPage: productPage.page, detailPage: detailPage.page },
+        canViewInventory,
+    )
+
     if (!currentUser) {
         return <Navigate to="/" replace />
     }
@@ -155,9 +196,7 @@ function InventoryDashboardPage() {
                             id="warehouse-filter"
                             className="mgmt-select"
                             value={selectedWarehouse}
-                            onChange={(event) =>
-                                setSelectedWarehouse(event.target.value)
-                            }
+                            onChange={handleWarehouseChange}
                         >
                             <option value="all">Tất cả kho</option>
                             {warehouses.map((warehouse) => (
@@ -302,33 +341,41 @@ function InventoryDashboardPage() {
                 {productSummary.length === 0 ? (
                     <div className="mgmt-empty">Chưa có sản phẩm nào.</div>
                 ) : (
-                    <div className="mgmt-table-wrap">
-                        <table className="mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Sản phẩm</th>
-                                    <th className="num">Tồn thực tế</th>
-                                    <th className="num">Đang giữ</th>
-                                    <th className="num">Có thể bán</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {productSummary.map(({ product, onHand, reserved, available }) => (
-                                    <tr key={product.id}>
-                                        <td>
-                                            <div className="mgmt-product-cell">
-                                                <ProductThumb product={product} />
-                                                <span>{product.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="num">{onHand}</td>
-                                        <td className="num">{reserved}</td>
-                                        <td className="num">{available}</td>
+                    <>
+                        <div className="mgmt-table-wrap">
+                            <table className="mgmt-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th className="num">Tồn thực tế</th>
+                                        <th className="num">Đang giữ</th>
+                                        <th className="num">Có thể bán</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {productPageRows.map(({ product, onHand, reserved, available }) => (
+                                        <tr key={product.id}>
+                                            <td>
+                                                <div className="mgmt-product-cell">
+                                                    <ProductThumb product={product} />
+                                                    <span>{product.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="num">{onHand}</td>
+                                            <td className="num">{reserved}</td>
+                                            <td className="num">{available}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <ProductPagination
+                            page={productPage.page}
+                            totalPages={productPage.totalPages}
+                            getPageHref={(page) => getInventoryPageHref(searchParams, 'productPage', page)}
+                            ariaLabel="Phân trang tồn kho theo sản phẩm"
+                        />
+                    </>
                 )}
             </section>
 
@@ -343,40 +390,48 @@ function InventoryDashboardPage() {
                 {scopedInventory.length === 0 ? (
                     <div className="mgmt-empty">Không có dữ liệu tồn kho.</div>
                 ) : (
-                    <div className="mgmt-table-wrap">
-                        <table className="mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Kho</th>
-                                    <th>Sản phẩm</th>
-                                    <th className="num">Tồn thực tế</th>
-                                    <th className="num">Đang giữ</th>
-                                    <th className="num">Có thể bán</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {scopedInventory.map((item) => {
-                                    const warehouse = warehouses.find(
-                                        (w) => Number(w.id) === Number(item.warehouseId)
-                                    )
-                                    const product = products.find(
-                                        (p) => Number(p.id) === Number(item.productId)
-                                    )
-                                    return (
-                                        <tr key={`${item.productId}-${item.warehouseId}`}>
-                                            <td>{warehouse?.name || 'Không xác định'}</td>
-                                            <td>{product?.name || 'Không xác định'}</td>
-                                            <td className="num">{item.onHand}</td>
-                                            <td className="num">{item.reserved}</td>
-                                            <td className="num">
-                                                {item.onHand - item.reserved}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                    <>
+                        <div className="mgmt-table-wrap">
+                            <table className="mgmt-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kho</th>
+                                        <th>Sản phẩm</th>
+                                        <th className="num">Tồn thực tế</th>
+                                        <th className="num">Đang giữ</th>
+                                        <th className="num">Có thể bán</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {detailPageRows.map((item) => {
+                                        const warehouse = warehouses.find(
+                                            (w) => Number(w.id) === Number(item.warehouseId)
+                                        )
+                                        const product = products.find(
+                                            (p) => Number(p.id) === Number(item.productId)
+                                        )
+                                        return (
+                                            <tr key={`${item.productId}-${item.warehouseId}`}>
+                                                <td>{warehouse?.name || 'Không xác định'}</td>
+                                                <td>{product?.name || 'Không xác định'}</td>
+                                                <td className="num">{item.onHand}</td>
+                                                <td className="num">{item.reserved}</td>
+                                                <td className="num">
+                                                    {item.onHand - item.reserved}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        <ProductPagination
+                            page={detailPage.page}
+                            totalPages={detailPage.totalPages}
+                            getPageHref={(page) => getInventoryPageHref(searchParams, 'detailPage', page)}
+                            ariaLabel="Phân trang chi tiết tồn kho theo kho"
+                        />
+                    </>
                 )}
             </section>
         </div>

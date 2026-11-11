@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Link,
   Navigate,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router-dom'
@@ -13,6 +14,16 @@ function EditProductPage() {
   const { products, updateProduct } = useProducts()
   const { productId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const listSearch =
+    typeof location.state?.productListSearch === 'string'
+      ? location.state.productListSearch
+      : ''
+  const listDestination = {
+    pathname: '/admin/products',
+    search: listSearch ? `?${listSearch}` : '',
+  }
 
   const product = products.find(
     (item) => String(item.id) === String(productId)
@@ -40,7 +51,7 @@ function EditProductPage() {
             <p>Sản phẩm không tồn tại hoặc đã bị xóa.</p>
           </div>
         </div>
-        <Link to="/admin/products" className="mgmt-btn mgmt-btn--ghost">
+        <Link to={listDestination} className="mgmt-btn mgmt-btn--ghost">
           Quay lại danh sách
         </Link>
       </div>
@@ -81,7 +92,7 @@ function EditProductPage() {
     }
 
     updateProduct(productId, form)
-    navigate('/admin/products')
+    navigate(listDestination)
   }
 
   return (
@@ -151,7 +162,7 @@ function EditProductPage() {
 
         <div className="mgmt-form__actions">
           <Link
-            to="/admin/products"
+            to={listDestination}
             className="mgmt-btn mgmt-btn--ghost"
           >
             Hủy

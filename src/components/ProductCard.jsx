@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
-import { getProductVisual } from '../utils/productVisuals'
-import { formatPrice, handleImageError } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import LucideIcon from './LucideIcon'
+import ProductImage from './ProductImage'
 import './ProductCard.css'
 
 const MAX_QUANTITY_PER_PRODUCT = 100
@@ -16,7 +16,6 @@ function ProductCard({ product }) {
     const { getProductAvailableStock } = useInventory()
     const { isWishlisted, toggleWishlist, showToast } = useWishlist()
 
-    const visual = getProductVisual(product)
     const available = getProductAvailableStock(product.id)
     const isActive = (product.status ?? 'ACTIVE') === 'ACTIVE'
     const canAdd = isActive && available > 0
@@ -41,18 +40,17 @@ function ProductCard({ product }) {
 
     return (
         <article className="product-card">
-            <div className="product-card__media">
+            <div className="product-card__media product-card-image home-product-image">
                 <Link
                     to={detailPath}
                     className="product-card__image-link"
                     tabIndex={-1}
                     aria-hidden="true"
                 >
-                    <img
-                        src={visual.image}
-                        alt=""
+                    <ProductImage
+                        imageUrl={product.imageUrl}
+                        name={product.name}
                         loading="lazy"
-                        onError={handleImageError}
                     />
                 </Link>
 

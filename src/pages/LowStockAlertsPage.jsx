@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { warehouses } from '../data/inventory'
 import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
 import ProductThumb from '../components/ProductThumb'
+import ProductPagination from '../components/ProductPagination'
 import {
     THRESHOLD_STORAGE_KEY,
     getStockStatus,
     getStoredThresholds,
     getThreshold,
 } from '../utils/stockThresholds'
+import {
+    getInventoryPage,
+    getInventoryPageHref,
+    useNormalizeInventoryPages,
+} from '../hooks/useInventoryPagination'
 
 function ThresholdForm({
     assignedWarehouseId,
@@ -83,7 +89,26 @@ function LowStockAlertsPage() {
     const { products } = useProducts()
 
     const [thresholds, setThresholds] = useState(getStoredThresholds)
-    const [selectedWarehouseId, setSelectedWarehouseId] = useState('all')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const warehouseParam = searchParams.get('warehouseId')
+    const selectedWarehouseId = warehouses.some((warehouse) => String(warehouse.id) === warehouseParam)
+        ? warehouseParam
+        : 'all'
+
+    function handleAlertWarehouseChange(event) {
+        const params = new URLSearchParams(searchParams)
+        const value = event.target.value
+
+        if (value === 'all') {
+            params.delete('warehouseId')
+        } else {
+            params.set('warehouseId', value)
+        }
+
+        params.delete('page')
+        setSearchParams(params)
+    }
+
     const [statusFilter, setStatusFilter] = useState('ALL')
     const [keyword, setKeyword] = useState('')
 
@@ -153,23 +178,6 @@ function LowStockAlertsPage() {
         selectedWarehouseId,
     ])
 
-    // 2. KIỂM TRA ĐIỀU KIỆN ĐĂNG NHẬP & PHÂN QUYỀN SAU KHI ĐÃ GỌI XONG TẤT CẢ CÁC HOOKS
-    if (!currentUser) {
-        return <Navigate to="/" replace />
-    }
-
-    if (!isWarehouseManager && !isAdmin) {
-        return (
-            <div className="mgmt-page">
-                <h1>Không có quyền truy cập</h1>
-                <p>
-                    Chức năng này chỉ dành cho nhân viên quản lý kho và quản trị
-                    viên.
-                </p>
-            </div>
-        )
-    }
-
     const handleSaveThreshold = (productId, rawInput) => {
         if (!canEditThreshold) {
             alert('Bạn không có quyền thiết lập ngưỡng cảnh báo.')
@@ -208,6 +216,32 @@ function LowStockAlertsPage() {
             item.productName.toLowerCase().includes(keyword.trim().toLowerCase())
     )
 
+    const alertsPage = getInventoryPage(visibleAlerts.length, searchParams.get('page'))
+    const alertPageRows = visibleAlerts.slice(alertsPage.start, alertsPage.end)
+
+    useNormalizeInventoryPages(
+        searchParams,
+        setSearchParams,
+        { page: alertsPage.page },
+        isAdmin || isWarehouseManager,
+    )
+
+    if (!currentUser) {
+        return <Navigate to="/" replace />
+    }
+
+    if (!isWarehouseManager && !isAdmin) {
+        return (
+            <div className="mgmt-page">
+                <h1>Không có quyền truy cập</h1>
+                <p>
+                    Chức năng này chỉ dành cho nhân viên quản lý kho và quản trị
+                    viên.
+                </p>
+            </div>
+        )
+    }
+
     const assignedWarehouse = warehouses.find(
         (w) => Number(w.id) === Number(assignedWarehouseId)
     )
@@ -231,9 +265,7 @@ function LowStockAlertsPage() {
                                 id="alerts-warehouse-filter"
                                 className="mgmt-select"
                                 value={selectedWarehouseId}
-                                onChange={(event) =>
-                                    setSelectedWarehouseId(event.target.value)
-                                }
+                                onChange={handleAlertWarehouseChange}
                             >
                                 <option value="all">Tất cả kho</option>
                                 {warehouses.map((warehouse) => (
@@ -305,13 +337,27 @@ function LowStockAlertsPage() {
                         className="mgmt-input"
                         placeholder="Tìm sản phẩm..."
                         value={keyword}
-                        onChange={(event) => setKeyword(event.target.value)}
+                        onChange={(event) => {
+                            setKeyword(event.target.value)
+                            if (searchParams.has('page')) {
+                                const params = new URLSearchParams(searchParams)
+                                params.delete('page')
+                                setSearchParams(params, { replace: true })
+                            }
+                        }}
                         aria-label="Tìm sản phẩm trong cảnh báo"
                     />
                     <select
                         className="mgmt-select"
                         value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
+                        onChange={(event) => {
+                            setStatusFilter(event.target.value)
+                            if (searchParams.has('page')) {
+                                const params = new URLSearchParams(searchParams)
+                                params.delete('page')
+                                setSearchParams(params)
+                            }
+                        }}
                         aria-label="Lọc theo trạng thái"
                     >
                         <option value="ALL">Mọi trạng thái</option>
@@ -328,52 +374,60 @@ function LowStockAlertsPage() {
                             : 'Không có cảnh báo nào khớp bộ lọc.'}
                     </div>
                 ) : (
-                    <div className="mgmt-table-wrap">
-                        <table className="mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Kho</th>
-                                    <th>Sản phẩm</th>
-                                    <th className="num">Tồn thực tế</th>
-                                    <th className="num">Đang giữ</th>
-                                    <th className="num">Có thể bán</th>
-                                    <th className="num">Ngưỡng</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {visibleAlerts.map((item) => (
-                                    <tr key={`${item.warehouseId}-${item.productId}`}>
-                                        <td>{item.warehouseName}</td>
-                                        <td>
-                                            <div className="mgmt-product-cell">
-                                                {item.product && (
-                                                    <ProductThumb product={item.product} />
-                                                )}
-                                                <span>{item.productName}</span>
-                                            </div>
-                                        </td>
-                                        <td className="num">{item.onHand}</td>
-                                        <td className="num">{item.reserved}</td>
-                                        <td className="num">{item.available}</td>
-                                        <td className="num">{item.threshold}</td>
-                                        <td>
-                                            {item.status === 'OUT_OF_STOCK' ? (
-                                                <span className="mgmt-badge mgmt-badge--danger">
-                                                    Hết hàng
-                                                </span>
-                                            ) : (
-                                                <span className="mgmt-badge mgmt-badge--warning">
-                                                    Tồn kho thấp
-                                                </span>
-                                            )}
-                                        </td>
+                    <>
+                        <div className="mgmt-table-wrap">
+                            <table className="mgmt-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kho</th>
+                                        <th>Sản phẩm</th>
+                                        <th className="num">Tồn thực tế</th>
+                                        <th className="num">Đang giữ</th>
+                                        <th className="num">Có thể bán</th>
+                                        <th className="num">Ngưỡng</th>
+                                        <th>Trạng thái</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+
+                                <tbody>
+                                    {alertPageRows.map((item) => (
+                                        <tr key={`${item.warehouseId}-${item.productId}`}>
+                                            <td>{item.warehouseName}</td>
+                                            <td>
+                                                <div className="mgmt-product-cell">
+                                                    {item.product && (
+                                                        <ProductThumb product={item.product} />
+                                                    )}
+                                                    <span>{item.productName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="num">{item.onHand}</td>
+                                            <td className="num">{item.reserved}</td>
+                                            <td className="num">{item.available}</td>
+                                            <td className="num">{item.threshold}</td>
+                                            <td>
+                                                {item.status === 'OUT_OF_STOCK' ? (
+                                                    <span className="mgmt-badge mgmt-badge--danger">
+                                                        Hết hàng
+                                                    </span>
+                                                ) : (
+                                                    <span className="mgmt-badge mgmt-badge--warning">
+                                                        Tồn kho thấp
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <ProductPagination
+                            page={alertsPage.page}
+                            totalPages={alertsPage.totalPages}
+                            getPageHref={(page) => getInventoryPageHref(searchParams, 'page', page)}
+                            ariaLabel="Phân trang cảnh báo tồn kho"
+                        />
+                    </>
                 )}
             </section>
         </div>

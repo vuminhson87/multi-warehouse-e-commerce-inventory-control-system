@@ -1,27 +1,54 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useInventory } from '../context/InventoryContext'
 import ProductThumb from '../components/ProductThumb'
+import ProductPagination from '../components/ProductPagination'
+import FeaturedProductsPanel from '../components/FeaturedProductsPanel'
 import LucideIcon from '../components/LucideIcon'
 import { formatPrice } from '../utils/format'
+
+const ADMIN_PRODUCTS_PATH = '/admin/products'
+const ADMIN_PRODUCTS_PER_PAGE = 10
+
+function readAdminProductsPage(value) {
+    if (!/^[1-9]\d*$/.test(value ?? '')) return 1
+
+    const page = Number(value)
+    return Number.isSafeInteger(page) ? page : 1
+}
 
 function ProductManagementPage() {
     const { currentUser } = useAuth()
     const { products, updateProductStatus } = useProducts()
     const { getProductAvailableStock } = useInventory()
 
-    const [keyword, setKeyword] = useState('')
-    const [category, setCategory] = useState('Tất cả')
-    const [statusFilter, setStatusFilter] = useState('ALL')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const rawPage = searchParams.get('page')
+    const requestedPage = readAdminProductsPage(rawPage)
+    const keyword = searchParams.get('search') ?? ''
+    const category = searchParams.get('category') ?? 'Tất cả'
+    const statusFilter = searchParams.get('status') ?? 'ALL'
 
-    if (!currentUser) {
-        return <Navigate to="/" replace />
+    function getPageHref(page) {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(page))
+
+        return { pathname: ADMIN_PRODUCTS_PATH, search: `?${params.toString()}` }
     }
 
-    if (currentUser.role !== 'ADMIN') {
-        return <Navigate to="/products" replace />
+    function updateFilter(key, value) {
+        const params = new URLSearchParams(searchParams)
+
+        if (value) {
+            params.set(key, value)
+        } else {
+            params.delete(key)
+        }
+
+        params.delete('page')
+        setSearchParams(params, { replace: key === 'search' })
     }
 
     const categories = [
@@ -43,6 +70,32 @@ function ProductManagementPage() {
 
         return matchesKeyword && matchesCategory && matchesStatus
     })
+
+    const totalPages = Math.ceil(filteredProducts.length / ADMIN_PRODUCTS_PER_PAGE)
+    const currentPage = Math.min(requestedPage, Math.max(1, totalPages))
+    const startIndex = (currentPage - 1) * ADMIN_PRODUCTS_PER_PAGE
+    const pageProducts = filteredProducts.slice(
+        startIndex,
+        startIndex + ADMIN_PRODUCTS_PER_PAGE
+    )
+
+    const isAdmin = currentUser?.role === 'ADMIN'
+
+    useEffect(() => {
+        if (!isAdmin || rawPage === null || rawPage === String(currentPage)) return
+
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(currentPage))
+        setSearchParams(params, { replace: true })
+    }, [currentPage, isAdmin, rawPage, searchParams, setSearchParams])
+
+    if (!currentUser) {
+        return <Navigate to="/" replace />
+    }
+
+    if (currentUser.role !== 'ADMIN') {
+        return <Navigate to="/products" replace />
+    }
 
     const activeCount = products.filter(
         (p) => (p.status ?? 'ACTIVE') === 'ACTIVE'
@@ -71,6 +124,8 @@ function ProductManagementPage() {
                 </div>
             </div>
 
+            <FeaturedProductsPanel />
+
             <section className="mgmt-card">
                 <div className="mgmt-toolbar">
                     <input
@@ -78,14 +133,17 @@ function ProductManagementPage() {
                         className="mgmt-input"
                         placeholder="Tìm kiếm sản phẩm..."
                         value={keyword}
-                        onChange={(event) => setKeyword(event.target.value)}
+                        onChange={(event) => updateFilter('search', event.target.value)}
                         aria-label="Tìm kiếm sản phẩm"
                     />
 
                     <select
                         className="mgmt-select"
                         value={category}
-                        onChange={(event) => setCategory(event.target.value)}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            updateFilter('category', value === 'Tất cả' ? '' : value)
+                        }}
                         aria-label="Lọc theo danh mục"
                     >
                         {categories.map((item) => (
@@ -98,7 +156,10 @@ function ProductManagementPage() {
                     <select
                         className="mgmt-select"
                         value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            updateFilter('status', value === 'ALL' ? '' : value)
+                        }}
                         aria-label="Lọc theo trạng thái kinh doanh"
                     >
                         <option value="ALL">Mọi trạng thái</option>
@@ -122,7 +183,7 @@ function ProductManagementPage() {
                         </thead>
 
                         <tbody>
-                            {filteredProducts.map((product) => {
+                            {pageProducts.map((product) => {
                                 const available = getProductAvailableStock(
                                     product.id
                                 )
@@ -178,6 +239,9 @@ function ProductManagementPage() {
                                             <Link
                                                 className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
                                                 to={`/admin/products/${product.id}/edit`}
+                                                state={{
+                                                    productListSearch: searchParams.toString(),
+                                                }}
                                             >
                                                 Sửa
                                             </Link>
@@ -196,6 +260,12 @@ function ProductManagementPage() {
                         </tbody>
                     </table>
                 </div>
+
+                <ProductPagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    getPageHref={getPageHref}
+                />
             </section>
         </div>
     )

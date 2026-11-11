@@ -133,10 +133,21 @@ model Product {
   reservations StockReservation[]
   alerts       LowStockAlert[]
   movements    InventoryMovement[]
+  homeFeaturedSlide HomeFeaturedSlide?
 
   @@index([isActive, category])
   @@index([name])
   @@map("products")
+}
+
+model HomeFeaturedSlide {
+  productId           Int     @id @map("product_id")
+  position            Int     @unique
+  imageUrlOverride    String? @map("image_url_override") @db.VarChar(500)
+  descriptionOverride String? @map("description_override") @db.VarChar(200)
+  product             Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("home_featured_slides")
 }
 
 // ---------------------------------------------------------------------------

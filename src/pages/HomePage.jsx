@@ -1,34 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
+import { loadPublicFeaturedSlides } from '../services/featuredProductsApi'
 import { getProductVisual } from '../utils/productVisuals'
-import { handleImageError } from '../utils/format'
 import ProductCard from '../components/ProductCard'
+import ProductImage from '../components/ProductImage'
 import LucideIcon from '../components/LucideIcon'
 import './HomePage.css'
 
-const MAX_HERO_SLIDES = 5
 const FEATURED_COUNT = 4
 const EXPLORE_COUNT = 4
 const TICK_MS = 100
 const TICK_STEP = 2 // 100ms * 50 nhịp = 5 giây mỗi slide
-
-function usePrefersReducedMotion() {
-    const [reduced, setReduced] = useState(
-        () =>
-            typeof window !== 'undefined' &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    )
-
-    useEffect(() => {
-        const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-        const onChange = (event) => setReduced(event.matches)
-        query.addEventListener('change', onChange)
-        return () => query.removeEventListener('change', onChange)
-    }, [])
-
-    return reduced
-}
+const FALLBACK_HERO_COUNT = 5
+const HERO_START = { index: 0, progress: 0 }
 
 function SectionHeader({ title }) {
     return (
@@ -44,54 +29,104 @@ function SectionHeader({ title }) {
 
 function HomePage() {
     const { products } = useProducts()
+    const [apiSlides, setApiSlides] = useState(null)
 
     const activeProducts = useMemo(
-        () => products.filter((p) => (p.status ?? 'ACTIVE') === 'ACTIVE'),
+        () => products.filter((product) => (product.status ?? 'ACTIVE') === 'ACTIVE'),
         [products]
     )
 
-    const slides = useMemo(
-        () =>
-            activeProducts.slice(0, MAX_HERO_SLIDES).map((product) => ({
-                id: product.id,
-                name: product.name,
-                category: product.category,
-                description: product.description,
-                image: getProductVisual(product).image,
-            })),
+    const fallbackSlides = useMemo(
+        () => activeProducts.slice(0, FALLBACK_HERO_COUNT).map((product) => ({
+            productId: product.id,
+            name: product.name,
+            category: product.category,
+            description: product.description,
+            imageUrl: product.imageUrl,
+        })),
         [activeProducts]
     )
 
-    const [slideState, setSlideState] = useState({ index: 0, progress: 0 })
-    const [paused, setPaused] = useState(false)
-    const reducedMotion = usePrefersReducedMotion()
+    const heroSlides = apiSlides ?? fallbackSlides
 
-    const slideCount = slides.length
-    const activeIndex = slideCount > 0 ? slideState.index % slideCount : 0
-    const slide = slides[activeIndex]
-
-    // Chỉ tự chạy khi có >= 2 slide, không bị tạm dừng và không bật giảm chuyển động.
     useEffect(() => {
-        if (slideCount <= 1 || paused || reducedMotion) return undefined
+        const controller = new AbortController()
+
+        async function loadSlides() {
+            try {
+                const data = await loadPublicFeaturedSlides({ signal: controller.signal })
+
+                if (controller.signal.aborted) return
+
+                const validSlides = Array.isArray(data?.slides) && data.slides.every(
+                    (item) => Number.isSafeInteger(item?.productId)
+                        && item.productId > 0
+                        && typeof item.name === 'string'
+                )
+
+                if (!validSlides) {
+                    throw new Error('API sản phẩm nổi bật trả dữ liệu không hợp lệ.')
+                }
+
+                setApiSlides(data.slides)
+            } catch (error) {
+                if (!controller.signal.aborted && import.meta.env.DEV) {
+                    console.warn('Không tải được slide nổi bật từ API.', error)
+                }
+            }
+        }
+
+        void loadSlides()
+        return () => controller.abort()
+    }, [])
+
+    const [slideState, setSlideState] = useState(HERO_START)
+    const [prevHeroSlides, setPrevHeroSlides] = useState(heroSlides)
+    const [paused, setPaused] = useState(false)
+
+    if (prevHeroSlides !== heroSlides) {
+        setPrevHeroSlides(heroSlides)
+        setSlideState(HERO_START)
+    }
+
+    const slideCount = heroSlides.length
+    const activeIndex = slideCount > 0 ? slideState.index % slideCount : 0
+    const slide = heroSlides[activeIndex]
+
+    useEffect(() => {
+        if (slideCount <= 1 || paused) return undefined
 
         const timer = setInterval(() => {
-            setSlideState((state) =>
-                state.progress >= 100
-                    ? { index: (state.index + 1) % slideCount, progress: 0 }
-                    : { ...state, progress: state.progress + TICK_STEP }
-            )
+            setSlideState((previous) => {
+                const nextProgress = previous.progress + TICK_STEP
+
+                if (nextProgress >= 100) {
+                    return {
+                        index: (previous.index + 1) % slideCount,
+                        progress: 0,
+                    }
+                }
+
+                return {
+                    ...previous,
+                    progress: nextProgress,
+                }
+            })
         }, TICK_MS)
 
         return () => clearInterval(timer)
-    }, [slideCount, paused, reducedMotion])
+    }, [slideCount, paused])
 
     function goTo(index) {
         setSlideState({ index, progress: 0 })
     }
 
     function goRelative(delta) {
-        if (slideCount === 0) return
-        goTo((activeIndex + delta + slideCount) % slideCount)
+        if (slideCount <= 1) return
+        setSlideState((previous) => ({
+            index: (previous.index + delta + slideCount) % slideCount,
+            progress: 0,
+        }))
     }
 
     const featured = activeProducts.slice(0, FEATURED_COUNT)
@@ -114,7 +149,7 @@ function HomePage() {
                     onBlur={() => setPaused(false)}
                 >
                     {slide ? (
-                        <div className="home-hero__slide" key={slide.id}>
+                        <div className="home-hero__slide" key={slide.productId}>
                             <div className="home-hero__copy">
                                 {slide.category && (
                                     <p className="home-hero__eyebrow">
@@ -128,18 +163,24 @@ function HomePage() {
                                     </p>
                                 )}
                                 <Link
-                                    to={`/products/${slide.id}`}
+                                    to={`/products/${slide.productId}`}
                                     className="home-hero__cta"
                                 >
                                     Mua ngay
                                     <LucideIcon name="arrow-right" size={16} />
                                 </Link>
                             </div>
-                            <div className="home-hero__media">
-                                <img
-                                    src={slide.image}
-                                    alt={slide.name}
-                                    onError={handleImageError}
+                            <div className="home-hero__media home-product-image">
+                                <ProductImage
+                                    imageUrl={
+                                        slide.imageUrl ||
+                                        getProductVisual({
+                                            name: slide.name,
+                                            category: slide.category,
+                                        }).image
+                                    }
+                                    name={slide.name}
+                                    loading="eager"
                                 />
                             </div>
                         </div>
@@ -154,7 +195,7 @@ function HomePage() {
                                     Sản phẩm sẽ xuất hiện tại đây khi được thêm vào hệ thống.
                                 </p>
                                 <Link to="/products" className="home-hero__cta">
-                                    Xem sản phẩm
+                                    Khám phá sản phẩm
                                     <LucideIcon name="arrow-right" size={16} />
                                 </Link>
                             </div>
@@ -185,9 +226,9 @@ function HomePage() {
                                     {activeIndex + 1} / {slideCount}
                                 </span>
                                 <div className="home-hero__bars">
-                                    {slides.map((item, index) => (
+                                    {heroSlides.map((item, index) => (
                                         <button
-                                            key={item.id}
+                                            key={item.productId}
                                             type="button"
                                             className="home-hero__bar"
                                             onClick={() => goTo(index)}
@@ -200,7 +241,7 @@ function HomePage() {
                                                         index < activeIndex
                                                             ? '100%'
                                                             : index === activeIndex
-                                                              ? `${reducedMotion ? 100 : slideState.progress}%`
+                                                              ? `${slideState.progress}%`
                                                               : '0%',
                                                 }}
                                             />
