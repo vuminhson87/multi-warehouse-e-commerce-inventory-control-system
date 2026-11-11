@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import './ProductDetailPage.css'
 import { useCart } from '../context/CartContext'
-import { useProducts } from '../context/ProductContext'
+import { loadProduct } from '../services/productApi.js'
 import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
 import { warehouses } from '../data/inventory'
@@ -20,16 +20,30 @@ function ProductDetailPage() {
 function ProductDetailContent({ productId }) {
     const navigate = useNavigate()
     const { cartItems, addToCart } = useCart()
-    const { products } = useProducts()
+    const [detail, setDetail] = useState(null)
     const { inventory } = useInventory()
     const { isWishlisted, toggleWishlist, showToast } = useWishlist()
 
     const [warehouseId, setWarehouseId] = useState('')
     const [requestedQuantity, setRequestedQuantity] = useState(1)
 
-    const product = products.find(
-        (item) => String(item.id) === String(productId)
-    )
+    useEffect(() => {
+        const controller = new AbortController()
+        loadProduct(productId, controller.signal)
+            .then(product => {
+                if (!controller.signal.aborted) setDetail({ product })
+            })
+            .catch(error => {
+                if (!controller.signal.aborted) setDetail({ error })
+            })
+        return () => controller.abort()
+    }, [productId])
+
+    if (!detail) return <p role="status">Đang tải sản phẩm…</p>
+    if (detail.error && detail.error.status !== 404) {
+        return <p role="alert">{detail.error.message}</p>
+    }
+    const product = detail.product
 
     if (!product || (product.status ?? 'ACTIVE') !== 'ACTIVE') {
         return (

@@ -169,7 +169,7 @@ function findWarehouseInRows(rows, items, preferredWarehouseId = null) {
 }
 
 export default function InventoryProvider({ children }) {
-    const { products } = useProducts()
+    const { products, loading, error } = useProducts()
     const [savedRows, setSavedRows] = useState(getSavedInventoryRows)
 
     const inventory = useMemo(
@@ -186,12 +186,13 @@ export default function InventoryProvider({ children }) {
     }, [inventory])
 
     useEffect(() => {
+        if (loading || error) return
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory))
         } catch (error) {
             console.error('Không thể lưu tồn kho vào trình duyệt:', error)
         }
-    }, [inventory])
+    }, [inventory, loading, error])
 
     // Lấy bảng tồn kho đầy đủ mới nhất. rowsRef luôn là bảng đã đủ mọi cặp sản phẩm–kho,
     // không dựng lại từ biến products để tránh dùng danh sách sản phẩm cũ khi gọi từ bộ hẹn giờ.

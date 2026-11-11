@@ -45,7 +45,7 @@ function buildUrl({ category, search, sort }) {
 }
 
 function ProductCatalogPage() {
-    const { products } = useProducts()
+    const { products, loading, error } = useProducts()
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
     const [sheet, setSheet] = useState(null) // null | 'filter' | 'sort'
@@ -137,6 +137,10 @@ function ProductCatalogPage() {
                 ...next,
             })
         )
+    }
+
+    if (loading || error) {
+        return <p role={error ? "alert" : "status"}>{error?.message ?? "Đang tải danh mục…"}</p>
     }
 
     return (
