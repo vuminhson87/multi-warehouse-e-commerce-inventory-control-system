@@ -9,6 +9,8 @@ function ShoppingCartPage() {
         decreaseQuantity,
         removeFromCart,
         fulfillmentWarehouse,
+        stockLoading,
+        stockError,
     } = useCart()
 
     const navigate = useNavigate()
@@ -89,7 +91,7 @@ function ShoppingCartPage() {
                                                     marginLeft: '10px',
                                                 }}
                                             >
-                                                [Dự kiến hết hàng trên dữ liệu tạm]
+                                                [Hết hàng theo dữ liệu máy chủ]
                                             </span>
                                         )}
                                         {!item.isDiscontinued &&
@@ -102,7 +104,7 @@ function ShoppingCartPage() {
                                                         marginLeft: '10px',
                                                     }}
                                                 >
-                                                    [Dự kiến tồn khả dụng chỉ còn {item.availableStock}]
+                                                    [Tồn khả dụng tại một kho chỉ còn {item.availableStock}]
                                                 </span>
                                             )}
                                     </h2>
@@ -121,6 +123,8 @@ function ShoppingCartPage() {
                                         <button
                                             disabled={
                                                 item.isDiscontinued ||
+                                                stockLoading ||
+                                                Boolean(stockError) ||
                                                 item.quantity >= 100
                                             }
                                             onClick={() => increaseQuantity(item.id)}
@@ -157,6 +161,9 @@ function ShoppingCartPage() {
                                 Tổng tạm tính: {totalPrice.toLocaleString('vi-VN')} VNĐ
                             </p>
 
+                            {stockLoading && <p role="status">Đang tải tồn kho khả dụng từ máy chủ…</p>}
+                            {stockError && <p role="alert">Không thể tải tồn kho. Hãy thử tải lại trang trước khi đặt hàng.</p>}
+
                             {hasDiscontinuedItems && (
                                 <p style={{ color: '#dc2626', fontWeight: 'bold' }}>
                                     Có sản phẩm đã ngừng kinh doanh trong giỏ hàng.
@@ -164,10 +171,10 @@ function ShoppingCartPage() {
                                 </p>
                             )}
 
-                            {hasInsufficientStockItems && (
+                            {!stockLoading && !stockError && hasInsufficientStockItems && (
                                 <p style={{ color: '#b45309', fontWeight: 'bold' }}>
-                                    Dữ liệu tạm trên trình duyệt ghi nhận có sản phẩm vượt tồn kho dự kiến.
-                                    Hệ thống sẽ kiểm tra tồn kho thực tế tại máy chủ khi thanh toán.
+                                    Tồn kho máy chủ hiện không đủ cho số lượng trong giỏ.
+                                    Hãy giảm số lượng hoặc xóa sản phẩm trước khi thanh toán.
                                 </p>
                             )}
 
@@ -195,7 +202,7 @@ function ShoppingCartPage() {
                                 </div>
                             )}
 
-                            {isOrderUnfulfillable && (
+                            {!stockLoading && !stockError && isOrderUnfulfillable && (
                                 <div
                                     style={{
                                         background: '#fffbeb',
@@ -212,7 +219,7 @@ function ShoppingCartPage() {
                                             margin: 0,
                                         }}
                                     >
-                                        ℹ️ Chưa xác định được kho dự kiến trên dữ liệu tạm
+                                        Không có kho nào đủ hàng cho toàn bộ giỏ
                                     </p>
                                     <p
                                         style={{
@@ -221,15 +228,14 @@ function ShoppingCartPage() {
                                             fontSize: '0.9rem',
                                         }}
                                     >
-                                        Quy tắc hệ thống yêu cầu một kho phải giao
-                                        toàn bộ đơn hàng (Single-Warehouse
-                                        Fulfillment). Máy chủ sẽ xác nhận tồn kho thực tế khi gửi đơn.
+                                        Không có kho nào hiện đáp ứng đủ tất cả mặt hàng trong giỏ.
+                                        Hãy điều chỉnh số lượng hoặc sản phẩm trước khi thanh toán.
                                     </p>
                                 </div>
                             )}
 
                             <button
-                                disabled={hasDiscontinuedItems}
+                                disabled={hasDiscontinuedItems || stockLoading || Boolean(stockError) || hasInsufficientStockItems || isOrderUnfulfillable}
                                 onClick={() => navigate('/checkout')}
                             >
                                 Tiến hành thanh toán

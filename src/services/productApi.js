@@ -15,6 +15,12 @@ export function loadProduct(id, signal) {
     return apiRequest(`/api/products/${encodeURIComponent(id)}`, { signal })
 }
 
+export function loadProductAvailability(productIds, signal) {
+    const ids = [...new Set(productIds.map(Number).filter(id => Number.isSafeInteger(id) && id > 0))]
+    if (!ids.length) return Promise.resolve({ warehouses: [], items: [] })
+    return apiRequest(`/api/products/availability?productIds=${ids.join(',')}`, { signal })
+}
+
 export function saveProduct(token, id, form) {
     const body = {
         name: form.name.trim(),

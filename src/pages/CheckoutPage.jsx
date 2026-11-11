@@ -7,7 +7,7 @@ import { createOrderApi } from '../services/orderApi.js'
 import { acquireCheckoutKey, clearCheckoutKey } from '../services/requestKeys.js'
 
 function CheckoutPage() {
-    const { cartItems, clearCart, fulfillmentWarehouse } = useCart()
+    const { cartItems, clearCart, fulfillmentWarehouse, stockLoading, stockError } = useCart()
     const { currentUser, token, authLoading } = useAuth()
 
     const [submitting, setSubmitting] = useState(false)
@@ -61,6 +61,10 @@ function CheckoutPage() {
         }
         if (hasDiscontinuedItems) {
             alert('Giỏ hàng có sản phẩm đã ngừng kinh doanh.')
+            return
+        }
+        if (stockLoading || stockError || hasInsufficientStockItems || isOrderUnfulfillable) {
+            alert('Tồn kho hiện tại không đáp ứng toàn bộ giỏ hàng từ một kho. Vui lòng quay lại giỏ hàng để kiểm tra.')
             return
         }
 
@@ -121,7 +125,7 @@ function CheckoutPage() {
                                                 marginLeft: '10px',
                                             }}
                                         >
-                                            [Dự kiến hết hàng trên dữ liệu tạm]
+                                            [Hết hàng theo dữ liệu máy chủ]
                                         </span>
                                     )}
                                     {!item.isDiscontinued &&
@@ -134,7 +138,7 @@ function CheckoutPage() {
                                                     marginLeft: '10px',
                                                 }}
                                             >
-                                                [Dự kiến tồn khả dụng chỉ còn {item.availableStock}]
+                                                [Tồn khả dụng tại một kho chỉ còn {item.availableStock}]
                                             </span>
                                         )}
                                 </h3>
@@ -156,6 +160,9 @@ function CheckoutPage() {
                             Tổng tạm tính (sẽ xác nhận theo giá server): {totalPrice.toLocaleString('vi-VN')} VNĐ
                         </div>
 
+                        {stockLoading && <p role="status">Đang tải tồn kho khả dụng từ máy chủ…</p>}
+                        {stockError && <p role="alert">Không thể tải tồn kho. Quay lại giỏ hàng và thử tải lại trước khi đặt hàng.</p>}
+
                         {hasDiscontinuedItems && (
                             <p
                                 style={{
@@ -170,7 +177,7 @@ function CheckoutPage() {
                             </p>
                         )}
 
-                        {hasInsufficientStockItems && (
+                        {!stockLoading && !stockError && hasInsufficientStockItems && (
                             <p
                                 style={{
                                     color: '#b45309',
@@ -178,13 +185,12 @@ function CheckoutPage() {
                                     marginTop: '15px',
                                 }}
                             >
-                                Dữ liệu tạm thời trên trình duyệt ghi nhận có sản phẩm
-                                vượt tồn kho dự kiến. Hệ thống sẽ kiểm tra tồn kho thực tế
-                                trên máy chủ khi gửi đơn.
+                                Tồn kho máy chủ hiện không đủ cho số lượng trong giỏ.
+                                Hãy giảm số lượng hoặc xóa sản phẩm trước khi đặt hàng.
                             </p>
                         )}
 
-                        {fulfillmentWarehouse && (
+                        {!stockLoading && !stockError && fulfillmentWarehouse && (
                             <div
                                 style={{
                                     background: '#f0fdf4',
@@ -201,7 +207,7 @@ function CheckoutPage() {
                                         fontSize: '1.05rem',
                                     }}
                                 >
-                                    ✓ Dự kiến kho tiếp nhận xử lý:{' '}
+                                    ✓ Kho có thể xử lý toàn bộ đơn:{' '}
                                     {fulfillmentWarehouse.name}
                                 </h3>
                                 <p
@@ -211,14 +217,14 @@ function CheckoutPage() {
                                         fontSize: '0.9rem',
                                     }}
                                 >
-                                    Dự kiến kho {fulfillmentWarehouse.name} đáp ứng đơn hàng;
-                                    hệ thống sẽ xác nhận kho và tồn kho thực tế khi gửi đơn
+                                    Tồn kho hiện tại cho thấy kho {fulfillmentWarehouse.name} đáp ứng đơn hàng;
+                                    máy chủ vẫn kiểm tra lại tồn kho khi tạo đơn
                                     (Single-Warehouse Fulfillment - BR-01).
                                 </p>
                             </div>
                         )}
 
-                        {isOrderUnfulfillable && (
+                        {!stockLoading && !stockError && isOrderUnfulfillable && (
                             <div
                                 style={{
                                     background: '#fffbeb',
@@ -235,7 +241,7 @@ function CheckoutPage() {
                                         fontSize: '1.05rem',
                                     }}
                                 >
-                                    ℹ️ Chưa xác định được kho dự kiến trên dữ liệu tạm
+                                    Không có kho nào đủ hàng cho toàn bộ giỏ
                                 </h3>
                                 <p
                                     style={{
@@ -244,9 +250,7 @@ function CheckoutPage() {
                                         fontSize: '0.9rem',
                                     }}
                                 >
-                                    Quy tắc hệ thống yêu cầu một đơn hàng phải
-                                    được giao trọn vẹn từ 1 kho duy nhất. Máy chủ
-                                    sẽ kiểm tra và chọn kho thực tế khi bạn xác nhận đặt hàng.
+                                    Điều chỉnh số lượng hoặc bỏ sản phẩm rồi thử lại.
                                 </p>
                             </div>
                         )}
@@ -257,7 +261,8 @@ function CheckoutPage() {
                             disabled={
                                 submitting ||
                                 cartItems.length === 0 ||
-                                hasDiscontinuedItems
+                                hasDiscontinuedItems || stockLoading || Boolean(stockError) ||
+                                hasInsufficientStockItems || isOrderUnfulfillable
                             }
                             onClick={handleConfirmOrder}
                         >

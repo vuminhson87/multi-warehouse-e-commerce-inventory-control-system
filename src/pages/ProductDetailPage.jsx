@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import './ProductDetailPage.css'
 import { useCart } from '../context/CartContext'
-import { loadProduct } from '../services/productApi.js'
-import { useInventory } from '../context/InventoryContext'
+import { loadProduct, loadProductAvailability } from '../services/productApi.js'
 import { useWishlist } from '../context/WishlistContext'
-import { warehouses } from '../data/inventory'
 import { formatPrice } from '../utils/format'
 import LucideIcon from '../components/LucideIcon'
 import ProductImage from '../components/ProductImage'
@@ -21,7 +19,6 @@ function ProductDetailContent({ productId }) {
     const navigate = useNavigate()
     const { cartItems, addToCart } = useCart()
     const [detail, setDetail] = useState(null)
-    const { inventory } = useInventory()
     const { isWishlisted, toggleWishlist, showToast } = useWishlist()
 
     const [warehouseId, setWarehouseId] = useState('')
@@ -29,9 +26,12 @@ function ProductDetailContent({ productId }) {
 
     useEffect(() => {
         const controller = new AbortController()
-        loadProduct(productId, controller.signal)
-            .then(product => {
-                if (!controller.signal.aborted) setDetail({ product })
+        Promise.all([
+            loadProduct(productId, controller.signal),
+            loadProductAvailability([productId], controller.signal),
+        ])
+            .then(([product, availability]) => {
+                if (!controller.signal.aborted) setDetail({ product, availability })
             })
             .catch(error => {
                 if (!controller.signal.aborted) setDetail({ error })
@@ -59,15 +59,13 @@ function ProductDetailContent({ productId }) {
         )
     }
 
-    const warehouseOptions = warehouses.map((warehouse) => {
-        const row = inventory.find((item) =>
-            Number(item.productId) === Number(product.id)
-            && Number(item.warehouseId) === Number(warehouse.id)
+    const warehouseOptions = detail.availability.warehouses.map((warehouse) => {
+        const row = detail.availability.items.find((item) =>
+            Number(item.productId) === Number(product.id) && Number(item.warehouseId) === Number(warehouse.id)
         )
-
         return {
             ...warehouse,
-            available: row ? Math.max(0, row.onHand - row.reserved) : 0,
+            available: row?.available ?? 0,
         }
     })
 

@@ -1,17 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
-import { warehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
-import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
+import { loadWarehouses, loadWarehouseInventory } from '../services/inventoryApi.js'
 import ProductThumb from '../components/ProductThumb'
 import ProductPagination from '../components/ProductPagination'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber } from '../utils/format'
 import {
     getStockStatus,
-    getStoredThresholds,
-    getThreshold,
 } from '../utils/stockThresholds'
 import {
     getInventoryPage,
@@ -29,11 +26,47 @@ function StatusBadge({ status }) {
 }
 
 function InventoryDashboardPage() {
-    const { currentUser } = useAuth()
-    const { inventory } = useInventory()
+    const { currentUser, token } = useAuth()
     const { products } = useProducts()
+    const [inventoryData, setInventoryData] = useState({ warehouses: [], inventory: [], loading: true, error: null })
+    const [reloadKey, setReloadKey] = useState(0)
 
     const [searchParams, setSearchParams] = useSearchParams()
+    const isAdmin = currentUser?.role === 'ADMIN'
+    const warehouses = inventoryData.warehouses
+
+    useEffect(() => {
+        if (!token || !['ADMIN', 'WAREHOUSE_MANAGER'].includes(currentUser?.role)) return undefined
+        const controller = new AbortController()
+
+        async function loadInventoryDashboard() {
+            setInventoryData(previous => ({ ...previous, loading: true, error: null }))
+            try {
+                const availableWarehouses = await loadWarehouses(token, controller.signal)
+                const inventoryPages = await Promise.all(
+                    availableWarehouses.map(warehouse =>
+                        loadWarehouseInventory(token, warehouse.id, controller.signal)
+                    )
+                )
+                if (!controller.signal.aborted) {
+                    setInventoryData({
+                        warehouses: availableWarehouses,
+                        inventory: inventoryPages.flat(),
+                        loading: false,
+                        error: null,
+                    })
+                }
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    setInventoryData(previous => ({ ...previous, loading: false, error }))
+                }
+            }
+        }
+
+        void loadInventoryDashboard()
+        return () => controller.abort()
+    }, [token, currentUser?.role, reloadKey])
+
     const warehouseParam = searchParams.get('warehouseId')
     const selectedWarehouse = warehouses.some((warehouse) => String(warehouse.id) === warehouseParam)
         ? warehouseParam
@@ -53,16 +86,16 @@ function InventoryDashboardPage() {
         setSearchParams(params)
     }
 
-    const thresholds = useMemo(() => getStoredThresholds(), [])
+    const { inventory } = inventoryData
 
     const scopedInventory = useMemo(
         () =>
             inventory.filter(
                 (item) =>
-                    selectedWarehouse === 'all' ||
-                    Number(item.warehouseId) === Number(selectedWarehouse)
+                    warehouses.some(warehouse => Number(warehouse.id) === Number(item.warehouseId)) &&
+                    (selectedWarehouse === 'all' || Number(item.warehouseId) === Number(selectedWarehouse))
             ),
-        [inventory, selectedWarehouse]
+        [inventory, selectedWarehouse, warehouses]
     )
 
     const totals = useMemo(() => {
@@ -84,7 +117,7 @@ function InventoryDashboardPage() {
         [products, scopedInventory]
     )
 
-    // Phân bổ tồn theo kho (luôn trên toàn hệ thống).
+    // Phân bổ tồn theo các kho được phép xem.
     const distribution = useMemo(() => {
         const rows = warehouses.map((warehouse, index) => ({
             warehouse,
@@ -115,7 +148,7 @@ function InventoryDashboardPage() {
             })),
             gradient: stops.length ? `conic-gradient(${stops.join(', ')})` : null,
         }
-    }, [inventory])
+    }, [inventory, warehouses])
 
     // Sản phẩm sắp hết / hết hàng theo ngưỡng thực tế của từng kho.
     const lowStock = useMemo(
@@ -126,11 +159,7 @@ function InventoryDashboardPage() {
                         (p) => Number(p.id) === Number(item.productId)
                     )
                     const available = item.onHand - item.reserved
-                    const threshold = getThreshold(
-                        thresholds,
-                        item.warehouseId,
-                        item.productId
-                    )
+                    const threshold = item.lowStockThreshold
                     return {
                         ...item,
                         product,
@@ -141,7 +170,7 @@ function InventoryDashboardPage() {
                 })
                 .filter((row) => row.product && row.status !== 'NORMAL')
                 .sort((a, b) => a.available - b.available),
-        [scopedInventory, products, thresholds]
+        [scopedInventory, products]
     )
 
     const productPage = getInventoryPage(productSummary.length, searchParams.get('productPage'))
@@ -175,6 +204,22 @@ function InventoryDashboardPage() {
         )
     }
 
+    if (inventoryData.loading) {
+        return <div className="mgmt-page"><h1>Tổng quan tồn kho</h1><p role="status">Đang tải tồn kho từ máy chủ…</p></div>
+    }
+
+    if (inventoryData.error) {
+        return (
+            <div className="mgmt-page">
+                <h1>Tổng quan tồn kho</h1>
+                <p role="alert">{inventoryData.error.message || 'Không thể tải dữ liệu tồn kho.'}</p>
+                <button className="mgmt-btn mgmt-btn--primary" type="button" onClick={() => setReloadKey(value => value + 1)}>
+                    Thử tải lại
+                </button>
+            </div>
+        )
+    }
+
     const scopeLabel =
         selectedWarehouse === 'all'
             ? 'tất cả kho'
@@ -198,7 +243,7 @@ function InventoryDashboardPage() {
                             value={selectedWarehouse}
                             onChange={handleWarehouseChange}
                         >
-                            <option value="all">Tất cả kho</option>
+                            <option value="all">Các kho được phép xem</option>
                             {warehouses.map((warehouse) => (
                                 <option key={warehouse.id} value={warehouse.id}>
                                     {warehouse.name}

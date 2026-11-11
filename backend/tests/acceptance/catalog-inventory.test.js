@@ -32,17 +32,24 @@ describe('SR-CAT/INV/ALERT/PROD real HTTP data and warehouse scope',()=>{
   expect(detail.body.data.description).toBe('Database description')
   expect((await request('/api/products?search=missing')).body.data.items).toEqual([])
  })
- it('RBAC denies guests/customers/admin inventory access and managers admin mutations',async()=>{
+ it('RBAC denies guests and customers inventory access, and restricts inventory writes to managers',async()=>{
   expect((await request('/api/inventory')).status).toBe(401)
   expect((await request('/api/inventory',1)).status).toBe(403)
-  expect((await request('/api/inventory',32)).status).toBe(403)
+  expect((await request('/api/inventory/1/restock',32,'POST',{productId:1,quantity:7})).status).toBe(403)
+  expect((await request('/api/inventory/1/threshold',32,'PATCH',{productId:1,threshold:99})).status).toBe(403)
   expect((await request('/api/admin/products',31)).status).toBe(403)
   expect((await request('/api/admin/products',1,'POST',{})).status).toBe(403)
  })
- it('manager reads all three warehouses and server aggregate',async()=>{
-  expect((await request('/api/inventory',31)).body.data.items).toHaveLength(3)
-  expect((await request('/api/inventory?warehouseId=2',31)).body.data.items[0].warehouseId).toBe(2)
-  expect((await request('/api/inventory/summary',31)).body.data[0]).toMatchObject({onHand:20,reserved:0,available:20})
+ it('admin reads all warehouses and manager reads only the assigned warehouse',async()=>{
+  expect((await request('/api/inventory/warehouses',32)).body.data.map(row=>row.id)).toEqual([1,2,3])
+  expect((await request('/api/inventory',32)).body.data.items).toHaveLength(3)
+  expect((await request('/api/inventory/summary',32)).body.data[0]).toMatchObject({onHand:20,reserved:0,available:20})
+  expect((await request('/api/inventory/warehouses',31)).body.data.map(row=>row.id)).toEqual([1])
+  expect((await request('/api/inventory',31)).body.data.items.map(row=>row.warehouseId)).toEqual([1])
+  for (const endpoint of ['', '/summary', '/products', '/alerts']) {
+   expect((await request('/api/inventory'+endpoint+'?warehouseId=2',31)).status).toBe(403)
+  }
+  expect((await request('/api/inventory/summary',31)).body.data[0]).toMatchObject({onHand:10,reserved:0,available:10})
  })
  it('cross-warehouse restock/threshold/alerts are forbidden without database changes',async()=>{
   expect((await request('/api/inventory/2/restock',31,'POST',{productId:1,quantity:7})).status).toBe(403)

@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { warehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
-import { useInventory } from '../context/InventoryContext'
+import { loadWarehouses, loadWarehouseInventory, restockWarehouseProduct } from '../services/inventoryApi.js'
 import { useProducts } from '../context/ProductContext'
 import ProductThumb from '../components/ProductThumb'
 import ProductPagination from '../components/ProductPagination'
@@ -13,80 +12,105 @@ import {
 } from '../hooks/useInventoryPagination'
 
 function WarehouseInventoryPage() {
-    const { currentUser } = useAuth()
-    const { inventory, updateOnHand } = useInventory()
+    const { currentUser, token } = useAuth()
     const { products } = useProducts()
-
     const [searchParams, setSearchParams] = useSearchParams()
-    const warehouseParam = searchParams.get('warehouseId')
-    const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === warehouseParam)
-    const selectedWarehouseId = Number(selectedWarehouse?.id ?? (Number(currentUser?.warehouseId) || 1))
-
-    const [editingWarehouseId, setEditingWarehouseId] = useState(null)
+    const [warehouseResult, setWarehouseResult] = useState(null)
+    const [inventoryResult, setInventoryResult] = useState(null)
     const [editingProductId, setEditingProductId] = useState(null)
-    const [editedOnHand, setEditedOnHand] = useState('')
+    const [quantity, setQuantity] = useState('')
+    const [feedback, setFeedback] = useState(null)
+    const [pending, setPending] = useState(false)
+    const [revision, setRevision] = useState(0)
+    const submitting = useRef(false)
+    const canViewInventory = ['ADMIN', 'WAREHOUSE_MANAGER'].includes(currentUser?.role)
+    const warehouseData = warehouseResult?.token === token ? warehouseResult : null
+    const warehouses = warehouseData?.items ?? []
+    const selectedWarehouse = warehouses.find(
+        warehouse => String(warehouse.id) === searchParams.get('warehouseId')
+    ) ?? warehouses[0]
+    const selectedWarehouseId = selectedWarehouse?.id
+    const inventoryData = inventoryResult?.token === token &&
+        inventoryResult?.warehouseId === selectedWarehouseId &&
+        inventoryResult?.revision === revision
+        ? inventoryResult
+        : null
+    const inventory = inventoryData?.items ?? []
+    const warehousePage = getInventoryPage(inventory.length, searchParams.get('page'))
+    const warehousePageRows = inventory.slice(warehousePage.start, warehousePage.end)
+    const canRestock = currentUser?.role === 'WAREHOUSE_MANAGER' &&
+        selectedWarehouseId !== undefined &&
+        selectedWarehouseId === currentUser.assignedWarehouseId
 
-    const canEditInventory =
-        currentUser?.role === 'WAREHOUSE_MANAGER' &&
-        currentUser?.warehouseId === selectedWarehouseId
+    useEffect(() => {
+        if (!token || !canViewInventory) return
+        const controller = new AbortController()
+        loadWarehouses(token, controller.signal)
+            .then(items => {
+                if (!controller.signal.aborted) setWarehouseResult({ token, items })
+            })
+            .catch(error => {
+                if (!controller.signal.aborted) setWarehouseResult({ token, error })
+            })
+        return () => controller.abort()
+    }, [token, canViewInventory])
 
-    const warehouseInventory = inventory.filter(
-        (item) => item.warehouseId === selectedWarehouseId
-    )
-
-    const warehousePage = getInventoryPage(warehouseInventory.length, searchParams.get('page'))
-    const warehousePageRows = warehouseInventory.slice(warehousePage.start, warehousePage.end)
-    const canViewInventory = currentUser?.role === 'ADMIN'
-        || currentUser?.role === 'WAREHOUSE_MANAGER'
+    useEffect(() => {
+        if (!token || !canViewInventory || selectedWarehouseId === undefined) return
+        const controller = new AbortController()
+        const key = { token, warehouseId: selectedWarehouseId, revision }
+        loadWarehouseInventory(token, selectedWarehouseId, controller.signal)
+            .then(items => {
+                if (!controller.signal.aborted) setInventoryResult({ ...key, items })
+            })
+            .catch(error => {
+                if (!controller.signal.aborted) setInventoryResult({ ...key, error })
+            })
+        return () => controller.abort()
+    }, [token, canViewInventory, selectedWarehouseId, revision])
 
     useNormalizeInventoryPages(
         searchParams,
         setSearchParams,
         { page: warehousePage.page },
-        canViewInventory,
+        Boolean(inventoryData?.items),
     )
 
-    const handleSaveInventory = (productId) => {
-        // Kiểm tra quyền chỉnh sửa kho
-        if (!canEditInventory) {
-            alert('Bạn không có quyền chỉnh sửa tồn kho này.')
-            return
-        }
-
-        if (editingWarehouseId !== selectedWarehouseId || editingProductId !== productId) return
-
-        const item = inventory.find(
-            (item) =>
-                item.productId === productId &&
-                item.warehouseId === selectedWarehouseId
-        )
-
-        if (!item) {
-            alert('Không tìm thấy dữ liệu tồn kho.')
-            return
-        }
-
-        const newOnHand = Number(editedOnHand)
-
-        // Kiểm tra số lượng hợp lệ
-        if (
-            editedOnHand.trim() === '' ||
-            !Number.isSafeInteger(newOnHand) ||
-            newOnHand < item.reserved
-        ) {
-            alert(
-                `Số lượng tồn thực tế phải là số nguyên và không nhỏ hơn ${item.reserved}.`
-            )
-            return
-        }
-
-        // Cập nhật nguồn tồn kho dùng chung cho cả ba trang.
-        updateOnHand(selectedWarehouseId, productId, newOnHand)
-
-        // Thoát chế độ chỉnh sửa
-        setEditingWarehouseId(null)
+    function resetForm() {
         setEditingProductId(null)
-        setEditedOnHand('')
+        setQuantity('')
+    }
+
+    async function handleRestock(event, productId) {
+        event.preventDefault()
+        if (!canRestock || submitting.current || editingProductId !== productId) return
+
+        const amount = Number(quantity)
+        if (!Number.isSafeInteger(amount) || amount < 1 || amount > 2147483647) {
+            setFeedback({ error: true, text: 'Số lượng nhập phải là số nguyên dương hợp lệ.' })
+            return
+        }
+
+        submitting.current = true
+        setPending(true)
+        setFeedback(null)
+        try {
+            await restockWarehouseProduct(token, selectedWarehouseId, productId, amount)
+            resetForm()
+            setFeedback({ text: `Đã nhập thêm ${amount} sản phẩm.` })
+            setRevision(value => value + 1)
+        } catch (error) {
+            if (!error.status || error.status >= 500) {
+                resetForm()
+                setRevision(value => value + 1)
+                setFeedback({ error: true, text: 'Chưa xác định được kết quả nhập hàng. Kiểm tra tồn kho vừa tải lại trước khi gửi lại.' })
+            } else {
+                setFeedback({ error: true, text: error.message })
+            }
+        } finally {
+            submitting.current = false
+            setPending(false)
+        }
     }
 
     if (!currentUser) {
@@ -122,15 +146,15 @@ function WarehouseInventoryPage() {
                         <select
                             id="warehouse-select"
                             className="mgmt-select"
-                            value={selectedWarehouseId}
+                            value={selectedWarehouseId ?? ''}
+                            disabled={pending || warehouses.length === 0}
                             onChange={(event) => {
                                 const params = new URLSearchParams(searchParams)
                                 params.set('warehouseId', event.target.value)
                                 params.delete('page')
                                 setSearchParams(params)
-                                setEditingWarehouseId(null)
-                                setEditingProductId(null)
-                                setEditedOnHand('')
+                                resetForm()
+                                setFeedback(null)
                             }}
                         >
                             {warehouses.map((warehouse) => (
@@ -143,10 +167,10 @@ function WarehouseInventoryPage() {
                 </div>
             </div>
 
-            {!canEditInventory && (
+            {selectedWarehouse && !canRestock && (
                 <p className="mgmt-note">
                     Bạn chỉ có quyền xem kho này. Chỉ quản lý kho được phân công
-                    mới chỉnh sửa được tồn thực tế.
+                    mới được nhập thêm hàng.
                 </p>
             )}
 
@@ -155,7 +179,14 @@ function WarehouseInventoryPage() {
                     <h2>Chi tiết tồn kho</h2>
                 </div>
 
-                {warehouseInventory.length === 0 ? (
+                {feedback && <p role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
+                {warehouseData?.error || inventoryData?.error ? (
+                    <p role="alert">{(warehouseData?.error ?? inventoryData.error).message}</p>
+                ) : !warehouseData || (selectedWarehouse && !inventoryData) ? (
+                    <p role="status">Đang tải dữ liệu tồn kho…</p>
+                ) : !selectedWarehouse ? (
+                    <p className="mgmt-empty">Không có kho được phép xem.</p>
+                ) : inventory.length === 0 ? (
                     <div className="mgmt-empty">
                         <strong>Chưa có dữ liệu</strong>
                         Kho này chưa có sản phẩm nào.
@@ -179,10 +210,7 @@ function WarehouseInventoryPage() {
                                         const product = products.find(
                                             (p) => p.id === item.productId
                                         )
-                                        const isEditingRow =
-                                            canEditInventory &&
-                                            editingWarehouseId === selectedWarehouseId &&
-                                            editingProductId === item.productId
+                                        const isEditingRow = canRestock && editingProductId === item.productId
 
                                         return (
                                             <tr key={item.productId}>
@@ -192,68 +220,58 @@ function WarehouseInventoryPage() {
                                                             <ProductThumb product={product} />
                                                         )}
                                                         <span>
-                                                            {product?.name || 'Không xác định'}
+                                                            {item.productName}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="num">
-                                                    {isEditingRow ? (
-                                                        <input
-                                                            type="number"
-                                                            className="mgmt-input"
-                                                            style={{ width: 100 }}
-                                                            min={item.reserved}
-                                                            step="1"
-                                                            value={editedOnHand}
-                                                            onChange={(event) =>
-                                                                setEditedOnHand(event.target.value)
-                                                            }
-                                                            aria-label={`Tồn thực tế của ${product?.name ?? 'sản phẩm'}`}
-                                                        />
-                                                    ) : (
-                                                        item.onHand
-                                                    )}
-                                                </td>
+                                                <td className="num">{item.onHand}</td>
                                                 <td className="num">{item.reserved}</td>
-                                                <td className="num">
-                                                    {item.onHand - item.reserved}
-                                                </td>
+                                                <td className="num">{item.available}</td>
                                                 <td>
-                                                    {canEditInventory ? (
+                                                    {canRestock ? (
                                                         isEditingRow ? (
-                                                            <div className="mgmt-head__actions">
+                                                            <form className="mgmt-head__actions" onSubmit={event => handleRestock(event, item.productId)}>
+                                                                <input
+                                                                    type="number"
+                                                                    className="mgmt-input"
+                                                                    style={{ width: 100 }}
+                                                                    min="1"
+                                                                    max="2147483647"
+                                                                    step="1"
+                                                                    required
+                                                                    value={quantity}
+                                                                    disabled={pending}
+                                                                    onChange={event => setQuantity(event.target.value)}
+                                                                    aria-label={`Số lượng nhập thêm cho ${item.productName}`}
+                                                                />
                                                                 <button
-                                                                    type="button"
+                                                                    type="submit"
                                                                     className="mgmt-btn mgmt-btn--sm mgmt-btn--primary"
-                                                                    onClick={() =>
-                                                                        handleSaveInventory(item.productId)
-                                                                    }
+                                                                    disabled={pending}
                                                                 >
-                                                                    Lưu
+                                                                    {pending ? 'Đang nhập…' : 'Xác nhận'}
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
-                                                                    onClick={() => {
-                                                                        setEditingWarehouseId(null)
-                                                                        setEditingProductId(null)
-                                                                        setEditedOnHand('')
-                                                                    }}
+                                                                    disabled={pending}
+                                                                    onClick={resetForm}
                                                                 >
                                                                     Hủy
                                                                 </button>
-                                                            </div>
+                                                            </form>
                                                         ) : (
                                                             <button
                                                                 type="button"
                                                                 className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
+                                                                disabled={pending}
                                                                 onClick={() => {
-                                                                    setEditingWarehouseId(selectedWarehouseId)
                                                                     setEditingProductId(item.productId)
-                                                                    setEditedOnHand(String(item.onHand))
+                                                                    setQuantity('')
+                                                                    setFeedback(null)
                                                                 }}
                                                             >
-                                                                Chỉnh sửa
+                                                                Nhập thêm
                                                             </button>
                                                         )
                                                     ) : (

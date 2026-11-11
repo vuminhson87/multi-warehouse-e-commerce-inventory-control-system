@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
-import { useInventory } from '../context/InventoryContext'
 import { useWishlist } from '../context/WishlistContext'
 import { formatPrice } from '../utils/format'
 import LucideIcon from './LucideIcon'
@@ -13,10 +12,9 @@ const MAX_QUANTITY_PER_PRODUCT = 100
 // Link chỉ bao ảnh/tên; nút "+" và tim là phần tử độc lập (không lồng button trong Link).
 function ProductCard({ product }) {
     const { cartItems, addToCart } = useCart()
-    const { getProductAvailableStock } = useInventory()
     const { isWishlisted, toggleWishlist, showToast } = useWishlist()
 
-    const available = getProductAvailableStock(product.id)
+    const available = Number(product.maxAvailable ?? 0)
     const isActive = (product.status ?? 'ACTIVE') === 'ACTIVE'
     const canAdd = isActive && available > 0
     const liked = isWishlisted(product.id)
@@ -31,7 +29,7 @@ function ProductCard({ product }) {
         const nextQty = (inCart ? inCart.quantity : 0) + 1
 
         // addToCart tự kiểm tra tồn/giới hạn và báo lỗi nếu không hợp lệ.
-        addToCart(product)
+        addToCart(product, 1, { warehouseStock: available })
 
         if (nextQty <= available && nextQty <= MAX_QUANTITY_PER_PRODUCT) {
             showToast(`Đã thêm "${product.name}" vào giỏ hàng`)
