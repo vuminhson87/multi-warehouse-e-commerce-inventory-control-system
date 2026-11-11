@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { registerApi } from '../services/authApi.js'
+import { prepareRegistration } from '../utils/registrationForm.js'
 import './LoginModal.css'
 
 function RegisterModal({ onClose, onSwitchToLogin, onSuccess }) {
@@ -13,16 +14,22 @@ function RegisterModal({ onClose, onSwitchToLogin, onSuccess }) {
     async function handleSubmit(event) {
         event.preventDefault()
         if (submitting) return
-        if (password !== confirmPassword) {
-            setError('Mật khẩu xác nhận không khớp.')
+        const { error: validationError, payload } = prepareRegistration({
+            username,
+            fullName,
+            password,
+            confirmPassword,
+        })
+        if (validationError) {
+            setError(validationError)
             return
         }
 
         setSubmitting(true)
         setError('')
         try {
-            await registerApi({ username: username.trim(), password, fullName: fullName.trim() })
-            onSuccess(username.trim())
+            await registerApi(payload)
+            onSuccess(payload.username)
         } catch (requestError) {
             setError(requestError.message || 'Không thể tạo tài khoản. Vui lòng thử lại.')
         } finally {
