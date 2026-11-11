@@ -53,3 +53,18 @@ export async function verifyUserCredentials(client, { username, password }) {
     const matched = await verifyPassword(password, user.passwordHash)
     return matched ? toSafeUser(user) : null
 }
+
+
+export async function createCustomerAccount(client, { username, password, fullName = null }) {
+    const passwordHash = await hashPassword(password)
+    const user = await client.user.create({
+        data: {
+            username: username.trim(),
+            passwordHash,
+            fullName,
+            role: 'CUSTOMER',
+            assignedWarehouseId: null,
+        },
+    })
+    return toSafeUser(user)
+}

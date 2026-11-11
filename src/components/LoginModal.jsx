@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './LoginModal.css'
 
-function LoginModal({ onClose }) {
+function LoginModal({ onClose, onRegister, initialUsername = '', registered = false }) {
     const { login } = useAuth()
     const [submitting, setSubmitting] = useState(false)
     const navigate = useNavigate()
 
-    const [username, setUsername] = useState('')
+    const [username, setUsername] = useState(initialUsername)
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
@@ -92,6 +92,8 @@ function LoginModal({ onClose }) {
                         <p>Đăng nhập vào tài khoản của bạn</p>
                     </div>
 
+                    {registered && <p className="login-modal-success" role="status">Tạo tài khoản thành công. Hãy đăng nhập để tiếp tục.</p>}
+
                     <form
                         className="login-modal-form"
                         onSubmit={handleSubmit}
@@ -160,6 +162,18 @@ function LoginModal({ onClose }) {
                             {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                         </button>
                     </form>
+                    <p className="login-modal-register">
+                        Chưa có tài khoản?{' '}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onClose()
+                                onRegister()
+                            }}
+                        >
+                            Đăng ký
+                        </button>
+                    </p>
                 </div>
             </div>
         </div>

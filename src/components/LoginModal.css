@@ -201,6 +201,66 @@
     background: #27272a;
 }
 
+.login-modal-register {
+    margin: 18px 0 0;
+    color: #71717a;
+    text-align: center;
+    font-size: 13px;
+}
+
+.login-modal-register button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #18181b;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.login-modal-register button:hover {
+    text-decoration: underline;
+}
+
+.login-modal-success {
+    margin: -12px 0 20px;
+    color: #166534;
+    font-size: 13px;
+}
+
+.register-modal .login-modal-content {
+    justify-content: flex-start;
+    padding-top: 48px;
+    padding-bottom: 40px;
+}
+
+.register-modal-form {
+    gap: 14px;
+}
+
+.register-modal-form .login-modal-field {
+    gap: 6px;
+}
+
+.register-modal-form .login-modal-field input {
+    min-height: 42px;
+}
+
+.register-modal-form .login-modal-field label span {
+    color: #71717a;
+    font-weight: 400;
+}
+
+.register-modal .login-modal-register button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #18181b;
+    font: inherit;
+    font-weight: 600;
+}
+
 .login-password-wrapper {
     position: relative;
 }

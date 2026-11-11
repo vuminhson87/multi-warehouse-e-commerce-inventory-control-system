@@ -3,6 +3,7 @@
 export const ErrorCodes = Object.freeze({
     VALIDATION_ERROR: 'VALIDATION_ERROR',
     UNAUTHENTICATED: 'UNAUTHENTICATED',
+    ACCOUNT_EXISTS: 'ACCOUNT_EXISTS',
     FORBIDDEN: 'FORBIDDEN',
     ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
     OUT_OF_STOCK: 'OUT_OF_STOCK',
@@ -18,6 +19,7 @@ export const ErrorCodes = Object.freeze({
 export const HttpStatusByCode = Object.freeze({
     [ErrorCodes.VALIDATION_ERROR]: 400,
     [ErrorCodes.UNAUTHENTICATED]: 401,
+    [ErrorCodes.ACCOUNT_EXISTS]: 409,
     [ErrorCodes.FORBIDDEN]: 403,
     [ErrorCodes.ORDER_NOT_FOUND]: 404,
     [ErrorCodes.OUT_OF_STOCK]: 409,

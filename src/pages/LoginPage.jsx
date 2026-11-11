@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import RegisterModal from '../components/RegisterModal'
 import './LoginPage.css'
 
 
 function LoginPage() {
     const { login } = useAuth()
+    const location = useLocation()
+    const registered = location.state?.registered === true
     const [submitting, setSubmitting] = useState(false)
-    const [username, setUsername] = useState('')
+    const [username, setUsername] = useState(location.state?.username ?? '')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false)
 
     const navigate = useNavigate()
 
@@ -47,6 +51,8 @@ function LoginPage() {
                     <p>Đăng nhập vào hệ thống</p>
                 </div>
 
+                {registered && <p className="login-success" role="status">Tạo tài khoản thành công. Hãy đăng nhập để tiếp tục.</p>}
+
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="username">Tên đăng nhập</label>
@@ -80,7 +86,23 @@ function LoginPage() {
                         {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </button>
                 </form>
+
+                <p className="register-login-link">
+                    Chưa có tài khoản?{' '}
+                    <button type="button" onClick={() => setIsRegisterOpen(true)}>Đăng ký</button>
+                </p>
             </div>
+            {isRegisterOpen && (
+                <RegisterModal
+                    onClose={() => setIsRegisterOpen(false)}
+                    onSwitchToLogin={() => setIsRegisterOpen(false)}
+                    onSuccess={registeredUsername => {
+                        setIsRegisterOpen(false)
+                        setUsername(registeredUsername)
+                        navigate('/login', { replace: true, state: { registered: true, username: registeredUsername } })
+                    }}
+                />
+            )}
         </div>
     )
 }
