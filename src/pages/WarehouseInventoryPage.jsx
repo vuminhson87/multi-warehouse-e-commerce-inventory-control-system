@@ -1,18 +1,28 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { warehouses } from '../data/inventory'
 import { useAuth } from '../context/AuthContext'
 import { useInventory } from '../context/InventoryContext'
 import { useProducts } from '../context/ProductContext'
 import ProductThumb from '../components/ProductThumb'
+import ProductPagination from '../components/ProductPagination'
+import {
+    getInventoryPage,
+    getInventoryPageHref,
+    useNormalizeInventoryPages,
+} from '../hooks/useInventoryPagination'
 
 function WarehouseInventoryPage() {
     const { currentUser } = useAuth()
     const { inventory, updateOnHand } = useInventory()
     const { products } = useProducts()
-    const [selectedWarehouseId, setSelectedWarehouseId] = useState(
-        () => Number(currentUser?.warehouseId) || 1
-    )
+
+    const [searchParams, setSearchParams] = useSearchParams()
+    const warehouseParam = searchParams.get('warehouseId')
+    const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === warehouseParam)
+    const selectedWarehouseId = Number(selectedWarehouse?.id ?? (Number(currentUser?.warehouseId) || 1))
+
+    const [editingWarehouseId, setEditingWarehouseId] = useState(null)
     const [editingProductId, setEditingProductId] = useState(null)
     const [editedOnHand, setEditedOnHand] = useState('')
 
@@ -24,12 +34,26 @@ function WarehouseInventoryPage() {
         (item) => item.warehouseId === selectedWarehouseId
     )
 
+    const warehousePage = getInventoryPage(warehouseInventory.length, searchParams.get('page'))
+    const warehousePageRows = warehouseInventory.slice(warehousePage.start, warehousePage.end)
+    const canViewInventory = currentUser?.role === 'ADMIN'
+        || currentUser?.role === 'WAREHOUSE_MANAGER'
+
+    useNormalizeInventoryPages(
+        searchParams,
+        setSearchParams,
+        { page: warehousePage.page },
+        canViewInventory,
+    )
+
     const handleSaveInventory = (productId) => {
         // Kiểm tra quyền chỉnh sửa kho
         if (!canEditInventory) {
             alert('Bạn không có quyền chỉnh sửa tồn kho này.')
             return
         }
+
+        if (editingWarehouseId !== selectedWarehouseId || editingProductId !== productId) return
 
         const item = inventory.find(
             (item) =>
@@ -60,6 +84,7 @@ function WarehouseInventoryPage() {
         updateOnHand(selectedWarehouseId, productId, newOnHand)
 
         // Thoát chế độ chỉnh sửa
+        setEditingWarehouseId(null)
         setEditingProductId(null)
         setEditedOnHand('')
     }
@@ -99,7 +124,11 @@ function WarehouseInventoryPage() {
                             className="mgmt-select"
                             value={selectedWarehouseId}
                             onChange={(event) => {
-                                setSelectedWarehouseId(Number(event.target.value))
+                                const params = new URLSearchParams(searchParams)
+                                params.set('warehouseId', event.target.value)
+                                params.delete('page')
+                                setSearchParams(params)
+                                setEditingWarehouseId(null)
                                 setEditingProductId(null)
                                 setEditedOnHand('')
                             }}
@@ -132,109 +161,120 @@ function WarehouseInventoryPage() {
                         Kho này chưa có sản phẩm nào.
                     </div>
                 ) : (
-                    <div className="mgmt-table-wrap">
-                        <table className="mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Sản phẩm</th>
-                                    <th className="num">Tồn thực tế</th>
-                                    <th className="num">Đang giữ</th>
-                                    <th className="num">Có thể bán</th>
-                                    <th>Thao tác</th>
-                                </tr>
-                            </thead>
+                    <>
+                        <div className="mgmt-table-wrap">
+                            <table className="mgmt-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th className="num">Tồn thực tế</th>
+                                        <th className="num">Đang giữ</th>
+                                        <th className="num">Có thể bán</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
 
-                            <tbody>
-                                {warehouseInventory.map((item) => {
-                                    const product = products.find(
-                                        (p) => p.id === item.productId
-                                    )
-                                    const isEditing =
-                                        editingProductId === item.productId &&
-                                        canEditInventory
+                                <tbody>
+                                    {warehousePageRows.map((item) => {
+                                        const product = products.find(
+                                            (p) => p.id === item.productId
+                                        )
+                                        const isEditingRow =
+                                            canEditInventory &&
+                                            editingWarehouseId === selectedWarehouseId &&
+                                            editingProductId === item.productId
 
-                                    return (
-                                        <tr key={item.productId}>
-                                            <td>
-                                                <div className="mgmt-product-cell">
-                                                    {product && (
-                                                        <ProductThumb product={product} />
+                                        return (
+                                            <tr key={item.productId}>
+                                                <td>
+                                                    <div className="mgmt-product-cell">
+                                                        {product && (
+                                                            <ProductThumb product={product} />
+                                                        )}
+                                                        <span>
+                                                            {product?.name || 'Không xác định'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="num">
+                                                    {isEditingRow ? (
+                                                        <input
+                                                            type="number"
+                                                            className="mgmt-input"
+                                                            style={{ width: 100 }}
+                                                            min={item.reserved}
+                                                            step="1"
+                                                            value={editedOnHand}
+                                                            onChange={(event) =>
+                                                                setEditedOnHand(event.target.value)
+                                                            }
+                                                            aria-label={`Tồn thực tế của ${product?.name ?? 'sản phẩm'}`}
+                                                        />
+                                                    ) : (
+                                                        item.onHand
                                                     )}
-                                                    <span>
-                                                        {product?.name || 'Không xác định'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="num">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        className="mgmt-input"
-                                                        style={{ width: 100 }}
-                                                        min={item.reserved}
-                                                        step="1"
-                                                        value={editedOnHand}
-                                                        onChange={(event) =>
-                                                            setEditedOnHand(event.target.value)
-                                                        }
-                                                        aria-label={`Tồn thực tế của ${product?.name ?? 'sản phẩm'}`}
-                                                    />
-                                                ) : (
-                                                    item.onHand
-                                                )}
-                                            </td>
-                                            <td className="num">{item.reserved}</td>
-                                            <td className="num">
-                                                {item.onHand - item.reserved}
-                                            </td>
-                                            <td>
-                                                {canEditInventory ? (
-                                                    isEditing ? (
-                                                        <div className="mgmt-head__actions">
-                                                            <button
-                                                                type="button"
-                                                                className="mgmt-btn mgmt-btn--sm mgmt-btn--primary"
-                                                                onClick={() =>
-                                                                    handleSaveInventory(item.productId)
-                                                                }
-                                                            >
-                                                                Lưu
-                                                            </button>
+                                                </td>
+                                                <td className="num">{item.reserved}</td>
+                                                <td className="num">
+                                                    {item.onHand - item.reserved}
+                                                </td>
+                                                <td>
+                                                    {canEditInventory ? (
+                                                        isEditingRow ? (
+                                                            <div className="mgmt-head__actions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="mgmt-btn mgmt-btn--sm mgmt-btn--primary"
+                                                                    onClick={() =>
+                                                                        handleSaveInventory(item.productId)
+                                                                    }
+                                                                >
+                                                                    Lưu
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
+                                                                    onClick={() => {
+                                                                        setEditingWarehouseId(null)
+                                                                        setEditingProductId(null)
+                                                                        setEditedOnHand('')
+                                                                    }}
+                                                                >
+                                                                    Hủy
+                                                                </button>
+                                                            </div>
+                                                        ) : (
                                                             <button
                                                                 type="button"
                                                                 className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
                                                                 onClick={() => {
-                                                                    setEditingProductId(null)
-                                                                    setEditedOnHand('')
+                                                                    setEditingWarehouseId(selectedWarehouseId)
+                                                                    setEditingProductId(item.productId)
+                                                                    setEditedOnHand(String(item.onHand))
                                                                 }}
                                                             >
-                                                                Hủy
+                                                                Chỉnh sửa
                                                             </button>
-                                                        </div>
+                                                        )
                                                     ) : (
-                                                        <button
-                                                            type="button"
-                                                            className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
-                                                            onClick={() => {
-                                                                setEditingProductId(item.productId)
-                                                                setEditedOnHand(String(item.onHand))
-                                                            }}
-                                                        >
-                                                            Chỉnh sửa
-                                                        </button>
-                                                    )
-                                                ) : (
-                                                    <span className="mgmt-badge mgmt-badge--muted">
-                                                        Chỉ xem
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                        <span className="mgmt-badge mgmt-badge--muted">
+                                                            Chỉ xem
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        <ProductPagination
+                            page={warehousePage.page}
+                            totalPages={warehousePage.totalPages}
+                            getPageHref={(page) => getInventoryPageHref(searchParams, 'page', page)}
+                            ariaLabel="Phân trang sản phẩm trong kho"
+                        />
+                    </>
                 )}
             </section>
         </div>

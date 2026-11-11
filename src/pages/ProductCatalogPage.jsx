@@ -2,11 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
 import ProductCard from '../components/ProductCard'
+import ProductPagination from '../components/ProductPagination'
 import LucideIcon from '../components/LucideIcon'
 import './ProductCatalogPage.css'
 
 const ALL = 'Tất cả'
-const PAGE_SIZE = 12
+const PRODUCTS_PER_PAGE = 10
+
+function readCatalogPage(value) {
+    if (!/^[1-9]\d*$/.test(value ?? '')) return 1
+
+    const page = Number(value)
+    return Number.isSafeInteger(page) ? page : 1
+}
 
 const SORT_OPTIONS = [
     { value: 'default', label: 'Mặc định' },
@@ -36,49 +44,23 @@ function buildUrl({ category, search, sort }) {
     return query ? `/products?${query}` : '/products'
 }
 
-// Kết quả có state riêng (số lượng đang hiển thị); đổi bộ lọc => key đổi => tự về trang đầu.
-function CatalogResults({ products }) {
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-    const visible = products.slice(0, visibleCount)
-
-    return (
-        <>
-            <div className="product-grid">
-                {products.length === 0 ? (
-                    <div className="store-empty">
-                        <strong>Không tìm thấy sản phẩm phù hợp</strong>
-                        Hãy thử đổi từ khóa hoặc danh mục khác.
-                    </div>
-                ) : (
-                    visible.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                    ))
-                )}
-            </div>
-
-            {products.length > visibleCount && (
-                <div className="catalog-more">
-                    <button
-                        type="button"
-                        onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                    >
-                        Xem thêm ({products.length - visibleCount} sản phẩm)
-                    </button>
-                </div>
-            )}
-        </>
-    )
-}
-
 function ProductCatalogPage() {
     const { products } = useProducts()
-    const [searchParams] = useSearchParams()
+    const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
     const [sheet, setSheet] = useState(null) // null | 'filter' | 'sort'
 
     const searchKeyword = searchParams.get('search') || ''
     const selectedCategory = searchParams.get('category') || ALL
     const sort = searchParams.get('sort') || 'default'
+    const rawPage = searchParams.get('page')
+    const requestedPage = readCatalogPage(rawPage)
+
+    function getPageHref(page) {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(page))
+        return { pathname: '/products', search: `?${params.toString()}` }
+    }
 
     const activeProducts = useMemo(
         () => products.filter((p) => (p.status ?? 'ACTIVE') === 'ACTIVE'),
@@ -105,6 +87,22 @@ function ProductCatalogPage() {
         })
         return sortProducts(filtered, sort)
     }, [activeProducts, searchKeyword, selectedCategory, sort])
+
+    const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE)
+    const currentPage = Math.min(requestedPage, Math.max(1, totalPages))
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE
+    const pageProducts = filteredProducts.slice(
+        startIndex,
+        startIndex + PRODUCTS_PER_PAGE
+    )
+
+    useEffect(() => {
+        if (rawPage === null || rawPage === String(currentPage)) return
+
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(currentPage))
+        setSearchParams(params, { replace: true })
+    }, [currentPage, rawPage, searchParams, setSearchParams])
 
     // Đóng panel mobile bằng Escape và khóa cuộn nền khi đang mở.
     useEffect(() => {
@@ -140,8 +138,6 @@ function ProductCatalogPage() {
             })
         )
     }
-
-    const resultsKey = `${searchKeyword}|${selectedCategory}|${sort}`
 
     return (
         <main className="catalog-page">
@@ -215,7 +211,24 @@ function ProductCatalogPage() {
                     </button>
                 </div>
 
-                <CatalogResults key={resultsKey} products={filteredProducts} />
+                <div className="product-grid">
+                    {filteredProducts.length === 0 ? (
+                        <div className="store-empty">
+                            <strong>Không tìm thấy sản phẩm phù hợp</strong>
+                            Hãy thử đổi từ khóa hoặc danh mục khác.
+                        </div>
+                    ) : (
+                        pageProducts.map((product) => (
+                            <ProductCard key={product.id} product={product} />
+                        ))
+                    )}
+                </div>
+
+                <ProductPagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    getPageHref={getPageHref}
+                />
             </div>
 
             {/* Panel mobile */}
