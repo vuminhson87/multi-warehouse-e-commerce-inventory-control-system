@@ -1,0 +1,123 @@
+{
+  "at": "2026-11-12T00:15:14.667Z",
+  "passed": true,
+  "channel": "chrome",
+  "checks": [
+    {
+      "test": "Customer login and registration dialogs switch both ways and reject mismatched passwords",
+      "passed": true
+    },
+    {
+      "test": "Cart can remove its last item and return to the empty-cart state",
+      "passed": true
+    },
+    {
+      "test": "Catalog search handles both no-match and matching results",
+      "passed": true
+    },
+    {
+      "test": "Wishlist toggles a product and persists the choice through reload",
+      "passed": true
+    },
+    {
+      "test": "Customer registers, failed login is rejected, and valid login creates an authenticated session",
+      "passed": true
+    },
+    {
+      "test": "Catalog/cart ignore forged localStorage and use PostgreSQL product",
+      "passed": true
+    },
+    {
+      "test": "Checkout API rejects when stock drops after the cart availability check",
+      "passed": true
+    },
+    {
+      "test": "Product detail, cart, and checkout show and block insufficient backend stock",
+      "passed": true
+    },
+    {
+      "test": "Customer checkout succeeds after stock is restored and reserves backend stock",
+      "passed": true
+    },
+    {
+      "test": "Incomplete payment releases the reservation; retry succeeds and consumes stock exactly once",
+      "passed": true
+    },
+    {
+      "test": "Restock form blocks zero quantity before submission without changing inventory",
+      "passed": true
+    },
+    {
+      "test": "Assigned warehouse manager restock persists in PostgreSQL",
+      "passed": true
+    },
+    {
+      "test": "Admin can inspect another warehouse but cannot restock",
+      "passed": true
+    },
+    {
+      "test": "Alerts page reports API failure and retry restores the data",
+      "passed": true
+    },
+    {
+      "test": "Negative alert threshold is rejected before any API update",
+      "passed": true
+    },
+    {
+      "test": "Threshold API failure is shown and the input value is retained",
+      "passed": true
+    },
+    {
+      "test": "Threshold equality alert comes from database",
+      "passed": true
+    },
+    {
+      "test": "Inventory dashboard reports API failure without fake zero values and retry reloads totals",
+      "passed": true
+    },
+    {
+      "test": "Admin inventory dashboard filters data to the selected warehouse",
+      "passed": true
+    },
+    {
+      "test": "Inventory dashboard has no horizontal overflow at 375px",
+      "passed": true
+    },
+    {
+      "test": "Admin dashboard suppresses partial metrics on API failure and retry shows database-backed totals",
+      "passed": true
+    },
+    {
+      "test": "Admin moves only a Paid order to Processing without changing inventory",
+      "passed": true
+    },
+    {
+      "test": "Customer cannot cancel Processing, confirms receipt, and finds Completed order in filtered history",
+      "passed": true
+    },
+    {
+      "test": "Failed payment releases stock; Paid cancellation dismissal changes nothing and confirmed cancellation restores stock",
+      "passed": true
+    },
+    {
+      "test": "Admin update/discontinue persists and public catalog hides discontinued product",
+      "passed": true
+    },
+    {
+      "test": "Admin reactivation returns product to catalog without changing inventory",
+      "passed": true
+    },
+    {
+      "test": "Admin creates a product and backend initializes zero stock for every warehouse",
+      "passed": true
+    },
+    {
+      "test": "API failure shows error without local mock fallback",
+      "passed": true
+    },
+    {
+      "test": "Wishlist drawer opens inside the mobile viewport after clipping offscreen drawer overflow",
+      "passed": true
+    }
+  ]
+}

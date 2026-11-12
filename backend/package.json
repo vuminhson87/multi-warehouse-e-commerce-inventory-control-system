@@ -5,9 +5,41 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio",
+    "db:backup": "node scripts/db-backup-restore.js backup",
+    "db:restore": "node scripts/db-backup-restore.js restore",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test:acceptance": "node scripts/test-acceptance-db.js",
+    "test:soak": "node scripts/test-soak.js",
+    "test:api": "node scripts/test-acceptance-api.js",
+    "test:browser": "node scripts/test-browser.js",
+    "test:ui:order-confirmation": "node scripts/test-customer-order-confirmation-ui.js",
+    "test:restore": "node scripts/test-restore.js",
+    "test:ui:load": "node scripts/test-ui-load.js",
+    "test:load:k6": "node scripts/test-checkout-load.js",
+    "test:data:ui": "node scripts/test-catalog-inventory-ui.js"
   },
   "devDependencies": {
+    "playwright": "^1.64.1",
+    "prisma": "^6.19.3",
     "vitest": "^5.0.4"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3"
   }
 }

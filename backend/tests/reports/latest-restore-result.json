@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-29T14:41:12.589Z",
+  "source": "multi_warehouse_m4_test",
+  "target": "multi_warehouse_m4_restore",
+  "fingerprint": "28d77060036a527f572e1beaf87fb3f3",
+  "restoredFingerprint": "28d77060036a527f572e1beaf87fb3f3",
+  "passed": true
+}

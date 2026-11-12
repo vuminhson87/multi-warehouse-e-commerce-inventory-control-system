@@ -42,6 +42,7 @@ export const PAYMENT_RESULT_LABELS = Object.freeze({
     [PaymentResult.SUCCESS]: 'Thành công',
     [PaymentResult.FAILED]: 'Thất bại',
     [PaymentResult.INCOMPLETE]: 'Không hoàn tất',
+    PENDING: 'Đang xử lý/đối soát',
 })
 
 export function getOrderStatusLabel(status) {

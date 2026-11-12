@@ -1,32 +1,156 @@
+:root {
+    --ui-bg: #ffffff;
+    --ui-surface: #fafafa;
+    --ui-surface-alt: #f5f5f5;
+    --ui-hover: #f1f1f1;
+    --ui-text: #111111;
+    --ui-muted: #737373;
+    --ui-border: #e7e7e7;
+    --ui-primary: #111111;
+    --ui-primary-hover: #303030;
+    --ui-danger: #c62828;
+    --ui-danger-bg: #fdecec;
+    --ui-success: #168045;
+    --ui-success-bg: #e8f6ee;
+    --ui-warning: #ad6800;
+    --ui-warning-bg: #fff4e0;
+    --ui-info: #1f5fbf;
+    --ui-info-bg: #e9f1fd;
+    --ui-radius-card: 2px;
+    --ui-radius-control: 8px;
+    --ui-content-max: 1440px;
+}
+
 * {
-  box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-sizing: border-box;
 }
 
 html,
 body,
 #root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+html {
+    overflow-x: clip;
 }
 
 body {
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: #ffffff;
-  color: #222222;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: var(--ui-bg);
+    color: var(--ui-text);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 button,
 input,
 select,
 textarea {
-  font: inherit;
+    font: inherit;
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+    color: inherit;
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 2px;
+}
+
+/* Khung vuông góc 100% */
+.sharp-frame {
+    border-radius: 0px !important;
+}
+
+/* Nút icon: nền trong suốt, chỉ xám khi hover/active */
+.icon-btn {
+    border-radius: 9999px !important;
+    background-color: transparent;
+    color: var(--ui-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    outline: none;
+}
+
+.icon-btn:hover {
+    background-color: var(--ui-hover);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 1px;
+}
+
+.icon-btn:active,
+.icon-btn.is-active {
+    background-color: #e4e4e7 !important;
+    color: #000000;
+}
+
+.pill-btn {
+    border-radius: 9999px !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Thông báo nhỏ (Toast) */
+.atelier-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9990;
+    max-width: calc(100vw - 40px);
+    background-color: #09090b;
+    color: #ffffff;
+    padding: 12px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: none;
+    border-radius: 9999px;
+}
+
+.atelier-toast.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

@@ -1,20 +1,36 @@
-
 import { useState } from 'react'
 import {
   Link,
   Navigate,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import './ProductForm.css'
 
 function EditProductPage() {
+  const { productId } = useParams()
+  const { loading, error } = useProducts()
+  if (loading || error) return <p role={error ? "alert" : "status"}>{error?.message ?? "Đang tải sản phẩm…"}</p>
+  return <EditProductForm key={productId} />
+}
+
+function EditProductForm() {
   const { currentUser } = useAuth()
   const { products, updateProduct } = useProducts()
   const { productId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const listSearch =
+    typeof location.state?.productListSearch === 'string'
+      ? location.state.productListSearch
+      : ''
+  const listDestination = {
+    pathname: '/admin/products',
+    search: listSearch ? `?${listSearch}` : '',
+  }
 
   const product = products.find(
     (item) => String(item.id) === String(productId)
@@ -28,6 +44,7 @@ function EditProductPage() {
   }))
 
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   if (currentUser?.role !== 'ADMIN') {
     return <Navigate to="/products" replace />
@@ -35,11 +52,17 @@ function EditProductPage() {
 
   if (!product) {
     return (
-      <main className="product-form-page">
-        <h1>Không tìm thấy sản phẩm</h1>
-        <p>Sản phẩm không tồn tại hoặc đã bị xóa.</p>
-        <Link to="/admin/products">Quay lại danh sách</Link>
-      </main>
+      <div className="mgmt-page">
+        <div className="mgmt-head">
+          <div>
+            <h1>Không tìm thấy sản phẩm</h1>
+            <p>Sản phẩm không tồn tại hoặc đã bị xóa.</p>
+          </div>
+        </div>
+        <Link to={listDestination} className="mgmt-btn mgmt-btn--ghost">
+          Quay lại danh sách
+        </Link>
+      </div>
     )
   }
 
@@ -54,8 +77,9 @@ function EditProductPage() {
     setError('')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    if (saving) return
 
     if (!form.name.trim()) {
       setError('Vui lòng nhập tên sản phẩm.')
@@ -76,18 +100,27 @@ function EditProductPage() {
       return
     }
 
-    updateProduct(productId, form)
-    navigate('/admin/products')
+    setSaving(true)
+    try {
+      await updateProduct(productId, form)
+      navigate(listDestination)
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <main className="product-form-page">
-      <div className="product-form-header">
-        <h1>Chỉnh sửa sản phẩm</h1>
-        <p>Cập nhật thông tin sản phẩm #{product.id}.</p>
+    <div className="mgmt-page">
+      <div className="mgmt-head">
+        <div>
+          <h1>Chỉnh sửa sản phẩm</h1>
+          <p>Cập nhật thông tin sản phẩm #{product.id}.</p>
+        </div>
       </div>
 
-      <form className="product-form" onSubmit={handleSubmit}>
+      <form className="mgmt-form" onSubmit={handleSubmit}>
         <label htmlFor="edit-product-name">Tên sản phẩm *</label>
         <input
           id="edit-product-name"
@@ -132,31 +165,31 @@ function EditProductPage() {
           rows={4}
         />
 
-        <p className="product-form-note">
+        <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
           Việc chỉnh sửa thông tin không thay đổi tình trạng kho
           hoặc trạng thái kinh doanh của sản phẩm.
         </p>
 
         {error && (
-          <p className="product-form-error" role="alert">
+          <p className="mgmt-form__error" role="alert">
             {error}
           </p>
         )}
 
-        <div className="product-form-actions">
+        <div className="mgmt-form__actions">
           <Link
-            to="/admin/products"
-            className="product-form-cancel"
+            to={listDestination}
+            className="mgmt-btn mgmt-btn--ghost"
           >
             Hủy
           </Link>
 
-          <button type="submit" className="product-form-submit">
+          <button type="submit" disabled={saving} className="mgmt-btn mgmt-btn--primary">
             Lưu thay đổi
           </button>
         </div>
       </form>
-    </main>
+    </div>
   )
 }
 

@@ -1,14 +1,16 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
-import { useOrders } from '../context/OrderContext'
-import CustomerHeader from '../components/CustomerHeader'
 import './CheckoutPage.css'
+import { useState } from 'react'
+import { createOrderApi } from '../services/orderApi.js'
+import { acquireCheckoutKey, clearCheckoutKey } from '../services/requestKeys.js'
 
 function CheckoutPage() {
-    const { cartItems, clearCart, fulfillmentWarehouse } = useCart()
-    const { currentUser } = useAuth()
-    const { createOrderFromCart } = useOrders()
+    const { cartItems, clearCart, fulfillmentWarehouse, stockLoading, stockError } = useCart()
+    const { currentUser, token, authLoading } = useAuth()
+
+    const [submitting, setSubmitting] = useState(false)
     const navigate = useNavigate()
 
     const totalPrice = cartItems.reduce(
@@ -22,20 +24,24 @@ function CheckoutPage() {
     )
     const isOrderUnfulfillable =
         cartItems.length > 0 && !fulfillmentWarehouse
-    const hasInvalidItems =
-        hasDiscontinuedItems ||
-        hasInsufficientStockItems ||
-        isOrderUnfulfillable
+
+    if (authLoading) {
+        return (
+            <div className="checkout-page">
+                <div className="checkout-content">
+                    <p>Đang kiểm tra phiên...</p>
+                </div>
+            </div>
+        )
+    }
 
     if (!currentUser) {
-        return <Navigate to="/login" replace />
+        return <Navigate to="/" replace />
     }
 
     if (currentUser.role !== 'CUSTOMER') {
         return (
             <>
-                <CustomerHeader />
-
                 <div className="checkout-page">
                     <div className="checkout-content">
                         <h1>Không có quyền truy cập</h1>
@@ -47,27 +53,44 @@ function CheckoutPage() {
     }
 
     // Xử lý xác nhận đặt hàng (UC04: SR-ORD-01..03, BR-01, BR-02)
-    const handleConfirmOrder = () => {
-        const result = createOrderFromCart(cartItems)
-
-        if (!result.ok) {
-            alert(result.message)
+    const handleConfirmOrder = async () => {
+        if (submitting || cartItems.length === 0) return
+        if (!token || !currentUser?.id) {
+            alert('Vui lòng đăng nhập lại.')
+            return
+        }
+        if (hasDiscontinuedItems) {
+            alert('Giỏ hàng có sản phẩm đã ngừng kinh doanh.')
+            return
+        }
+        if (stockLoading || stockError || hasInsufficientStockItems || isOrderUnfulfillable) {
+            alert('Tồn kho hiện tại không đáp ứng toàn bộ giỏ hàng từ một kho. Vui lòng quay lại giỏ hàng để kiểm tra.')
             return
         }
 
-        // Xóa giỏ hàng sau khi đã tạo đơn và tạm giữ tồn kho thành công
-        clearCart()
+        setSubmitting(true)
+        try {
+            const key = acquireCheckoutKey(currentUser.id, cartItems)
+            const data = await createOrderApi(token, cartItems, key)
+            if (!data?.orderId) throw new Error('Backend không trả về orderId.')
 
-        // Chuyển sang trang kết quả đơn hàng để thực hiện thanh toán giả lập (Mock Payment)
-        navigate('/order-result', {
-            state: { orderId: result.order.id },
-        })
+            clearCheckoutKey(currentUser.id)
+            clearCart()
+            navigate(`/order-result/${data.orderId}`, { replace: true })
+        } catch (error) {
+            console.error('Checkout failed:', error.code ?? error.message)
+            if (error.code === 'REQUEST_OUTCOME_UNKNOWN' || error.status === 503) {
+                alert('Chưa xác định kết quả tạo đơn. Không nhấn liên tục; kiểm tra lịch sử đơn hoặc thử lại với cùng yêu cầu.')
+            } else {
+                alert(error.message || 'Không thể tạo đơn hàng.')
+            }
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
         <>
-            <CustomerHeader />
-
             <div className="checkout-page">
                 <h1>Xác nhận đơn hàng</h1>
 
@@ -97,12 +120,12 @@ function CheckoutPage() {
                                     {!item.isDiscontinued && item.isOutOfStock && (
                                         <span
                                             style={{
-                                                color: '#dc2626',
+                                                color: '#b45309',
                                                 fontSize: '0.85rem',
                                                 marginLeft: '10px',
                                             }}
                                         >
-                                            [Đã hết hàng]
+                                            [Hết hàng theo dữ liệu máy chủ]
                                         </span>
                                     )}
                                     {!item.isDiscontinued &&
@@ -115,7 +138,7 @@ function CheckoutPage() {
                                                     marginLeft: '10px',
                                                 }}
                                             >
-                                                [Tồn khả dụng chỉ còn {item.availableStock}]
+                                                [Tồn khả dụng tại một kho chỉ còn {item.availableStock}]
                                             </span>
                                         )}
                                 </h3>
@@ -134,8 +157,11 @@ function CheckoutPage() {
                         ))}
 
                         <div className="checkout-total">
-                            Tổng thanh toán: {totalPrice.toLocaleString('vi-VN')} VNĐ
+                            Tổng tạm tính (sẽ xác nhận theo giá server): {totalPrice.toLocaleString('vi-VN')} VNĐ
                         </div>
+
+                        {stockLoading && <p role="status">Đang tải tồn kho khả dụng từ máy chủ…</p>}
+                        {stockError && <p role="alert">Không thể tải tồn kho. Quay lại giỏ hàng và thử tải lại trước khi đặt hàng.</p>}
 
                         {hasDiscontinuedItems && (
                             <p
@@ -151,21 +177,20 @@ function CheckoutPage() {
                             </p>
                         )}
 
-                        {hasInsufficientStockItems && (
+                        {!stockLoading && !stockError && hasInsufficientStockItems && (
                             <p
                                 style={{
-                                    color: '#dc2626',
+                                    color: '#b45309',
                                     fontWeight: 'bold',
                                     marginTop: '15px',
                                 }}
                             >
-                                Đơn hàng có sản phẩm không đủ tồn kho hoặc đã hết
-                                hàng. Vui lòng quay lại giỏ hàng để cập nhật số
-                                lượng.
+                                Tồn kho máy chủ hiện không đủ cho số lượng trong giỏ.
+                                Hãy giảm số lượng hoặc xóa sản phẩm trước khi đặt hàng.
                             </p>
                         )}
 
-                        {fulfillmentWarehouse && (
+                        {!stockLoading && !stockError && fulfillmentWarehouse && (
                             <div
                                 style={{
                                     background: '#f0fdf4',
@@ -182,7 +207,7 @@ function CheckoutPage() {
                                         fontSize: '1.05rem',
                                     }}
                                 >
-                                    ✓ Kho tiếp nhận xử lý:{' '}
+                                    ✓ Kho có thể xử lý toàn bộ đơn:{' '}
                                     {fulfillmentWarehouse.name}
                                 </h3>
                                 <p
@@ -192,18 +217,18 @@ function CheckoutPage() {
                                         fontSize: '0.9rem',
                                     }}
                                 >
-                                    Kho này có đủ tồn kho để đáp ứng toàn bộ các
-                                    mặt hàng trong đơn theo quy định của hệ thống
+                                    Tồn kho hiện tại cho thấy kho {fulfillmentWarehouse.name} đáp ứng đơn hàng;
+                                    máy chủ vẫn kiểm tra lại tồn kho khi tạo đơn
                                     (Single-Warehouse Fulfillment - BR-01).
                                 </p>
                             </div>
                         )}
 
-                        {isOrderUnfulfillable && (
+                        {!stockLoading && !stockError && isOrderUnfulfillable && (
                             <div
                                 style={{
-                                    background: '#fef2f2',
-                                    border: '1px solid #fca5a5',
+                                    background: '#fffbeb',
+                                    border: '1px solid #fcd34d',
                                     padding: '14px 18px',
                                     borderRadius: '8px',
                                     marginTop: '15px',
@@ -212,25 +237,20 @@ function CheckoutPage() {
                                 <h3
                                     style={{
                                         margin: 0,
-                                        color: '#991b1b',
+                                        color: '#92400e',
                                         fontSize: '1.05rem',
                                     }}
                                 >
-                                    ⚠️ Không thể đặt hàng: Không có kho nào đủ
-                                    toàn bộ đơn hàng!
+                                    Không có kho nào đủ hàng cho toàn bộ giỏ
                                 </h3>
                                 <p
                                     style={{
                                         margin: '6px 0 0',
-                                        color: '#7f1d1d',
+                                        color: '#78350f',
                                         fontSize: '0.9rem',
                                     }}
                                 >
-                                    Quy tắc hệ thống yêu cầu một đơn hàng phải
-                                    được giao trọn vẹn từ 1 kho duy nhất. Hiện
-                                    không có kho nào có đủ toàn bộ số lượng các
-                                    món trong đơn hàng. Vui lòng quay lại giỏ hàng
-                                    để điều chỉnh số lượng.
+                                    Điều chỉnh số lượng hoặc bỏ sản phẩm rồi thử lại.
                                 </p>
                             </div>
                         )}
@@ -238,10 +258,15 @@ function CheckoutPage() {
                         <button
                             type="button"
                             className="checkout-button"
-                            disabled={hasInvalidItems}
+                            disabled={
+                                submitting ||
+                                cartItems.length === 0 ||
+                                hasDiscontinuedItems || stockLoading || Boolean(stockError) ||
+                                hasInsufficientStockItems || isOrderUnfulfillable
+                            }
                             onClick={handleConfirmOrder}
                         >
-                            Xác nhận đặt hàng
+                            {submitting ? 'Đang tạo đơn hàng...' : 'Xác nhận đặt hàng'}
                         </button>
                     </div>
                 )}

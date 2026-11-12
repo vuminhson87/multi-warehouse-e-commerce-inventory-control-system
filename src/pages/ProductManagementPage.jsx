@@ -1,158 +1,286 @@
-
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import { useInventory } from '../context/InventoryContext'
-import './ProductManagementPage.css'
+import ProductThumb from '../components/ProductThumb'
+import ProductPagination from '../components/ProductPagination'
+import FeaturedProductsPanel from '../components/FeaturedProductsPanel'
+import LucideIcon from '../components/LucideIcon'
+import { formatPrice } from '../utils/format'
+
+const ADMIN_PRODUCTS_PATH = '/admin/products'
+const ADMIN_PRODUCTS_PER_PAGE = 10
+
+function readAdminProductsPage(value) {
+    if (!/^[1-9]\d*$/.test(value ?? '')) return 1
+
+    const page = Number(value)
+    return Number.isSafeInteger(page) ? page : 1
+}
 
 function ProductManagementPage() {
     const { currentUser } = useAuth()
-    const { products, updateProductStatus } = useProducts()
-    const { getProductAvailableStock } = useInventory()
+    const { products, updateProductStatus, loading, error } = useProducts()
+    const [pending, setPending] = useState(false)
+    const [statusError, setStatusError] = useState(null)
 
-    const [keyword, setKeyword] = useState('')
-    const [category, setCategory] = useState('Tất cả')
-
-    if (!currentUser) {
-        return <Navigate to="/login" replace />
+    async function changeStatus(id, status) {
+        setPending(true)
+        setStatusError(null)
+        try {
+            await updateProductStatus(id, status)
+        } catch (error) {
+            setStatusError(error.message)
+        } finally {
+            setPending(false)
+        }
     }
 
-    if (currentUser.role !== 'ADMIN') {
-        return <Navigate to="/products" replace />
+    const [searchParams, setSearchParams] = useSearchParams()
+    const rawPage = searchParams.get('page')
+    const requestedPage = readAdminProductsPage(rawPage)
+    const keyword = searchParams.get('search') ?? ''
+    const category = searchParams.get('category') ?? 'Tất cả'
+    const statusFilter = searchParams.get('status') ?? 'ALL'
+
+    function getPageHref(page) {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(page))
+
+        return { pathname: ADMIN_PRODUCTS_PATH, search: `?${params.toString()}` }
+    }
+
+    function updateFilter(key, value) {
+        const params = new URLSearchParams(searchParams)
+
+        if (value) {
+            params.set(key, value)
+        } else {
+            params.delete(key)
+        }
+
+        params.delete('page')
+        setSearchParams(params, { replace: key === 'search' })
     }
 
     const categories = [
         'Tất cả',
-        ...new Set(products.map((product) => product.category)),
+        ...new Set(products.map((product) => product.category).filter(Boolean)),
     ]
 
     const filteredProducts = products.filter((product) => {
-        const matchesKeyword = product.name
+        const matchesKeyword = String(product.name ?? '')
             .toLowerCase()
             .includes(keyword.trim().toLowerCase())
 
         const matchesCategory =
             category === 'Tất cả' || product.category === category
 
-        return matchesKeyword && matchesCategory
+        const productStatus = product.status ?? 'ACTIVE'
+        const matchesStatus =
+            statusFilter === 'ALL' || productStatus === statusFilter
+
+        return matchesKeyword && matchesCategory && matchesStatus
     })
 
+    const totalPages = Math.ceil(filteredProducts.length / ADMIN_PRODUCTS_PER_PAGE)
+    const currentPage = Math.min(requestedPage, Math.max(1, totalPages))
+    const startIndex = (currentPage - 1) * ADMIN_PRODUCTS_PER_PAGE
+    const pageProducts = filteredProducts.slice(
+        startIndex,
+        startIndex + ADMIN_PRODUCTS_PER_PAGE
+    )
+
+    const isAdmin = currentUser?.role === 'ADMIN'
+
+    useEffect(() => {
+        if (!isAdmin || rawPage === null || rawPage === String(currentPage)) return
+
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(currentPage))
+        setSearchParams(params, { replace: true })
+    }, [currentPage, isAdmin, rawPage, searchParams, setSearchParams])
+
+    if (!currentUser) {
+        return <Navigate to="/" replace />
+    }
+
+    if (currentUser.role !== 'ADMIN') {
+        return <Navigate to="/products" replace />
+    }
+
+    const activeCount = products.filter(
+        (p) => (p.status ?? 'ACTIVE') === 'ACTIVE'
+    ).length
+    const discontinuedCount = products.length - activeCount
+
     return (
-        <main className="product-management-page">
-            <div className="product-management-heading">
+        <div className="mgmt-page">
+            {loading && <p role="status">Đang tải sản phẩm…</p>}
+            {(error || statusError) && <p role="alert">{error?.message ?? statusError}</p>}
+            <div className="mgmt-head">
                 <div>
                     <h1>Quản lý sản phẩm</h1>
-                    <p>Quản lý danh sách sản phẩm trong hệ thống.</p>
+                    <p>
+                        {products.length} sản phẩm · {activeCount} đang kinh doanh ·{' '}
+                        {discontinuedCount} ngừng kinh doanh
+                    </p>
                 </div>
 
-                <Link
-                    className="product-management-add"
-                    to="/admin/products/add"
-                >
-                    + Thêm sản phẩm
-                </Link>
+                <div className="mgmt-head__actions">
+                    <Link
+                        className="mgmt-btn mgmt-btn--primary"
+                        to="/admin/products/add"
+                    >
+                        <LucideIcon name="plus" size={16} />
+                        Thêm sản phẩm
+                    </Link>
+                </div>
             </div>
 
-            <div className="product-management-filters">
-                <input
-                    type="search"
-                    placeholder="Tìm kiếm sản phẩm..."
-                    value={keyword}
-                    onChange={(event) => setKeyword(event.target.value)}
-                />
+            <FeaturedProductsPanel />
 
-                <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                >
-                    {categories.map((item) => (
-                        <option key={item} value={item}>
-                            {item}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <section className="mgmt-card">
+                <div className="mgmt-toolbar">
+                    <input
+                        type="search"
+                        className="mgmt-input"
+                        placeholder="Tìm kiếm sản phẩm..."
+                        value={keyword}
+                        onChange={(event) => updateFilter('search', event.target.value)}
+                        aria-label="Tìm kiếm sản phẩm"
+                    />
 
-            <div className="product-management-table-wrapper">
-                <table className="product-management-table">
-                    <thead>
-                        <tr>
-                            <th>Mã SP</th>
-                            <th>Tên sản phẩm</th>
-                            <th>Danh mục</th>
-                            <th>Giá bán</th>
-                            <th>Tình trạng kho</th>
-                            <th>Trạng thái kinh doanh</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
+                    <select
+                        className="mgmt-select"
+                        value={category}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            updateFilter('category', value === 'Tất cả' ? '' : value)
+                        }}
+                        aria-label="Lọc theo danh mục"
+                    >
+                        {categories.map((item) => (
+                            <option key={item} value={item}>
+                                {item}
+                            </option>
+                        ))}
+                    </select>
 
-                    <tbody>
-                        {filteredProducts.map((product) => {
-                            const isInStock =
-                                getProductAvailableStock(product.id) > 0
+                    <select
+                        className="mgmt-select"
+                        value={statusFilter}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            updateFilter('status', value === 'ALL' ? '' : value)
+                        }}
+                        aria-label="Lọc theo trạng thái kinh doanh"
+                    >
+                        <option value="ALL">Mọi trạng thái</option>
+                        <option value="ACTIVE">Đang kinh doanh</option>
+                        <option value="DISCONTINUED">Ngừng kinh doanh</option>
+                    </select>
+                </div>
 
-                            return (
-                                <tr key={product.id}>
-                                    <td>#{product.id}</td>
-                                    <td>{product.name}</td>
-                                    <td>{product.category}</td>
-                                    <td>
-                                        {product.price.toLocaleString('vi-VN')} VNĐ
-                                    </td>
-                                    <td>
-                                        <span
-                                            className={
-                                                isInStock
-                                                    ? 'product-status active'
-                                                    : 'product-status inactive'
-                                            }
-                                        >
-                                            {isInStock
-                                                ? 'Còn hàng'
-                                                : 'Hết hàng'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <select
-                                            className={`product-business-status ${product.status === 'DISCONTINUED'
-                                                    ? 'discontinued'
-                                                    : 'active'
+                <div className="mgmt-table-wrap">
+                    <table className="mgmt-table">
+                        <thead>
+                            <tr>
+                                <th>Mã SP</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Danh mục</th>
+                                <th className="num">Giá bán</th>
+                                <th>Tình trạng kho</th>
+                                <th>Trạng thái kinh doanh</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {pageProducts.map((product) => {
+                                const available = product.maxAvailable ?? 0
+                                const isInStock = available > 0
+
+                                return (
+                                    <tr key={product.id}>
+                                        <td>#{product.id}</td>
+                                        <td>
+                                            <div className="mgmt-product-cell">
+                                                <ProductThumb product={product} />
+                                                <span>{product.name}</span>
+                                            </div>
+                                        </td>
+                                        <td>{product.category}</td>
+                                        <td className="num">
+                                            {formatPrice(product.price)}
+                                        </td>
+                                        <td>
+                                            <span
+                                                className={`mgmt-badge ${
+                                                    isInStock
+                                                        ? 'mgmt-badge--success'
+                                                        : 'mgmt-badge--danger'
                                                 }`}
-                                            value={product.status ?? 'ACTIVE'}
-                                            onChange={(event) =>
-                                                updateProductStatus(product.id, event.target.value)
-                                            }
-                                            aria-label={`Trạng thái kinh doanh của ${product.name}`}
-                                        >
-                                            <option value="ACTIVE">Đang kinh doanh</option>
-                                            <option value="DISCONTINUED">Ngừng kinh doanh</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <Link
-                                            className="product-action-edit"
-                                            to={`/admin/products/${product.id}/edit`}
-                                        >
-                                            Sửa
-                                        </Link>
+                                            >
+                                                {isInStock
+                                                    ? `Còn hàng (${available})`
+                                                    : 'Hết hàng'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <select
+                                                className="mgmt-select"
+                                                value={product.status ?? 'ACTIVE'}
+                                                disabled={pending}
+                                                onChange={(event) =>
+                                                    changeStatus(
+                                                        product.id,
+                                                        event.target.value
+                                                    )
+                                                }
+                                                aria-label={`Trạng thái kinh doanh của ${product.name}`}
+                                            >
+                                                <option value="ACTIVE">
+                                                    Đang kinh doanh
+                                                </option>
+                                                <option value="DISCONTINUED">
+                                                    Ngừng kinh doanh
+                                                </option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <Link
+                                                className="mgmt-btn mgmt-btn--sm mgmt-btn--ghost"
+                                                to={`/admin/products/${product.id}/edit`}
+                                                state={{
+                                                    productListSearch: searchParams.toString(),
+                                                }}
+                                            >
+                                                Sửa
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+
+                            {filteredProducts.length === 0 && (
+                                <tr>
+                                    <td colSpan="7" className="mgmt-empty">
+                                        Không tìm thấy sản phẩm phù hợp.
                                     </td>
                                 </tr>
-                            )
-                        })}
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
-                        {filteredProducts.length === 0 && (
-                            <tr>
-                                <td colSpan="7" className="product-empty">
-                                    Không tìm thấy sản phẩm phù hợp.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </main>
+                <ProductPagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    getPageHref={getPageHref}
+                />
+            </section>
+        </div>
     )
 }
 

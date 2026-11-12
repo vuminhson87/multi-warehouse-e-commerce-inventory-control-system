@@ -1,7 +1,7 @@
 // Validate và chuẩn hóa đầu vào của module Order (docs/api-order-payment.md mục 2.1, 4, 5).
 // Hàm thuần: không đụng DB. Ném AppError(VALIDATION_ERROR) khi sai.
 
-import { SimulateMode, isOrderStatus } from './order.constants.js'
+import { OrderStatus, SimulateMode, isOrderStatus } from './order.constants.js'
 import { validationError } from '../../shared/errors.js'
 import businessConfig from '../../config/business.js'
 
@@ -171,6 +171,20 @@ export function validateCancelBody(body) {
     assertOnlyAllowedFields(body, ['idempotencyKey'])
 
     return { idempotencyKey: validateIdempotencyKey(body.idempotencyKey) }
+}
+
+// Admin may start order processing only after successful payment.
+export function validateAdminOrderStatusBody(body) {
+    assertBodyObject(body)
+    assertOnlyAllowedFields(body, ['status'])
+
+    if (body.status !== OrderStatus.PROCESSING) {
+        throw validationError([
+            { field: 'status', reason: 'Admin chỉ được chuyển đơn sang Processing.' },
+        ])
+    }
+
+    return { status: body.status }
 }
 
 // Query danh sách đơn: page, limit, status. Sai thì trả 400, không âm thầm đổi về mặc định.
