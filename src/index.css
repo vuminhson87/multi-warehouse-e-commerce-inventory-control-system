@@ -35,6 +35,10 @@ body,
     min-height: 100%;
 }
 
+html {
+    overflow-x: clip;
+}
+
 body {
     min-width: 320px;
     min-height: 100vh;
