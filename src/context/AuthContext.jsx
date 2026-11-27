@@ -3,6 +3,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useRef,
     useState,
 } from 'react'
 
@@ -33,11 +34,23 @@ export function AuthProvider({ children }) {
     })
 
     const [verifiedToken, setVerifiedToken] = useState(null)
+    const currentUserRef = useRef(currentUser)
+    const tokenRef = useRef(token)
+    const refreshPromiseRef = useRef(null)
+
+    useEffect(() => {
+        currentUserRef.current = currentUser
+    }, [currentUser])
+
+    useEffect(() => {
+        tokenRef.current = token
+    }, [token])
 
     const setCurrentUser = useCallback((user) => {
         if (!user) {
             sessionStorage.removeItem(TOKEN_KEY)
             sessionStorage.removeItem(USER_KEY)
+            refreshPromiseRef.current = null
             setToken(null)
             setVerifiedToken(null)
             setCurrentUserState(null)
@@ -46,7 +59,7 @@ export function AuthProvider({ children }) {
 
         // Không tạo phiên đăng nhập giả nếu chưa có JWT.
         if (!sessionStorage.getItem(TOKEN_KEY)) {
-            throw new Error('Cần đăng nhập bằng Backend API.')
+            throw new Error('Vui lòng đăng nhập qua hệ thống.')
         }
 
         const safeUser = { ...user }
@@ -57,12 +70,33 @@ export function AuthProvider({ children }) {
         setCurrentUserState(safeUser)
     }, [])
 
+    const syncSafeUser = useCallback((user) => {
+        if (!user || !sessionStorage.getItem(TOKEN_KEY)) return
+        const safeUser = { ...user }
+        delete safeUser.password
+        delete safeUser.passwordHash
+
+        const previous = currentUserRef.current
+        const unchanged =
+            previous &&
+            previous.id === safeUser.id &&
+            previous.username === safeUser.username &&
+            previous.fullName === safeUser.fullName &&
+            previous.role === safeUser.role &&
+            previous.assignedWarehouseId === safeUser.assignedWarehouseId &&
+            previous.isActive === safeUser.isActive
+
+        if (!unchanged) {
+            setCurrentUser(safeUser)
+        }
+    }, [setCurrentUser])
+
     const login = async (username, password) => {
         const data = await loginApi(username, password)
 
         if (!data?.token || !data?.user) {
             throw new Error(
-                'Backend không trả về phiên đăng nhập hợp lệ.'
+                'Hệ thống không trả về phiên đăng nhập hợp lệ.'
             )
         }
 
@@ -84,6 +118,39 @@ export function AuthProvider({ children }) {
     }
 
     const logout = useCallback(() => setCurrentUser(null), [setCurrentUser])
+
+    const refreshCurrentUser = useCallback(() => {
+        const requestToken = tokenRef.current
+        if (!requestToken) return Promise.resolve(null)
+        if (refreshPromiseRef.current) return refreshPromiseRef.current
+
+        const promise = getCurrentUserApi(requestToken)
+            .then((data) => {
+                if (tokenRef.current !== requestToken) return null
+                if (data?.user) {
+                    syncSafeUser(data.user)
+                    return data.user
+                }
+                return null
+            })
+            .catch((error) => {
+                if (tokenRef.current !== requestToken) return null
+                if (error.status === 401 || error.status === 403) {
+                    logout()
+                } else {
+                    console.warn('Không xác thực lại phiên lúc này:', error.code || error.message)
+                }
+                return null
+            })
+            .finally(() => {
+                if (refreshPromiseRef.current === promise) {
+                    refreshPromiseRef.current = null
+                }
+            })
+
+        refreshPromiseRef.current = promise
+        return promise
+    }, [logout, syncSafeUser])
 
     useEffect(() => {
         if (!token) {
@@ -117,6 +184,27 @@ export function AuthProvider({ children }) {
         }
     }, [token, logout, setCurrentUser])
 
+    useEffect(() => {
+        if (!token) return undefined
+
+        const handleFocus = () => {
+            void refreshCurrentUser()
+        }
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                void refreshCurrentUser()
+            }
+        }
+
+        window.addEventListener('focus', handleFocus)
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+            document.removeEventListener('visibilitychange', handleVisibility)
+        }
+    }, [token, refreshCurrentUser])
+
     const authLoading = Boolean(token) && verifiedToken !== token
 
     return (
@@ -127,6 +215,7 @@ export function AuthProvider({ children }) {
                 authLoading,
                 login,
                 logout,
+                refreshCurrentUser,
                 setCurrentUser,
             }}
         >
