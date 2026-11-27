@@ -1,6 +1,11 @@
 import { runInTransaction } from '../../db/transaction.js'
 import { AppError, ErrorCodes } from '../../shared/errors.js'
-import { canCustomerConfirmReceipt, OrderStatus } from './order.constants.js'
+import {
+    canCustomerConfirmReceipt,
+    DELIVERY_STAGE_DEFAULT_NOTES,
+    DeliveryStage,
+    OrderStatus,
+} from './order.constants.js'
 import { parsePositiveIntId } from './order.validator.js'
 
 export async function confirmCustomerOrderReceived(customerId, rawOrderId) {
@@ -49,6 +54,17 @@ export async function confirmCustomerOrderReceived(customerId, rawOrderId) {
             },
             select: { id: true, status: true, version: true, updatedAt: true },
         })
+
+        if (tx.orderTrackingEvent?.create) {
+            await tx.orderTrackingEvent.create({
+                data: {
+                    orderId: updated.id,
+                    stage: DeliveryStage.DELIVERED,
+                    note: DELIVERY_STAGE_DEFAULT_NOTES[DeliveryStage.DELIVERED],
+                    actorUserId: customerId,
+                },
+            })
+        }
 
         return {
             orderId: updated.id,

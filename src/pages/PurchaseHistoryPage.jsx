@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCustomerOrders } from '../hooks/useCustomerOrders.js'
 import { cancelOrderApi } from '../services/orderApi.js'
 import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
+import ProductPagination from '../components/ProductPagination'
 import {
     OrderStatus,
     getOrderStatusLabel,
@@ -13,7 +14,9 @@ import {
 
 function PurchaseHistoryPage() {
     const { currentUser, token, authLoading } = useAuth()
+    const location = useLocation()
     const navigate = useNavigate()
+    const returnOrderId = location.state?.returnToOrderResult || null
     const [statusFilter, setStatusFilter] = useState('ALL')
     const [page, setPage] = useState(1)
     const [feedback, setFeedback] = useState(null)
@@ -80,7 +83,21 @@ function PurchaseHistoryPage() {
 
     return (
         <>
-            <div style={{ maxWidth: '960px', margin: '30px auto', padding: '0 20px' }}>
+            <div style={{ maxWidth: '1120px', margin: '30px auto', padding: '0 24px' }}>
+                {returnOrderId && (
+                    <div className="order-return-bar">
+                        <span>
+                            Bạn vừa rời khỏi màn hình thanh toán <strong>Đơn hàng #{returnOrderId}</strong>.
+                        </span>
+                        <Link
+                            to={`/order-result/${returnOrderId}`}
+                            className="order-return-link"
+                        >
+                            ← Quay lại thanh toán đơn #{returnOrderId}
+                        </Link>
+                    </div>
+                )}
+
                 <div
                     style={{
                         display: 'flex',
@@ -123,19 +140,19 @@ function PurchaseHistoryPage() {
                         >
                             <option value="ALL">Tất cả trạng thái</option>
                             <option value={OrderStatus.PENDING_PAYMENT}>
-                                Chờ thanh toán (PendingPayment)
+                                Chờ thanh toán
                             </option>
                             <option value={OrderStatus.PAID}>
-                                Đã thanh toán (Paid)
+                                Đã thanh toán
                             </option>
                             <option value={OrderStatus.PROCESSING}>
-                                Đang xử lý (Processing)
+                                Đang xử lý
                             </option>
                             <option value={OrderStatus.COMPLETED}>
-                                Hoàn tất (Completed)
+                                Hoàn tất
                             </option>
                             <option value={OrderStatus.CANCELLED}>
-                                Đã hủy (Cancelled)
+                                Đã hủy
                             </option>
                         </select>
                     </div>
@@ -307,8 +324,7 @@ function PurchaseHistoryPage() {
                                                     fontSize: '0.88rem',
                                                 }}
                                             >
-                                                {getOrderStatusLabel(order.status)} (
-                                                {order.status})
+                                                {getOrderStatusLabel(order.status)}
                                             </span>
                                         </div>
                                     </div>
@@ -485,46 +501,13 @@ function PurchaseHistoryPage() {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 12, marginTop: 20, alignItems: 'center' }}>
-                    <button
-                        type="button"
-                        disabled={loading || page <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        style={{
-                            padding: '8px 14px',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            background: loading || page <= 1 ? '#f1f5f9' : '#ffffff',
-                            cursor: loading || page <= 1 ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        Trang trước
-                    </button>
-                    <span>
-                        Trang {pagination.page} / {Math.max(1, pagination.totalPages)} —{' '}
-                        {pagination.total} đơn
-                    </span>
-                    <button
-                        type="button"
-                        disabled={loading || page >= pagination.totalPages}
-                        onClick={() => setPage((p) => p + 1)}
-                        style={{
-                            padding: '8px 14px',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            background:
-                                loading || page >= pagination.totalPages
-                                    ? '#f1f5f9'
-                                    : '#ffffff',
-                            cursor:
-                                loading || page >= pagination.totalPages
-                                    ? 'not-allowed'
-                                    : 'pointer',
-                        }}
-                    >
-                        Trang sau
-                    </button>
-                </div>
+                <ProductPagination
+                    page={pagination.page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={setPage}
+                    disabled={loading}
+                    ariaLabel="Phân trang lịch sử mua hàng"
+                />
             </div>
         </>
     )

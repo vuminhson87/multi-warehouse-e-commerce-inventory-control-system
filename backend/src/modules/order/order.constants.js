@@ -78,3 +78,48 @@ export function canCustomerPay(status, paymentInProgress) {
 export function canAdminTransition(fromStatus, toStatus) {
     return (ADMIN_TRANSITIONS[fromStatus] ?? []).includes(toStatus)
 }
+
+export const DeliveryStage = Object.freeze({
+    PROCESSING_STARTED: 'PROCESSING_STARTED',
+    PACKED: 'PACKED',
+    HANDED_TO_CARRIER: 'HANDED_TO_CARRIER',
+    IN_TRANSIT: 'IN_TRANSIT',
+    OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+    DELIVERED: 'DELIVERED',
+})
+
+export const ADMIN_TRACKABLE_STAGES = Object.freeze([
+    DeliveryStage.PACKED,
+    DeliveryStage.HANDED_TO_CARRIER,
+    DeliveryStage.IN_TRANSIT,
+    DeliveryStage.OUT_FOR_DELIVERY,
+])
+
+export const DELIVERY_STAGE_RANK = Object.freeze({
+    [DeliveryStage.PROCESSING_STARTED]: 1,
+    [DeliveryStage.PACKED]: 2,
+    [DeliveryStage.HANDED_TO_CARRIER]: 3,
+    [DeliveryStage.IN_TRANSIT]: 4,
+    [DeliveryStage.OUT_FOR_DELIVERY]: 5,
+    [DeliveryStage.DELIVERED]: 6,
+})
+
+export const DELIVERY_STAGE_DEFAULT_NOTES = Object.freeze({
+    [DeliveryStage.PROCESSING_STARTED]: 'Kho đã tiếp nhận đơn và bắt đầu chuẩn bị hàng.',
+    [DeliveryStage.PACKED]: 'Đơn hàng đã được đóng gói xong tại kho.',
+    [DeliveryStage.HANDED_TO_CARRIER]: 'Đơn hàng đã bàn giao cho đơn vị vận chuyển.',
+    [DeliveryStage.IN_TRANSIT]: 'Đơn hàng đang được vận chuyển.',
+    [DeliveryStage.OUT_FOR_DELIVERY]: 'Đơn hàng đang trên đường giao đến khách hàng.',
+    [DeliveryStage.DELIVERED]: 'Khách hàng đã xác nhận nhận hàng.',
+})
+
+export function canAdvanceDeliveryStage(existingStages = [], nextStage) {
+    if (!ADMIN_TRACKABLE_STAGES.includes(nextStage)) {
+        return false
+    }
+    const maxRank = existingStages.reduce(
+        (max, stage) => Math.max(max, DELIVERY_STAGE_RANK[stage] ?? 0),
+        0
+    )
+    return DELIVERY_STAGE_RANK[nextStage] >= maxRank
+}

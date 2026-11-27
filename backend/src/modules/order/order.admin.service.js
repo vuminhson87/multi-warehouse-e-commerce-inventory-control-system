@@ -1,9 +1,15 @@
 import { runInTransaction } from '../../db/transaction.js'
 import { AppError, ErrorCodes } from '../../shared/errors.js'
-import { canAdminTransition, OrderStatus } from './order.constants.js'
+import { AuditAction, AuditTargetType, writeAdminAuditLog } from '../audit/audit.repository.js'
+import {
+    canAdminTransition,
+    DELIVERY_STAGE_DEFAULT_NOTES,
+    DeliveryStage,
+    OrderStatus,
+} from './order.constants.js'
 import { parsePositiveIntId } from './order.validator.js'
 
-export async function transitionAdminOrderToProcessing(rawOrderId) {
+export async function transitionAdminOrderToProcessing(rawOrderId, { warehouseId, actor } = {}) {
     const orderId = parsePositiveIntId(rawOrderId, 'orderId')
 
     return runInTransaction(async tx => {
@@ -20,8 +26,25 @@ export async function transitionAdminOrderToProcessing(rawOrderId) {
 
         const order = await tx.order.findUniqueOrThrow({
             where: { id: orderId },
-            select: { id: true, status: true, version: true, updatedAt: true },
+            select: {
+                id: true,
+                status: true,
+                version: true,
+                updatedAt: true,
+                fulfillmentWarehouseId: true,
+            },
         })
+
+        if (
+            warehouseId !== undefined &&
+            warehouseId !== null &&
+            order.fulfillmentWarehouseId !== warehouseId
+        ) {
+            throw new AppError(
+                ErrorCodes.FORBIDDEN,
+                'Chỉ được xử lý đơn hàng thuộc kho được phân công.'
+            )
+        }
 
         // Repeating a successful request returns current state without another version update.
         if (order.status === OrderStatus.PROCESSING) {
@@ -47,6 +70,31 @@ export async function transitionAdminOrderToProcessing(rawOrderId) {
                 version: { increment: 1 },
             },
             select: { id: true, status: true, version: true, updatedAt: true },
+        })
+
+        if (tx.orderTrackingEvent?.create) {
+            await tx.orderTrackingEvent.create({
+                data: {
+                    orderId: updated.id,
+                    stage: DeliveryStage.PROCESSING_STARTED,
+                    note: DELIVERY_STAGE_DEFAULT_NOTES[DeliveryStage.PROCESSING_STARTED],
+                    actorUserId: actor?.id ?? null,
+                },
+            })
+        }
+
+        await writeAdminAuditLog(tx, {
+            actor,
+            action: AuditAction.ORDER_START_PROCESSING,
+            targetType: AuditTargetType.ORDER,
+            targetId: updated.id,
+            warehouseId: order.fulfillmentWarehouseId,
+            summary: `Bắt đầu xử lý đơn hàng #${updated.id}`,
+            metadata: {
+                fromStatus: OrderStatus.PAID,
+                toStatus: OrderStatus.PROCESSING,
+                version: updated.version,
+            },
         })
 
         return {

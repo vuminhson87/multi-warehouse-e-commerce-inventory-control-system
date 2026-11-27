@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 
 
 import { runInTransaction } from '../../db/transaction.js'
+import { invalidateInventoryCache } from '../../db/redis.js'
 import businessConfig from '../../config/business.js'
 import { AppError, ErrorCodes } from '../../shared/errors.js'
 
@@ -24,7 +25,19 @@ function formatOrder(order) {
   return {
     orderId: order.id,
     status: order.status,
+    voucherCode: order.voucherCode ?? null,
+    discountAmount: order.discountAmount ? order.discountAmount.toFixed(2) : '0.00',
     totalAmount: order.totalAmount.toFixed(2),
+    shippingAddress:
+      order.shippingFullName || order.shippingAddressLine
+        ? {
+            fullName: order.shippingFullName ?? null,
+            phone: order.shippingPhone ?? null,
+            province: order.shippingProvince ?? null,
+            addressLine: order.shippingAddressLine ?? null,
+            note: order.shippingNote ?? null,
+          }
+        : null,
     currency: 'VND',
     hasActiveReservation: Boolean(activeReservation),
     reservationExpiresAt:
@@ -91,7 +104,11 @@ export async function createCheckoutOrder(customerId, body) {
       userId: customerId,
       operation: 'CREATE_ORDER',
       key: input.idempotencyKey,
-      payload: { items: input.items },
+      payload: {
+        items: input.items,
+        ...(input.voucherCode ? { voucherCode: input.voucherCode } : {}),
+        ...(input.shippingAddress ? { shippingAddress: input.shippingAddress } : {}),
+      },
     })
 
     // Request đã xử lý: trả về đơn cũ, không giữ hàng lần nữa.
@@ -144,14 +161,14 @@ export async function createCheckoutOrder(customerId, body) {
       products.map((product) => [product.id, product])
     )
 
-    let totalAmount = new Prisma.Decimal(0)
+    let subtotalAmount = new Prisma.Decimal(0)
 
     const snapshotItems = input.items.map((item) => {
       const product = productMap.get(item.productId)
 
       const lineTotal = product.price.mul(item.quantity)
 
-      totalAmount = totalAmount.add(lineTotal)
+      subtotalAmount = subtotalAmount.add(lineTotal)
 
       return {
         productId: product.id,
@@ -161,6 +178,55 @@ export async function createCheckoutOrder(customerId, body) {
         lineTotal,
       }
     })
+
+    let discountAmount = new Prisma.Decimal(0)
+    let appliedVoucher = null
+
+    if (input.voucherCode) {
+      const lockedVouchers = await tx.$queryRaw`
+        SELECT
+          id,
+          code,
+          user_id AS "userId",
+          discount_percent AS "discountPercent",
+          expires_at AS "expiresAt",
+          used_at AS "usedAt"
+        FROM vouchers
+        WHERE code = ${input.voucherCode}
+        FOR UPDATE
+      `
+      const voucher = lockedVouchers?.[0]
+      if (!voucher || voucher.userId !== customerId) {
+        throw new AppError(
+          ErrorCodes.INVALID_ORDER_STATE,
+          'Mã giảm giá không tồn tại hoặc không thuộc tài khoản của bạn.'
+        )
+      }
+      if (voucher.usedAt) {
+        throw new AppError(
+          ErrorCodes.INVALID_ORDER_STATE,
+          'Mã giảm giá này đã được sử dụng.'
+        )
+      }
+      if (new Date(voucher.expiresAt).getTime() <= Date.now()) {
+        throw new AppError(
+          ErrorCodes.INVALID_ORDER_STATE,
+          'Mã giảm giá đã hết hạn sử dụng.'
+        )
+      }
+
+      appliedVoucher = voucher
+      discountAmount = subtotalAmount
+        .mul(voucher.discountPercent)
+        .div(100)
+        .toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP)
+
+      if (discountAmount.gt(subtotalAmount)) {
+        discountAmount = subtotalAmount
+      }
+    }
+
+    const totalAmount = subtotalAmount.sub(discountAmount)
 
     const expiresAt = new Date(
       Date.now() +
@@ -180,7 +246,18 @@ export async function createCheckoutOrder(customerId, body) {
             customerId,
             fulfillmentWarehouseId: warehouseId,
             status: 'PendingPayment',
+            voucherCode: appliedVoucher ? appliedVoucher.code : null,
+            discountAmount,
             totalAmount,
+            ...(input.shippingAddress
+              ? {
+                  shippingFullName: input.shippingAddress.fullName,
+                  shippingPhone: input.shippingAddress.phone,
+                  shippingProvince: input.shippingAddress.province,
+                  shippingAddressLine: input.shippingAddress.addressLine,
+                  shippingNote: input.shippingAddress.note,
+                }
+              : {}),
             items: {
               create: snapshotItems,
             },
@@ -188,6 +265,16 @@ export async function createCheckoutOrder(customerId, body) {
         })
       },
     })
+
+    if (appliedVoucher) {
+      await tx.voucher.update({
+        where: { id: appliedVoucher.id },
+        data: {
+          usedAt: new Date(),
+          usedOrderId: reservationResult.order.id,
+        },
+      })
+    }
 
     const data = await getOrderDetail(
       tx,
@@ -213,8 +300,16 @@ export async function createCheckoutOrder(customerId, body) {
     return {
       statusCode: 201,
       data: responseBody.data,
+      affected: reservationResult.affected,
     }
   })
 
-  return result
+  if (result.affected?.warehouseIds?.length || result.affected?.productIds?.length) {
+    await invalidateInventoryCache(result.affected)
+  }
+
+  return {
+    statusCode: result.statusCode,
+    data: result.data,
+  }
 }

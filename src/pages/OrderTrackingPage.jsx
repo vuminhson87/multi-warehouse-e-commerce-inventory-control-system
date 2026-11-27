@@ -8,6 +8,7 @@ import {
     OrderStatus,
     PaymentResult,
     PAYMENT_RESULT_LABELS,
+    getDeliveryStageLabel,
     getOrderStatusLabel,
     formatCurrency,
     formatDateTime,
@@ -128,7 +129,7 @@ function OrderTrackingPage() {
             setFeedback({
                 ok: result.paymentStatus === 'SUCCEEDED',
                 isWarning: result.paymentStatus !== 'SUCCEEDED',
-                message: `Kết quả thanh toán: ${result.paymentStatus}`,
+                message: `Kết quả thanh toán: ${PAYMENT_RESULT_LABELS[result.paymentStatus] || result.paymentStatus}`,
             })
             reload()
         } catch (err) {
@@ -270,7 +271,7 @@ function OrderTrackingPage() {
                             fontSize: '0.95rem',
                         }}
                     >
-                        {getOrderStatusLabel(order.status)} ({order.status})
+                        {getOrderStatusLabel(order.status)}
                     </span>
                 </div>
 
@@ -306,6 +307,34 @@ function OrderTrackingPage() {
                 )}
 
                 {/* Thanh tiến trình trạng thái đơn hàng (State Machine BR-11) */}
+                {order.shippingAddress && (
+                    <div
+                        style={{
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            padding: '14px 18px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                            color: '#334155',
+                        }}
+                    >
+                        <div style={{ fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>
+                            Thông tin giao hàng
+                        </div>
+                        <p style={{ margin: '4px 0' }}>
+                            <strong>Người nhận:</strong> {order.shippingAddress.fullName} — {order.shippingAddress.phone}
+                        </p>
+                        <p style={{ margin: '4px 0' }}>
+                            <strong>Địa chỉ:</strong> {order.shippingAddress.addressLine}, {order.shippingAddress.province}
+                        </p>
+                        {order.shippingAddress.note && (
+                            <p style={{ margin: '4px 0', color: '#64748b' }}>
+                                <strong>Ghi chú:</strong> {order.shippingAddress.note}
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {isCancelled ? (
                     <div
                         style={{
@@ -370,27 +399,90 @@ function OrderTrackingPage() {
                     }}
                 >
                     <h2 style={{ fontSize: '1.1rem', marginTop: 0 }}>
-                        Thông tin kho xử lý đơn hàng (Single-Warehouse Fulfillment)
+                        Thông tin kho xử lý đơn hàng
                     </h2>
                     <p style={{ margin: '6px 0' }}>
                         <strong>Kho thực hiện đơn:</strong>{' '}
-                        {order.fulfillmentWarehouseName} (Mã kho #
-                        {order.fulfillmentWarehouseId})
+                        {order.fulfillmentWarehouseName}
                     </p>
                     <p style={{ margin: '6px 0' }}>
-                        <strong>Khách hàng sở hữu:</strong>{' '}
+                        <strong>Khách hàng:</strong>{' '}
                         {order.customerUsername}
                     </p>
                     <p style={{ margin: '6px 0', color: '#475569' }}>
                         <strong>Trạng thái tồn kho của đơn:</strong>{' '}
                         {isPaid
-                            ? `Đã khấu trừ hàng thực tế (onHand) và hàng giữ (reserved) tại ${order.fulfillmentWarehouseName}.`
+                            ? `Đã xuất kho cho đơn hàng tại ${order.fulfillmentWarehouseName}.`
                             : isCancelled
                               ? `Đã giải phóng/hoàn trả tồn kho về ${order.fulfillmentWarehouseName}.`
                               : order.reservationActive
-                                ? `Đang giữ chỗ (reserved) toàn bộ sản phẩm tại ${order.fulfillmentWarehouseName}.`
+                                ? `Đang giữ đủ toàn bộ sản phẩm tại ${order.fulfillmentWarehouseName}.`
                                 : 'Hàng giữ đã được giải phóng sau lần thanh toán chưa hoàn tất. Khi thử lại thanh toán sẽ kiểm tra và giữ hàng lại.'}
                     </p>
+                </div>
+
+                {/* Chi tiết tiến độ giao / nhận hàng */}
+                <div
+                    style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        padding: '16px 20px',
+                        borderRadius: '8px',
+                        marginBottom: '20px',
+                    }}
+                >
+                    <h2 style={{ fontSize: '1.1rem', marginTop: 0, marginBottom: '12px' }}>
+                        Tiến độ giao / nhận hàng chi tiết
+                    </h2>
+                    {order.trackingEvents?.length > 0 ? (
+                        <ol
+                            style={{
+                                listStyle: 'none',
+                                margin: 0,
+                                padding: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px',
+                            }}
+                        >
+                            {[...order.trackingEvents].reverse().map((event, idx) => (
+                                <li
+                                    key={event.id ?? `${event.stage}-${idx}`}
+                                    style={{
+                                        borderLeft: `3px solid ${idx === 0 ? '#2563eb' : '#cbd5e1'}`,
+                                        paddingLeft: '12px',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                        <strong style={{ color: idx === 0 ? '#1e40af' : '#0f172a' }}>
+                                            {getDeliveryStageLabel(event.stage)}
+                                        </strong>
+                                        <span style={{ color: '#64748b', fontSize: '0.88rem' }}>
+                                            {formatDateTime(event.createdAt)}
+                                        </span>
+                                    </div>
+                                    {event.note && (
+                                        <p style={{ margin: '4px 0 0', color: '#334155', fontSize: '0.94rem' }}>
+                                            {event.note}
+                                        </p>
+                                    )}
+                                    {(event.location || event.trackingCode) && (
+                                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                                            {event.location ? `Địa điểm: ${event.location}` : ''}
+                                            {event.location && event.trackingCode ? ' · ' : ''}
+                                            {event.trackingCode ? `Mã vận đơn: ${event.trackingCode}` : ''}
+                                        </p>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.94rem' }}>
+                            {isCancelled
+                                ? 'Đơn hàng đã hủy trước khi chuyển sang giai đoạn giao nhận.'
+                                : 'Chưa có cập nhật vận chuyển chi tiết. Tiến độ sẽ hiển thị sau khi kho bắt đầu xử lý đơn hàng.'}
+                        </p>
+                    )}
                 </div>
 
                 {/* Khu vực Thanh toán giả lập / Thử lại thanh toán nếu đơn đang PendingPayment */}
@@ -411,7 +503,7 @@ function OrderTrackingPage() {
                                 color: '#92400e',
                             }}
                         >
-                            💳 Thanh toán / Thử lại thanh toán giả lập (UC04)
+                            💳 Thanh toán / Thử lại thanh toán (Giả lập)
                         </h2>
                         <p style={{ margin: '6px 0 12px', color: '#78350f', fontSize: '0.92rem' }}>
                             Đơn hàng đang ở trạng thái <strong>Chờ thanh toán</strong>. Bạn có thể chọn kết quả giả lập bên dưới:
@@ -476,13 +568,13 @@ function OrderTrackingPage() {
                                     cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                {busy ? 'Đang xử lý...' : '⏱ Không hoàn tất (Timeout)'}
+                                {busy ? 'Đang xử lý...' : '⏱ Chưa hoàn tất thanh toán'}
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* Bảng danh sách mặt hàng trong đơn (Snapshot bảo toàn lịch sử - SR-PROD-03) */}
+                {/* Bảng danh sách mặt hàng trong đơn */}
                 <h2 style={{ fontSize: '1.15rem' }}>
                     Danh sách sản phẩm trong đơn
                 </h2>
@@ -510,7 +602,7 @@ function OrderTrackingPage() {
                             >
                                 <th style={{ padding: '10px 14px' }}>Mã SP</th>
                                 <th style={{ padding: '10px 14px' }}>
-                                    Tên sản phẩm (Snapshot)
+                                    Tên sản phẩm
                                 </th>
                                 <th style={{ padding: '10px 14px' }}>
                                     Đơn giá lúc đặt
@@ -559,6 +651,11 @@ function OrderTrackingPage() {
                         marginBottom: '24px',
                     }}
                 >
+                    {order.voucherCode && Number(order.discountAmount) > 0 && (
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#15803d', marginBottom: '4px' }}>
+                            Đã áp dụng mã {order.voucherCode}: -{formatCurrency(order.discountAmount)}
+                        </div>
+                    )}
                     Tổng cộng: {formatCurrency(order.totalAmount)}
                 </div>
 
@@ -697,15 +794,14 @@ function OrderTrackingPage() {
                                 <strong>{order.fulfillmentWarehouseName}</strong>{' '}
                                 sẽ được{' '}
                                 {isPaid
-                                    ? 'cộng hoàn trả lại vào tồn thực tế (onHand).'
-                                    : 'giải phóng khỏi lượng hàng đang giữ (reserved).'}
+                                    ? 'hoàn trả lại vào kho.'
+                                    : 'hủy giữ chỗ tại kho.'}
                             </span>
                         ) : (
                             <span>
                                 Đơn hàng đang ở trạng thái{' '}
                                 <strong>{getOrderStatusLabel(order.status)}</strong>{' '}
-                                nên không thể hủy (Theo quy tắc SR-CAN-01: chỉ cho
-                                phép hủy khi Chờ thanh toán hoặc Đã thanh toán).
+                                nên không thể hủy (chỉ có thể hủy khi đơn đang Chờ thanh toán hoặc Đã thanh toán).
                             </span>
                         )}
                     </div>
