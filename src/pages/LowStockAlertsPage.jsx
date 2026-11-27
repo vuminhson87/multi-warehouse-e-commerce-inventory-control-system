@@ -11,6 +11,10 @@ import {
 import ProductThumb from '../components/ProductThumb'
 import ProductPagination from '../components/ProductPagination'
 import {
+    buildProductFallback,
+    mergeInventoryProducts,
+} from '../utils/stockThresholds'
+import {
     getInventoryPage,
     getInventoryPageHref,
     useNormalizeInventoryPages,
@@ -60,7 +64,7 @@ function ThresholdForm({ products, selectedProductId, currentThreshold, onProduc
 }
 
 function LowStockAlertsPage() {
-    const { currentUser, token } = useAuth()
+    const { currentUser, token, refreshCurrentUser } = useAuth()
     const { products } = useProducts()
     const [searchParams, setSearchParams] = useSearchParams()
     const [data, setData] = useState({ warehouses: [], inventory: [], alerts: [], loading: true, error: null })
@@ -83,7 +87,12 @@ function LowStockAlertsPage() {
         async function loadAlertsData() {
             setData(previous => ({ ...previous, loading: true, error: null }))
             try {
-                const warehouses = await loadWarehouses(token, controller.signal)
+                const allWarehouses = await loadWarehouses(token, controller.signal)
+                const warehouses = isWarehouseManager
+                    ? allWarehouses.filter(
+                          warehouse => Number(warehouse.id) === Number(assignedWarehouseId)
+                      )
+                    : allWarehouses
                 const [inventoryPages, alerts] = await Promise.all([
                     Promise.all(warehouses.map(warehouse =>
                         loadWarehouseInventory(token, warehouse.id, controller.signal)
@@ -92,6 +101,13 @@ function LowStockAlertsPage() {
                 ])
                 if (!controller.signal.aborted) {
                     setData({ warehouses, inventory: inventoryPages.flat(), alerts, loading: false, error: null })
+                    if (
+                        isWarehouseManager &&
+                        allWarehouses.length > 0 &&
+                        warehouses.length === 0
+                    ) {
+                        void refreshCurrentUser?.()
+                    }
                 }
             } catch (error) {
                 if (!controller.signal.aborted) setData(previous => ({ ...previous, loading: false, error }))
@@ -100,9 +116,16 @@ function LowStockAlertsPage() {
 
         void loadAlertsData()
         return () => controller.abort()
-    }, [token, isAdmin, isWarehouseManager, reloadKey])
+    }, [token, isAdmin, isWarehouseManager, assignedWarehouseId, reloadKey, refreshCurrentUser])
 
     const warehouses = data.warehouses
+    const allProducts = useMemo(
+        () => mergeInventoryProducts(products, [...data.inventory, ...data.alerts]),
+        [products, data.inventory, data.alerts]
+    )
+    const effectiveSelectedProductId = allProducts.some(item => Number(item.id) === Number(selectedProductId))
+        ? selectedProductId
+        : Number(allProducts[0]?.id || 1)
     const warehouseParam = searchParams.get('warehouseId')
     const selectedWarehouseId = warehouses.some(warehouse => String(warehouse.id) === warehouseParam)
         ? warehouseParam
@@ -123,7 +146,9 @@ function LowStockAlertsPage() {
             .filter(alert => selectedWarehouseId === 'all' || Number(alert.warehouseId) === Number(selectedWarehouseId))
             .map(alert => {
                 const inventory = inventoryByKey.get(`${alert.warehouseId}:${alert.productId}`)
-                const product = products.find(item => Number(item.id) === Number(alert.productId))
+                const product =
+                    allProducts.find(item => Number(item.id) === Number(alert.productId)) ??
+                    buildProductFallback(alert)
                 const warehouse = warehouses.find(item => Number(item.id) === Number(alert.warehouseId))
                 const available = Number(alert.currentAvailable)
                 return {
@@ -138,11 +163,11 @@ function LowStockAlertsPage() {
                 }
             })
             .sort((a, b) => a.available - b.available)
-    }, [data.alerts, data.inventory, products, selectedWarehouseId, warehouses])
+    }, [allProducts, data.alerts, data.inventory, selectedWarehouseId, warehouses])
 
     const selectedProductInventory = data.inventory.find(item =>
         Number(item.warehouseId) === Number(assignedWarehouseId) &&
-        Number(item.productId) === Number(selectedProductId)
+        Number(item.productId) === Number(effectiveSelectedProductId)
     )
     const currentThreshold = selectedProductInventory?.lowStockThreshold ?? 0
 
@@ -164,7 +189,16 @@ function LowStockAlertsPage() {
             setFeedback({ text: 'Đã lưu ngưỡng cảnh báo.' })
             setReloadKey(value => value + 1)
         } catch (error) {
-            setFeedback({ error: true, text: error.message || 'Không thể lưu ngưỡng cảnh báo.' })
+            if (error.status === 403) {
+                void refreshCurrentUser?.()
+                setReloadKey(value => value + 1)
+                setFeedback({
+                    error: true,
+                    text: `${error.message || 'Không có quyền thiết lập ngưỡng.'} Đã đồng bộ lại kho được phân công.`,
+                })
+            } else {
+                setFeedback({ error: true, text: error.message || 'Không thể lưu ngưỡng cảnh báo.' })
+            }
         } finally {
             setPending(false)
         }
@@ -187,7 +221,7 @@ function LowStockAlertsPage() {
     }
 
     const assignedWarehouse = warehouses.find(warehouse => Number(warehouse.id) === Number(assignedWarehouseId))
-    if (data.loading) return <div className="mgmt-page"><h1>Cảnh báo tồn kho</h1><p role="status">Đang tải cảnh báo từ máy chủ…</p></div>
+    if (data.loading) return <div className="mgmt-page"><h1>Cảnh báo tồn kho</h1><p role="status">Đang tải cảnh báo từ hệ thống…</p></div>
     if (data.error) {
         return (
             <div className="mgmt-page">
@@ -232,9 +266,9 @@ function LowStockAlertsPage() {
                 {feedback && <p role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
                 {canEditThreshold ? (
                     <ThresholdForm
-                        key={`${assignedWarehouseId}-${selectedProductId}-${currentThreshold}`}
-                        products={products}
-                        selectedProductId={selectedProductId}
+                        key={`${assignedWarehouseId}-${effectiveSelectedProductId}-${currentThreshold}`}
+                        products={allProducts}
+                        selectedProductId={effectiveSelectedProductId}
                         currentThreshold={currentThreshold}
                         onProductChange={setSelectedProductId}
                         onSave={handleSaveThreshold}

@@ -8,7 +8,9 @@ import ProductPagination from '../components/ProductPagination'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber } from '../utils/format'
 import {
+    buildProductFallback,
     getStockStatus,
+    mergeInventoryProducts,
 } from '../utils/stockThresholds'
 import {
     getInventoryPage,
@@ -26,7 +28,7 @@ function StatusBadge({ status }) {
 }
 
 function InventoryDashboardPage() {
-    const { currentUser, token } = useAuth()
+    const { currentUser, token, refreshCurrentUser } = useAuth()
     const { products } = useProducts()
     const [inventoryData, setInventoryData] = useState({ warehouses: [], inventory: [], loading: true, error: null })
     const [reloadKey, setReloadKey] = useState(0)
@@ -54,6 +56,15 @@ function InventoryDashboardPage() {
                         loading: false,
                         error: null,
                     })
+                    if (
+                        currentUser?.role === 'WAREHOUSE_MANAGER' &&
+                        availableWarehouses.length > 0 &&
+                        !availableWarehouses.some(
+                            warehouse => Number(warehouse.id) === Number(currentUser.assignedWarehouseId)
+                        )
+                    ) {
+                        void refreshCurrentUser?.()
+                    }
                 }
             } catch (error) {
                 if (!controller.signal.aborted) {
@@ -64,7 +75,7 @@ function InventoryDashboardPage() {
 
         void loadInventoryDashboard()
         return () => controller.abort()
-    }, [token, currentUser?.role, reloadKey])
+    }, [token, currentUser?.role, currentUser?.assignedWarehouseId, reloadKey, refreshCurrentUser])
 
     const warehouseParam = searchParams.get('warehouseId')
     const selectedWarehouse = warehouses.some((warehouse) => String(warehouse.id) === warehouseParam)
@@ -87,6 +98,11 @@ function InventoryDashboardPage() {
 
     const { inventory } = inventoryData
 
+    const allProducts = useMemo(
+        () => mergeInventoryProducts(products, inventory),
+        [products, inventory]
+    )
+
     const scopedInventory = useMemo(
         () =>
             inventory.filter(
@@ -105,7 +121,7 @@ function InventoryDashboardPage() {
 
     const productSummary = useMemo(
         () =>
-            products.map((product) => {
+            allProducts.map((product) => {
                 const rows = scopedInventory.filter(
                     (i) => Number(i.productId) === Number(product.id)
                 )
@@ -113,7 +129,7 @@ function InventoryDashboardPage() {
                 const reserved = rows.reduce((sum, i) => sum + i.reserved, 0)
                 return { product, onHand, reserved, available: onHand - reserved }
             }),
-        [products, scopedInventory]
+        [allProducts, scopedInventory]
     )
 
     // Phân bổ tồn theo các kho được phép xem.
@@ -149,14 +165,15 @@ function InventoryDashboardPage() {
         }
     }, [inventory, warehouses])
 
-    // Sản phẩm sắp hết / hết hàng theo ngưỡng thực tế của từng kho.
+    // Sản phẩm sắp hết / hết hàng theo ngưỡng thực tế của từng kho (bao gồm tất cả sản phẩm).
     const lowStock = useMemo(
         () =>
             scopedInventory
                 .map((item) => {
-                    const product = products.find(
-                        (p) => Number(p.id) === Number(item.productId)
-                    )
+                    const product =
+                        allProducts.find(
+                            (p) => Number(p.id) === Number(item.productId)
+                        ) ?? buildProductFallback(item)
                     const available = item.onHand - item.reserved
                     const threshold = item.lowStockThreshold
                     return {
@@ -169,7 +186,7 @@ function InventoryDashboardPage() {
                 })
                 .filter((row) => row.product && row.status !== 'NORMAL')
                 .sort((a, b) => a.available - b.available),
-        [scopedInventory, products]
+        [scopedInventory, allProducts]
     )
 
     const productPage = getInventoryPage(productSummary.length, searchParams.get('productPage'))
@@ -204,7 +221,7 @@ function InventoryDashboardPage() {
     }
 
     if (inventoryData.loading) {
-        return <div className="mgmt-page"><h1>Tổng quan tồn kho</h1><p role="status">Đang tải tồn kho từ máy chủ…</p></div>
+        return <div className="mgmt-page"><h1>Tổng quan tồn kho</h1><p role="status">Đang tải tồn kho từ hệ thống…</p></div>
     }
 
     if (inventoryData.error) {
@@ -223,7 +240,7 @@ function InventoryDashboardPage() {
         selectedWarehouse === 'all'
             ? 'tất cả kho'
             : warehouses.find((w) => Number(w.id) === Number(selectedWarehouse))
-                  ?.name
+                ?.name
 
     return (
         <div className="mgmt-page">
@@ -256,7 +273,7 @@ function InventoryDashboardPage() {
             <div className="mgmt-kpis">
                 <div className="mgmt-kpi">
                     <h3>Sản phẩm theo dõi</h3>
-                    <p>{formatNumber(products.length)}</p>
+                    <p>{formatNumber(allProducts.length)}</p>
                 </div>
                 <div className="mgmt-kpi">
                     <h3>Tổng tồn thực tế</h3>
@@ -451,13 +468,13 @@ function InventoryDashboardPage() {
                                         const warehouse = warehouses.find(
                                             (w) => Number(w.id) === Number(item.warehouseId)
                                         )
-                                        const product = products.find(
+                                        const product = allProducts.find(
                                             (p) => Number(p.id) === Number(item.productId)
                                         )
                                         return (
                                             <tr key={`${item.productId}-${item.warehouseId}`}>
                                                 <td>{warehouse?.name || 'Không xác định'}</td>
-                                                <td>{product?.name || 'Không xác định'}</td>
+                                                <td>{product?.name || item.productName || 'Không xác định'}</td>
                                                 <td className="num">{item.onHand}</td>
                                                 <td className="num">{item.reserved}</td>
                                                 <td className="num">

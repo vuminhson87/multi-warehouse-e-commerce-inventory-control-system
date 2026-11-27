@@ -1,22 +1,31 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { ProductImagePanel, ProductMainFields } from '../components/ProductFormFields'
+import { buildProductCategoryOptions } from '../constants/productCategories'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 
 function AddProductPage() {
     const { currentUser } = useAuth()
-    const { addProduct } = useProducts()
+    const { products, addProduct } = useProducts()
     const navigate = useNavigate()
 
     const [form, setForm] = useState({
         name: '',
         category: '',
         price: '',
+        imageUrl: '',
         description: '',
     })
 
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState(false)
+
+    const categories = useMemo(
+        () => buildProductCategoryOptions(products),
+        [products]
+    )
 
     if (currentUser?.role !== 'ADMIN') {
         return <Navigate to="/products" replace />
@@ -33,9 +42,17 @@ function AddProductPage() {
         setError('')
     }
 
+    function handleSetField(field, value) {
+        setForm((previous) => ({
+            ...previous,
+            [field]: value,
+        }))
+        setError('')
+    }
+
     async function handleSubmit(event) {
         event.preventDefault()
-      if (saving) return
+        if (saving || uploadingImage) return
 
         if (!form.name.trim()) {
             setError('Vui lòng nhập tên sản phẩm.')
@@ -43,7 +60,7 @@ function AddProductPage() {
         }
 
         if (!form.category.trim()) {
-            setError('Vui lòng nhập danh mục sản phẩm.')
+            setError('Vui lòng chọn hoặc nhập danh mục sản phẩm.')
             return
         }
 
@@ -58,12 +75,12 @@ function AddProductPage() {
 
         setSaving(true)
         try {
-          await addProduct(form)
-          navigate('/admin/products')
+            await addProduct(form)
+            navigate('/admin/products')
         } catch (error) {
-          setError(error.message)
+            setError(error.message)
         } finally {
-          setSaving(false)
+            setSaving(false)
         }
     }
 
@@ -76,76 +93,55 @@ function AddProductPage() {
                 </div>
             </div>
 
-            <form className="mgmt-form" onSubmit={handleSubmit}>
-                <label htmlFor="product-name">Tên sản phẩm *</label>
-                <input
-                    id="product-name"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Ví dụ: Laptop ASUS Vivobook"
-                    maxLength={150}
-                    required
-                />
+            <form className="mgmt-product-layout" onSubmit={handleSubmit}>
+                <div className="mgmt-form mgmt-form--in-grid">
+                    <ProductMainFields
+                        idPrefix="product"
+                        form={form}
+                        categories={categories}
+                        onChange={handleChange}
+                        onSetField={handleSetField}
+                        namePlaceholder="Ví dụ: Laptop ASUS Vivobook"
+                        pricePlaceholder="Ví dụ: 15000000"
+                        descriptionPlaceholder="Nhập mô tả sản phẩm..."
+                    />
 
-                <label htmlFor="product-category">Danh mục *</label>
-                <select
-                    id="product-category"
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    required
-                >
-                    <option value="">-- Chọn danh mục --</option>
-                    <option value="Laptop">Laptop</option>
-                    <option value="Phụ kiện">Phụ kiện</option>
-                </select>
-
-                <label htmlFor="product-price">Giá bán (VNĐ) *</label>
-                <input
-                    id="product-price"
-                    name="price"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.price}
-                    onChange={handleChange}
-                    placeholder="Ví dụ: 15000000"
-                    required
-                />
-
-                <label htmlFor="product-description">Mô tả</label>
-                <textarea
-                    id="product-description"
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Nhập mô tả sản phẩm..."
-                />
-
-                <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
-                    Trạng thái kinh doanh mặc định: Đang kinh doanh. Tồn kho khởi tạo tại các kho là 0 (cập nhật tại mục Quản lý kho).
-                </p>
-
-                {error && (
-                    <p className="mgmt-form__error" role="alert">
-                        {error}
+                    <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
+                        Trạng thái kinh doanh mặc định: Đang kinh doanh. Tồn kho khởi tạo tại các kho là 0 (cập nhật tại mục Quản lý kho).
                     </p>
-                )}
 
-                <div className="mgmt-form__actions">
-                    <Link
-                        to="/admin/products"
-                        className="mgmt-btn mgmt-btn--ghost"
-                    >
-                        Hủy
-                    </Link>
+                    {error && (
+                        <p className="mgmt-form__error" role="alert">
+                            {error}
+                        </p>
+                    )}
 
-                    <button type="submit" disabled={saving} className="mgmt-btn mgmt-btn--primary">
-                        Lưu sản phẩm
-                    </button>
+                    <div className="mgmt-form__actions">
+                        <Link
+                            to="/admin/products"
+                            className="mgmt-btn mgmt-btn--ghost"
+                        >
+                            Hủy
+                        </Link>
+
+                        <button
+                            type="submit"
+                            disabled={saving || uploadingImage}
+                            className="mgmt-btn mgmt-btn--primary"
+                        >
+                            Lưu sản phẩm
+                        </button>
+                    </div>
                 </div>
+
+                <ProductImagePanel
+                    idPrefix="product"
+                    imageUrl={form.imageUrl}
+                    saving={saving}
+                    uploadingImage={uploadingImage}
+                    onUploadingChange={setUploadingImage}
+                    onImageUrlChange={(value) => handleSetField('imageUrl', value)}
+                />
             </form>
         </div>
     )

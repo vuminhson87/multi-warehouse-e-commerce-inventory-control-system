@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { resolveMediaUrl } from '../utils/format'
 
 export default function ProductImage({ imageUrl, name, loading = 'lazy' }) {
     const [failedUrl, setFailedUrl] = useState(null)
-    const src = typeof imageUrl === 'string' ? imageUrl.trim() : ''
+    const src = resolveMediaUrl(imageUrl)
 
     if (!src || src === failedUrl) {
         return <span aria-hidden="true">💻</span>

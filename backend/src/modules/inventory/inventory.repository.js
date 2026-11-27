@@ -14,6 +14,8 @@
 import { Prisma } from '@prisma/client'
 import { selectFulfillmentWarehouse } from './inventory.policy.js'
 import {
+    assertAdjustmentNote,
+    assertNonNegativeInt,
     assertPositiveQuantity,
     assertThreshold,
     computeAvailable,
@@ -100,34 +102,57 @@ export async function lockInventoryRows(tx, { productIds, warehouseId } = {}) {
 // ---------------------------------------------------------------------------
 
 /**
- * Đồng bộ cảnh báo sau mỗi lần available thay đổi:
+ * Đồng bộ cảnh báo tồn kho cho một kho hoặc tất cả kho (và tùy chọn lọc theo productIds).
  * - available <= threshold và chưa có cảnh báo OPEN → tạo mới (partial unique index chống trùng).
  * - available > threshold → đóng cảnh báo OPEN (RESOLVED).
  */
-export async function syncLowStockAlerts(tx, warehouseId, productIds) {
-    if (!productIds?.length) {
+export async function syncAllLowStockAlerts(client, { warehouseId, productIds } = {}) {
+    if (warehouseId !== undefined) {
+        assertId(warehouseId, 'warehouseId')
+    }
+
+    if (productIds !== undefined && productIds.length === 0) {
         return
     }
 
-    await tx.$executeRaw`
+    const warehouseTarget = warehouseId ?? null
+    const productFilter = productIds?.length
+        ? Prisma.sql`AND product_id IN (${Prisma.join(productIds)})`
+        : Prisma.empty
+    const alertProductFilter = productIds?.length
+        ? Prisma.sql`AND a.product_id IN (${Prisma.join(productIds)})`
+        : Prisma.empty
+
+    await client.$executeRaw`
         INSERT INTO low_stock_alerts (warehouse_id, product_id, available_at_trigger, threshold, status, created_at)
         SELECT warehouse_id, product_id, on_hand - reserved, low_stock_threshold, 'OPEN', NOW()
         FROM inventories
-        WHERE warehouse_id = ${warehouseId}
-          AND product_id IN (${Prisma.join(productIds)})
+        WHERE (${warehouseTarget}::int IS NULL OR warehouse_id = ${warehouseTarget}::int)
+          ${productFilter}
           AND on_hand - reserved <= low_stock_threshold
         ON CONFLICT (warehouse_id, product_id) WHERE status = 'OPEN' DO NOTHING`
 
-    await tx.$executeRaw`
+    await client.$executeRaw`
         UPDATE low_stock_alerts AS a
         SET status = 'RESOLVED', resolved_at = NOW()
         FROM inventories AS i
         WHERE a.warehouse_id = i.warehouse_id
           AND a.product_id = i.product_id
           AND a.status = 'OPEN'
-          AND a.warehouse_id = ${warehouseId}
-          AND a.product_id IN (${Prisma.join(productIds)})
+          AND (${warehouseTarget}::int IS NULL OR a.warehouse_id = ${warehouseTarget}::int)
+          ${alertProductFilter}
           AND i.on_hand - i.reserved > i.low_stock_threshold`
+}
+
+/**
+ * Đồng bộ cảnh báo sau mỗi lần available thay đổi tại một kho.
+ */
+export async function syncLowStockAlerts(tx, warehouseId, productIds) {
+    if (!productIds?.length) {
+        return
+    }
+
+    await syncAllLowStockAlerts(tx, { warehouseId, productIds })
 }
 
 async function syncAlertsForRows(tx, rows) {
@@ -595,6 +620,97 @@ export async function setLowStockThreshold(tx, { warehouseId, productId, thresho
     return { inventory: row, affected: buildAffected([row]) }
 }
 
+/**
+ * Kiểm kê / điều chỉnh tồn thực tế (`ADJUST`) tại một kho.
+ * Bắt buộc ghi lý do và giữ bất biến `newOnHand >= reserved`.
+ */
+export async function adjustInventory(
+    tx,
+    { warehouseId, productId, newOnHand, actorUserId = null, note }
+) {
+    assertId(warehouseId, 'warehouseId')
+    assertId(productId, 'productId')
+    assertNonNegativeInt(newOnHand, 'onHand')
+    const cleanNote = assertAdjustmentNote(note, 'note')
+
+    try {
+        await tx.$queryRaw`
+            INSERT INTO inventories (warehouse_id, product_id, on_hand, reserved, low_stock_threshold, version, updated_at)
+            VALUES (${warehouseId}, ${productId}, 0, 0, 0, 0, NOW())
+            ON CONFLICT (warehouse_id, product_id) DO NOTHING`
+    } catch (error) {
+        if (isForeignKeyViolation(error)) {
+            throw validationError([{ field: 'productId', reason: 'Kho hoặc sản phẩm không tồn tại.' }])
+        }
+        throw error
+    }
+
+    const lockedRows = await lockInventoryRows(tx, {
+        productIds: [productId],
+        warehouseId,
+    })
+
+    const current = lockedRows[0]
+    if (!current) {
+        throw invariantBroken(`adjust kho ${warehouseId}, sản phẩm ${productId}`)
+    }
+
+    if (newOnHand < current.reserved) {
+        throw validationError(
+            [
+                {
+                    field: 'onHand',
+                    reason: `Tồn thực tế mới (${newOnHand}) không được nhỏ hơn số lượng đang giữ (${current.reserved}).`,
+                },
+            ],
+            `Tồn thực tế mới (${newOnHand}) không được nhỏ hơn số lượng đang giữ (${current.reserved}).`
+        )
+    }
+
+    if (newOnHand === current.onHand) {
+        return {
+            inventory: current,
+            changed: false,
+            affected: { warehouseIds: [], productIds: [] },
+        }
+    }
+
+    const result = await tx.$queryRaw`
+        UPDATE inventories
+        SET on_hand = ${newOnHand},
+            version = version + 1,
+            updated_at = NOW()
+        WHERE warehouse_id = ${warehouseId}
+          AND product_id = ${productId}
+          AND reserved <= ${newOnHand}
+        RETURNING id, warehouse_id, product_id, on_hand, reserved, low_stock_threshold`
+
+    if (result.length !== 1) {
+        throw invariantBroken(`adjust update kho ${warehouseId}, sản phẩm ${productId}`)
+    }
+
+    const updated = mapInventoryRow(result[0])
+    const delta = Math.abs(updated.onHand - current.onHand)
+    const movementNote = `${current.onHand} → ${updated.onHand}: ${cleanNote}`.slice(0, 255)
+
+    await tx.inventoryMovement.create({
+        data: {
+            warehouseId,
+            productId,
+            type: MovementType.ADJUST,
+            quantity: delta,
+            onHandAfter: updated.onHand,
+            reservedAfter: updated.reserved,
+            actorUserId,
+            note: movementNote,
+        },
+    })
+
+    await syncLowStockAlerts(tx, warehouseId, [productId])
+
+    return { inventory: updated, changed: true, affected: buildAffected([updated]) }
+}
+
 // ---------------------------------------------------------------------------
 // Đọc dữ liệu (UC05 – SR-INV-04; UC06 – SR-ALERT-03; SR-CAT-03)
 // ---------------------------------------------------------------------------
@@ -621,7 +737,7 @@ export async function listInventory(client, { warehouseId, productId, search, pa
         client.inventory.findMany({
             where,
             include: {
-                product: { select: { id: true, sku: true, name: true, category: true, isActive: true } },
+                product: { select: { id: true, sku: true, name: true, category: true, imageUrl: true, isActive: true } },
                 warehouse: { select: { id: true, code: true, name: true } },
             },
             orderBy: [{ warehouseId: 'asc' }, { productId: 'asc' }],
@@ -641,12 +757,77 @@ export async function listInventory(client, { warehouseId, productId, search, pa
             sku: row.product.sku,
             productName: row.product.name,
             category: row.product.category,
+            imageUrl: row.product.imageUrl ?? null,
             isActive: row.product.isActive,
             onHand: row.onHand,
             reserved: row.reserved,
             available: computeAvailable(row),
             lowStockThreshold: row.lowStockThreshold,
             updatedAt: row.updatedAt,
+        })),
+    }
+}
+
+/**
+ * Lịch sử biến động tồn kho (thẻ kho) phục vụ kiểm soát và đối soát.
+ */
+export async function listInventoryMovements(
+    client,
+    { warehouseId, productId, type, search, page = 1, limit = 20 } = {}
+) {
+    const where = {
+        ...(warehouseId ? { warehouseId } : {}),
+        ...(productId ? { productId } : {}),
+        ...(type ? { type } : {}),
+        ...(search
+            ? {
+                  product: {
+                      OR: [
+                          { name: { contains: search, mode: 'insensitive' } },
+                          { sku: { contains: search, mode: 'insensitive' } },
+                      ],
+                  },
+              }
+            : {}),
+    }
+
+    const [total, rows] = await Promise.all([
+        client.inventoryMovement.count({ where }),
+        client.inventoryMovement.findMany({
+            where,
+            include: {
+                warehouse: { select: { id: true, code: true, name: true } },
+                product: { select: { id: true, sku: true, name: true } },
+                actor: { select: { id: true, username: true, fullName: true } },
+            },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip: (page - 1) * limit,
+            take: limit,
+        }),
+    ])
+
+    return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        items: rows.map((row) => ({
+            id: row.id,
+            warehouseId: row.warehouseId,
+            warehouseCode: row.warehouse.code,
+            warehouseName: row.warehouse.name,
+            productId: row.productId,
+            sku: row.product.sku,
+            productName: row.product.name,
+            type: row.type,
+            quantity: row.quantity,
+            onHandAfter: row.onHandAfter,
+            reservedAfter: row.reservedAfter,
+            availableAfter: row.onHandAfter - row.reservedAfter,
+            orderId: row.orderId ?? null,
+            actorUsername: row.actor?.username ?? null,
+            note: row.note ?? null,
+            createdAt: row.createdAt.toISOString(),
         })),
     }
 }
@@ -676,13 +857,17 @@ export async function listOpenAlerts(client, { warehouseId }) {
 
     const alerts = await client.lowStockAlert.findMany({
         where: { warehouseId, status: 'OPEN' },
-        include: { product: { select: { id: true, sku: true, name: true } } },
+        include: {
+            product: { select: { id: true, sku: true, name: true, category: true, imageUrl: true, isActive: true } },
+        },
         orderBy: { createdAt: 'desc' },
     })
 
-    const inventories = await client.inventory.findMany({
-        where: { warehouseId, productId: { in: alerts.map((a) => a.productId) } },
-    })
+    const inventories = alerts.length
+        ? await client.inventory.findMany({
+              where: { warehouseId, productId: { in: alerts.map((a) => a.productId) } },
+          })
+        : []
     const current = new Map(inventories.map((row) => [`${row.warehouseId}:${row.productId}`, row]))
 
     return alerts.map((alert) => {
@@ -694,6 +879,9 @@ export async function listOpenAlerts(client, { warehouseId }) {
             productId: alert.productId,
             sku: alert.product.sku,
             productName: alert.product.name,
+            category: alert.product.category,
+            imageUrl: alert.product.imageUrl ?? null,
+            isActive: alert.product.isActive,
             availableAtTrigger: alert.availableAtTrigger,
             currentAvailable: row ? computeAvailable(row) : 0,
             threshold: row?.lowStockThreshold ?? alert.threshold,

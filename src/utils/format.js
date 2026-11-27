@@ -1,4 +1,14 @@
 // Tiện ích định dạng & ảnh dự phòng dùng chung cho toàn bộ giao diện.
+import { API_URL } from '../services/apiClient.js'
+
+export function resolveMediaUrl(url) {
+    const trimmed = typeof url === 'string' ? url.trim() : ''
+    if (!trimmed) return ''
+    if (trimmed.startsWith('/uploads/')) {
+        return `${API_URL}${trimmed}`
+    }
+    return trimmed
+}
 
 export function formatPrice(value) {
     const n = Number(value)

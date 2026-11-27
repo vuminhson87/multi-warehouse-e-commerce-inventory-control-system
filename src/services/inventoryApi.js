@@ -43,3 +43,35 @@ export function saveWarehouseThreshold(token, warehouseId, productId, threshold)
         body: { productId, threshold },
     })
 }
+
+export function adjustWarehouseStock(token, warehouseId, productId, onHand, note) {
+    return apiRequest(`/api/inventory/${warehouseId}/adjust`, {
+        token,
+        method: 'PATCH',
+        body: { productId, onHand, note },
+    })
+}
+
+export function loadInventoryMovements(
+    token,
+    { warehouseId, productId, type, search, page = 1, limit = 20 } = {},
+    signal
+) {
+    const query = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+    })
+    if (warehouseId !== undefined && warehouseId !== '' && warehouseId !== 'all') {
+        query.set('warehouseId', String(warehouseId))
+    }
+    if (productId !== undefined && productId !== '') {
+        query.set('productId', String(productId))
+    }
+    if (type && type !== 'ALL') {
+        query.set('type', type)
+    }
+    if (search && String(search).trim()) {
+        query.set('search', String(search).trim())
+    }
+    return apiRequest(`/api/inventory/movements?${query}`, { token, signal })
+}

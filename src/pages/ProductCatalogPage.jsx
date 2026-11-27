@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
 import ProductCard from '../components/ProductCard'
 import ProductPagination from '../components/ProductPagination'
+import ProductSearchInput from '../components/ProductSearchInput'
 import LucideIcon from '../components/LucideIcon'
+import { scoreProductMatch } from '../utils/productSearch'
 import './ProductCatalogPage.css'
 
 const ALL = 'Tất cả'
@@ -44,11 +46,30 @@ function buildUrl({ category, search, sort }) {
     return query ? `/products?${query}` : '/products'
 }
 
+function CatalogSearchBox({ initialQuery, onSubmitQuery, onSelectProduct }) {
+    const [query, setQuery] = useState(initialQuery)
+
+    return (
+        <ProductSearchInput
+            className="catalog-search"
+            inputName="search"
+            value={query}
+            onChange={setQuery}
+            onSubmitQuery={onSubmitQuery}
+            onSelectProduct={onSelectProduct}
+            iconSize={16}
+            iconClassName="catalog-search__icon"
+        />
+    )
+}
+
 function ProductCatalogPage() {
     const { products, loading, error } = useProducts()
     const [searchParams, setSearchParams] = useSearchParams()
+    const location = useLocation()
     const navigate = useNavigate()
     const [sheet, setSheet] = useState(null) // null | 'filter' | 'sort'
+    const returnOrderId = location.state?.returnToOrderResult || null
 
     const searchKeyword = searchParams.get('search') || ''
     const selectedCategory = searchParams.get('category') || ALL
@@ -76,15 +97,21 @@ function ProductCatalogPage() {
     )
 
     const filteredProducts = useMemo(() => {
-        const keyword = searchKeyword.trim().toLowerCase()
+        const hasSearch = Boolean(searchKeyword.trim())
         const filtered = activeProducts.filter((product) => {
-            const matchesSearch = String(product.name)
-                .toLowerCase()
-                .includes(keyword)
             const matchesCategory =
                 selectedCategory === ALL || product.category === selectedCategory
-            return matchesSearch && matchesCategory
+            if (!matchesCategory) return false
+            if (!hasSearch) return true
+            return scoreProductMatch(product, searchKeyword) > 0
         })
+        if (sort === 'default' && hasSearch) {
+            return [...filtered].sort(
+                (a, b) =>
+                    scoreProductMatch(b, searchKeyword) -
+                    scoreProductMatch(a, searchKeyword)
+            )
+        }
         return sortProducts(filtered, sort)
     }, [activeProducts, searchKeyword, selectedCategory, sort])
 
@@ -121,9 +148,7 @@ function ProductCatalogPage() {
         }
     }, [sheet])
 
-    function handleSearch(event) {
-        event.preventDefault()
-        const keyword = event.currentTarget.elements.search.value.trim()
+    function handleSearchSubmit(keyword) {
         navigate(buildUrl({ category: selectedCategory, search: keyword, sort }))
     }
 
@@ -146,6 +171,20 @@ function ProductCatalogPage() {
     return (
         <main className="catalog-page">
             <div className="catalog-container">
+                {returnOrderId && (
+                    <div className="order-return-bar">
+                        <span>
+                            Bạn vừa rời khỏi màn hình thanh toán <strong>Đơn hàng #{returnOrderId}</strong>.
+                        </span>
+                        <Link
+                            to={`/order-result/${returnOrderId}`}
+                            className="order-return-link"
+                        >
+                            ← Quay lại thanh toán đơn #{returnOrderId}
+                        </Link>
+                    </div>
+                )}
+
                 <div className="catalog-heading">
                     <h1>Sản phẩm</h1>
                     <p>{filteredProducts.length} sản phẩm</p>
@@ -187,21 +226,12 @@ function ProductCatalogPage() {
                     </label>
                 </div>
 
-                <form className="catalog-search" onSubmit={handleSearch}>
-                    <LucideIcon
-                        name="search"
-                        size={16}
-                        className="catalog-search__icon"
-                    />
-                    <input
-                        type="search"
-                        name="search"
-                        key={searchKeyword}
-                        defaultValue={searchKeyword}
-                        placeholder="Tìm kiếm sản phẩm..."
-                        aria-label="Tìm kiếm sản phẩm"
-                    />
-                </form>
+                <CatalogSearchBox
+                    key={searchKeyword}
+                    initialQuery={searchKeyword}
+                    onSubmitQuery={handleSearchSubmit}
+                    onSelectProduct={(product) => navigate(`/products/${product.id}`)}
+                />
 
                 {/* Nút lọc / sắp xếp trên mobile */}
                 <div className="catalog-mobile-bar">
