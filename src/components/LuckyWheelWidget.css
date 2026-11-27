@@ -21,7 +21,6 @@
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
   white-space: nowrap;
   pointer-events: none;
-  animation: wheelBadgeFloat 2.4s ease-in-out infinite;
 }
 
 .lucky-wheel-fab-shell {
@@ -104,16 +103,6 @@
   }
   to {
     transform: rotate(360deg);
-  }
-}
-
-@keyframes wheelBadgeFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
   }
 }
 
