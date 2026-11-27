@@ -28,6 +28,17 @@ export function errorHandler(err, req, res, next) {
     })
   }
 
+  if (err?.type === 'entity.too.large' || err?.status === 413) {
+    return res.status(413).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Dung lượng tệp tải lên vượt quá giới hạn cho phép.',
+        details: [],
+      },
+    })
+  }
+
   if (!(err instanceof AppError)) {
     console.error('[API ERROR]', err)
   }

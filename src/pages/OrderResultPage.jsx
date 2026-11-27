@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCustomerOrder } from '../hooks/useCustomerOrder.js'
 import { payOrderApi } from '../services/orderApi.js'
 import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
+import PaymentQrBox from '../components/PaymentQrBox'
 import {
     OrderStatus,
     PaymentResult,
@@ -12,6 +13,7 @@ import {
     formatCurrency,
     formatDateTime,
 } from '../constants/order'
+import './OrderResultPage.css'
 
 function OrderResultPage() {
     const location = useLocation()
@@ -25,8 +27,10 @@ function OrderResultPage() {
 
     if (authLoading) {
         return (
-            <div style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}>
-                Đang kiểm tra phiên...
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state">Đang kiểm tra phiên...</div>
+                </div>
             </div>
         )
     }
@@ -37,88 +41,79 @@ function OrderResultPage() {
 
     if (currentUser.role !== 'CUSTOMER') {
         return (
-            <>
-                <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
-                    <h1>Không có quyền truy cập</h1>
-                    <p>Trang kết quả đặt hàng chỉ dành cho khách hàng.</p>
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state">
+                        <h2>Không có quyền truy cập</h2>
+                        <p>Trang kết quả đặt hàng chỉ dành cho khách hàng.</p>
+                    </div>
                 </div>
-            </>
+            </div>
         )
     }
 
     if (!targetOrderId) {
         return (
-            <>
-                <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
-                    <h1>Kết quả đơn hàng</h1>
-                    <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                        <Link
-                            to="/orders"
-                            style={{ color: '#2563eb', textDecoration: 'underline' }}
-                        >
-                            Xem lịch sử đơn hàng
-                        </Link>
-                        <Link
-                            to="/products"
-                            style={{ color: '#2563eb', textDecoration: 'underline' }}
-                        >
-                            Quay lại danh sách sản phẩm
-                        </Link>
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state">
+                        <h2>Kết quả đơn hàng</h2>
+                        <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+                            <Link to="/orders" className="order-btn order-btn--primary">
+                                Xem lịch sử mua hàng
+                            </Link>
+                            <Link to="/products" className="order-btn order-btn--ghost">
+                                Tiếp tục mua hàng
+                            </Link>
+                        </div>
                     </div>
                 </div>
-            </>
+            </div>
         )
     }
 
     if (loading) {
         return (
-            <div style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}>
-                Đang tải đơn hàng...
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state">Đang tải thông tin đơn hàng...</div>
+                </div>
             </div>
         )
     }
 
     if (error) {
         return (
-            <div
-                role="alert"
-                style={{ maxWidth: '800px', margin: '40px auto', padding: '24px' }}
-            >
-                {error.status === 401
-                    ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-                    : error.status === 404
-                        ? 'Không tìm thấy đơn hàng.'
-                        : error.message}
-                <p>
-                    <Link to="/orders">Quay về lịch sử đơn hàng</Link>
-                </p>
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state" role="alert">
+                        <p>
+                            {error.status === 401
+                                ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+                                : error.status === 404
+                                    ? 'Không tìm thấy đơn hàng.'
+                                    : error.message}
+                        </p>
+                        <Link to="/orders" className="order-btn order-btn--primary">
+                            Quay về lịch sử đơn hàng
+                        </Link>
+                    </div>
+                </div>
             </div>
         )
     }
 
     if (!order) {
         return (
-            <>
-                <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
-                    <h1>Kết quả đơn hàng</h1>
-                    <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                        <Link
-                            to="/orders"
-                            style={{ color: '#2563eb', textDecoration: 'underline' }}
-                        >
-                            Xem lịch sử đơn hàng
-                        </Link>
-                        <Link
-                            to="/products"
-                            style={{ color: '#2563eb', textDecoration: 'underline' }}
-                        >
-                            Quay lại danh sách sản phẩm
-                        </Link>
+            <div className="order-result-page">
+                <div className="order-result-container">
+                    <div className="order-empty-state">
+                        <h2>Kết quả đơn hàng</h2>
+                        <p>Không tìm thấy thông tin đơn hàng vừa tạo.</p>
                     </div>
                 </div>
-            </>
+            </div>
         )
     }
 
@@ -137,15 +132,18 @@ function OrderResultPage() {
             setFeedback({
                 ok: success,
                 isWarning: !success,
-                message: success ? 'Thanh toán thành công.' :
-                    result.paymentStatus === 'INCOMPLETE' ? 'Thanh toán chưa hoàn tất.' :
-                    'Thanh toán thất bại, có thể thử lại nếu kho còn đủ hàng.',
+                message: success
+                    ? 'Thanh toán thành công. Tồn kho đã được xác nhận trừ tại kho xuất hàng.'
+                    : result.paymentStatus === 'INCOMPLETE'
+                        ? 'Thanh toán chưa hoàn tất. Hàng giữ chỗ đã được giải phóng.'
+                        : 'Thanh toán thất bại. Bạn có thể thử thanh toán lại nếu kho còn đủ hàng.',
             })
             reload() // phải GET /api/orders/:id lại sau mỗi thay đổi
         } catch (err) {
             // Giữ nguyên idempotency key khi timeout/không rõ kết quả.
-            const unknown = ['REQUEST_OUTCOME_UNKNOWN', 'PAYMENT_IN_PROGRESS'].includes(err.code)
-                || err.status === 503
+            const unknown =
+                ['REQUEST_OUTCOME_UNKNOWN', 'PAYMENT_IN_PROGRESS'].includes(err.code) ||
+                err.status === 503
             if (unknown) {
                 setNeedsReconciliation(true)
             }
@@ -154,7 +152,7 @@ function OrderResultPage() {
                 isWarning: true,
                 message: unknown
                     ? 'Kết quả chưa xác định/cần đối soát. Không thử thanh toán mới trước khi kiểm tra trạng thái đơn.'
-                    : (err.message || 'Không thể thanh toán.'),
+                    : err.message || 'Không thể thanh toán.',
             })
             reload()
         } finally {
@@ -168,436 +166,288 @@ function OrderResultPage() {
     const hasFailedBefore = (order.paymentAttempts?.length || 0) > 0 && isPendingPayment
     const paymentDisabled = busy || !order.canPay || order.paymentInProgress || needsReconciliation
 
+    const statusPillClass = isPaid
+        ? 'order-status-pill--paid'
+        : isCancelled
+            ? 'order-status-pill--cancelled'
+            : 'order-status-pill--pending'
+
+    const returnState = { returnToOrderResult: order.id }
+
     return (
-        <>
-            <div
-                style={{
-                    maxWidth: '860px',
-                    margin: '30px auto',
-                    padding: '24px',
-                    background: '#ffffff',
-                    borderRadius: '8px',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                }}
-            >
-                {/* Tiêu đề trạng thái đơn hàng */}
-                <div
-                    style={{
-                        background: isPaid
-                            ? '#f0fdf4'
-                            : isCancelled
-                                ? '#fef2f2'
-                                : '#eff6ff',
-                        border: `1px solid ${isPaid
-                                ? '#86efac'
+        <div className="order-result-page">
+            <div className="order-result-container">
+                {/* Tiêu đề trang đồng bộ CheckoutPage */}
+                <div className="order-result-header">
+                    <div>
+                        <h1>
+                            {isPaid
+                                ? `Đơn hàng #${order.id} — Đã thanh toán`
                                 : isCancelled
-                                    ? '#fca5a5'
-                                    : '#93c5fd'
-                            }`,
-                        padding: '16px 20px',
-                        borderRadius: '8px',
-                        marginBottom: '20px',
-                    }}
-                >
-                    <h1
-                        style={{
-                            color: isPaid
-                                ? '#166534'
-                                : isCancelled
-                                    ? '#991b1b'
-                                    : '#1e40af',
-                            margin: '0 0 8px 0',
-                            fontSize: '1.5rem',
-                        }}
-                    >
-                        {isPaid
-                            ? '✓ Đơn hàng đã thanh toán thành công!'
-                            : isCancelled
-                                ? '✕ Đơn hàng đã bị hủy'
-                                : 'Đơn hàng đã được khởi tạo — Chờ thanh toán'}
-                    </h1>
-                    <p style={{ margin: 0, color: '#334155' }}>
-                        Mã đơn hàng: <strong>{order.id}</strong> | Ngày tạo:{' '}
-                        <strong>{formatDateTime(order.createdAt)}</strong>
-                    </p>
+                                    ? `Đơn hàng #${order.id} — Đã hủy`
+                                    : `Thanh toán đơn hàng #${order.id}`}
+                        </h1>
+                        <p className="order-result-sub">
+                            Ngày tạo: <strong>{formatDateTime(order.createdAt)}</strong> • Kho xuất:{' '}
+                            <strong>{order.fulfillmentWarehouseName}</strong>
+                        </p>
+                    </div>
+                    <span className={`order-status-pill ${statusPillClass}`}>
+                        {getOrderStatusLabel(order.status)}
+                    </span>
                 </div>
 
-                {/* Thông báo kết quả sau khi bấm nút thanh toán giả lập */}
                 {feedback && (
                     <div
                         role="alert"
-                        style={{
-                            background: feedback.ok
-                                ? '#f0fdf4'
+                        className={`order-result-feedback ${
+                            feedback.ok
+                                ? 'order-result-feedback--ok'
                                 : feedback.isWarning
-                                    ? '#fffbeb'
-                                    : '#fef2f2',
-                            border: `1px solid ${feedback.ok
-                                    ? '#86efac'
-                                    : feedback.isWarning
-                                        ? '#fcd34d'
-                                        : '#fca5a5'
-                                }`,
-                            color: feedback.ok
-                                ? '#166534'
-                                : feedback.isWarning
-                                    ? '#92400e'
-                                    : '#991b1b',
-                            padding: '12px 16px',
-                            borderRadius: '6px',
-                            marginBottom: '20px',
-                            fontWeight: '500',
-                        }}
+                                    ? 'order-result-feedback--warn'
+                                    : 'order-result-feedback--err'
+                        }`}
                     >
                         {feedback.message}
                     </div>
                 )}
 
-                {/* Thông tin kho đáp ứng đơn hàng và trạng thái giữ hàng (BR-01, BR-02) */}
-                <div
-                    style={{
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        padding: '16px 20px',
-                        borderRadius: '8px',
-                        marginBottom: '20px',
-                    }}
-                >
-                    <h2 style={{ fontSize: '1.15rem', marginTop: 0 }}>
-                        Thông tin điều phối kho (Single-Warehouse Fulfillment)
-                    </h2>
-                    <p style={{ margin: '6px 0' }}>
-                        <strong>Kho phụ trách xuất hàng:</strong>{' '}
-                        {order.fulfillmentWarehouseName} (Kho #
-                        {order.fulfillmentWarehouseId})
-                    </p>
-                    <p style={{ margin: '6px 0' }}>
-                        <strong>Trạng thái đơn hàng:</strong>{' '}
-                        <span
-                            style={{
-                                background: isPaid
-                                    ? '#dcfce7'
-                                    : isCancelled
-                                        ? '#fee2e2'
-                                        : '#fef3c7',
-                                color: isPaid
-                                    ? '#166534'
-                                    : isCancelled
-                                        ? '#991b1b'
-                                        : '#92400e',
-                                padding: '3px 10px',
-                                borderRadius: '4px',
-                                fontWeight: 'bold',
-                            }}
-                        >
-                            {getOrderStatusLabel(order.status)} ({order.status})
-                        </span>
-                    </p>
-                    <p style={{ margin: '6px 0', color: '#475569' }}>
-                        <strong>Tình trạng giữ hàng (Reservation):</strong>{' '}
-                        {isPaid
-                            ? `Đã chuyển hàng giữ thành hàng đã bán (khấu trừ onHand & reserved) tại ${order.fulfillmentWarehouseName}.`
-                            : isCancelled
-                                ? 'Đơn đã hủy, tồn kho đã được hoàn trả / giải phóng.'
-                                : order.reservationActive
-                                    ? `Đang tạm giữ (reserved) đủ toàn bộ mặt hàng tại ${order.fulfillmentWarehouseName}.`
-                                    : 'Đã giải phóng hàng giữ sau lần thanh toán chưa thành công. Khi bấm Thử lại thanh toán, hệ thống sẽ kiểm tra và giữ hàng lại.'}
-                    </p>
-                </div>
+                <div className="order-result-grid">
+                    {/* Cột trái: Thông tin kho, giao nhận, sản phẩm và lịch sử thanh toán */}
+                    <div className="order-result-left">
+                        <section className="order-card">
+                            <h2 className="order-card-title">Thông tin đơn hàng & Giao nhận</h2>
 
-                {/* Cổng thanh toán giả lập (Mock Payment Gateway - UC04: SR-PAY-01..04) */}
-                {isPendingPayment && (
-                    <div
-                        style={{
-                            background: '#fffbeb',
-                            border: '1px solid #fcd34d',
-                            padding: '18px 20px',
-                            borderRadius: '8px',
-                            marginBottom: '24px',
-                        }}
-                    >
-                        <h2
-                            style={{
-                                fontSize: '1.15rem',
-                                marginTop: 0,
-                                color: '#92400e',
-                            }}
-                        >
-                            {hasFailedBefore
-                                ? '🔄 Thử lại thanh toán (Retry Mock Payment)'
-                                : '💳 Cổng thanh toán giả lập (Mock Payment Gateway)'}
-                        </h2>
-                        <p style={{ margin: '6px 0 14px', color: '#78350f', fontSize: '0.95rem' }}>
-                            Chọn kịch bản phản hồi từ cổng thanh toán giả lập cho số tiền{' '}
-                            <strong>{formatCurrency(order.totalAmount)}</strong>:
-                        </p>
+                            <div className="order-info-grid">
+                                <div className="order-info-block">
+                                    <span className="order-info-label">Kho phụ trách xuất hàng</span>
+                                    <span className="order-info-val">{order.fulfillmentWarehouseName}</span>
+                                </div>
 
-                        {(order.paymentInProgress || needsReconciliation) && (
-                            <p style={{ margin: '0 0 12px', color: '#b45309', fontWeight: 'bold' }}>
-                                ⚠️ Đang có giao dịch chờ đối soát. Không thể tạo giao dịch thanh toán mới lúc này.
-                            </p>
+                                <div className="order-info-block">
+                                    <span className="order-info-label">Tình trạng giữ hàng</span>
+                                    <span className="order-info-val order-info-muted">
+                                        {isPaid
+                                            ? `Đã xuất kho tại ${order.fulfillmentWarehouseName}.`
+                                            : isCancelled
+                                                ? 'Đơn đã hủy, tồn kho đã được hoàn trả / giải phóng.'
+                                                : order.reservationActive
+                                                    ? `Đang giữ đủ toàn bộ sản phẩm tại ${order.fulfillmentWarehouseName}.`
+                                                    : 'Chưa giữ hàng hoặc đã giải phóng. Khi thanh toán lại, hệ thống sẽ tự kiểm tra kho.'}
+                                    </span>
+                                </div>
+
+                                {order.shippingAddress && (
+                                    <>
+                                        <div className="order-info-block">
+                                            <span className="order-info-label">Người nhận</span>
+                                            <span className="order-info-val">
+                                                {order.shippingAddress.fullName} — {order.shippingAddress.phone}
+                                            </span>
+                                        </div>
+
+                                        <div className="order-info-block">
+                                            <span className="order-info-label">Địa chỉ giao hàng</span>
+                                            <span className="order-info-val">
+                                                {order.shippingAddress.addressLine}, {order.shippingAddress.province}
+                                            </span>
+                                        </div>
+
+                                        {order.shippingAddress.note && (
+                                            <div className="order-info-block order-info-block--full">
+                                                <span className="order-info-label">Ghi chú giao hàng</span>
+                                                <span className="order-info-val order-info-muted">
+                                                    {order.shippingAddress.note}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </section>
+
+                        <section className="order-card">
+                            <h2 className="order-card-title">Chi tiết sản phẩm trong đơn</h2>
+
+                            <div className="order-table-wrap">
+                                <table className="order-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm</th>
+                                            <th className="num">Đơn giá</th>
+                                            <th className="num">SL</th>
+                                            <th className="num">Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {order.items.map((item) => (
+                                            <tr key={item.productId}>
+                                                <td>
+                                                    <strong>{item.productNameSnapshot}</strong>
+                                                </td>
+                                                <td className="num">{formatCurrency(item.unitPriceSnapshot)}</td>
+                                                <td className="num">{item.quantity}</td>
+                                                <td className="num">
+                                                    <strong>{formatCurrency(item.lineTotal)}</strong>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="order-totals">
+                                {order.voucherCode && Number(order.discountAmount) > 0 && (
+                                    <div className="order-totals-discount">
+                                        Mã giảm giá {order.voucherCode}: -{formatCurrency(order.discountAmount)}
+                                    </div>
+                                )}
+                                <div className="order-totals-final">
+                                    Tổng thanh toán: {formatCurrency(order.totalAmount)}
+                                </div>
+                            </div>
+                        </section>
+
+                        {order.paymentAttempts?.length > 0 && (
+                            <section className="order-card">
+                                <h2 className="order-card-title">
+                                    Lịch sử giao dịch thanh toán ({order.paymentAttempts.length} lần)
+                                </h2>
+
+                                <div className="order-table-wrap">
+                                    <table className="order-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Lần</th>
+                                                <th>Kết quả</th>
+                                                <th>Thời gian</th>
+                                                <th>Ghi chú</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {order.paymentAttempts.map((att) => (
+                                                <tr key={att.id ?? att.attemptNumber}>
+                                                    <td>#{att.attemptNumber}</td>
+                                                    <td
+                                                        style={{
+                                                            fontWeight: 700,
+                                                            color:
+                                                                att.result === PaymentResult.SUCCESS
+                                                                    ? '#166534'
+                                                                    : att.result === 'PENDING'
+                                                                        ? '#92400e'
+                                                                        : '#b91c1c',
+                                                        }}
+                                                    >
+                                                        {att.result === 'PENDING'
+                                                            ? 'Đang xử lý/đối soát'
+                                                            : PAYMENT_RESULT_LABELS[att.result] || att.result}
+                                                    </td>
+                                                    <td>{formatDateTime(att.createdAt)}</td>
+                                                    <td>{att.note}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
+                    </div>
+
+                    {/* Cột phải: Mã QR (tách biệt) + Demo giả lập 3 trường hợp + Điều hướng */}
+                    <aside className="order-result-right">
+                        {isPendingPayment && (
+                            <>
+                                {/* === MODULE MÃ QR THANH TOÁN (TÁCH BIỆT) === */}
+                                <PaymentQrBox
+                                    order={order}
+                                    disabled={paymentDisabled}
+                                    busy={busy}
+                                    onConfirmQrPayment={() =>
+                                        handleSimulatePayment(PaymentResult.SUCCESS)
+                                    }
+                                />
+
+                                {/* === KHỐI DEMO GIẢ LẬP 3 TRƯỜNG HỢP === */}
+                                <section className="order-card">
+                                    <h2 className="order-card-title">
+                                        {hasFailedBefore
+                                            ? 'Thử lại thanh toán (Demo giả lập)'
+                                            : 'Cổng thanh toán giả lập (Demo)'}
+                                    </h2>
+
+                                    <p className="order-demo-desc">
+                                        Chọn nhanh kết quả thanh toán cho số tiền{' '}
+                                        <strong>{formatCurrency(order.totalAmount)}</strong> để kiểm thử các kịch bản nghiệp vụ:
+                                    </p>
+
+                                    {(order.paymentInProgress || needsReconciliation) && (
+                                        <p className="order-demo-warn">
+                                            Đang có giao dịch chờ đối soát. Không thể tạo giao dịch mới lúc này.
+                                        </p>
+                                    )}
+
+                                    <div className="order-demo-actions">
+                                        <button
+                                            type="button"
+                                            className="order-btn order-btn--success"
+                                            disabled={paymentDisabled}
+                                            onClick={() => handleSimulatePayment(PaymentResult.SUCCESS)}
+                                        >
+                                            {busy ? 'Đang xử lý...' : 'Giả lập Thanh toán Thành công'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="order-btn order-btn--outline-danger"
+                                            disabled={paymentDisabled}
+                                            onClick={() => handleSimulatePayment(PaymentResult.FAILED)}
+                                        >
+                                            {busy ? 'Đang xử lý...' : 'Giả lập Thanh toán Thất bại'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="order-btn order-btn--outline-warn"
+                                            disabled={paymentDisabled}
+                                            onClick={() => handleSimulatePayment(PaymentResult.INCOMPLETE)}
+                                        >
+                                            {busy ? 'Đang xử lý...' : 'Giả lập Không hoàn tất'}
+                                        </button>
+                                    </div>
+                                </section>
+                            </>
                         )}
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(PaymentResult.SUCCESS)
-                                }
-                                style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#16a34a',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '10px 18px',
-                                    borderRadius: '6px',
-                                    fontWeight: 'bold',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : '✓ Giả lập Thanh toán Thành công (Paid)'}
-                            </button>
-
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(PaymentResult.FAILED)
-                                }
-                                style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#dc2626',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '10px 18px',
-                                    borderRadius: '6px',
-                                    fontWeight: 'bold',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : '✕ Giả lập Thanh toán Thất bại (Giải phóng hàng giữ)'}
-                            </button>
-
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(
-                                        PaymentResult.INCOMPLETE
-                                    )
-                                }
-                                style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#d97706',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '10px 18px',
-                                    borderRadius: '6px',
-                                    fontWeight: 'bold',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : '⏱ Giả lập Không hoàn tất / Timeout'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Lịch sử các lần giao dịch thanh toán của đơn */}
-                {order.paymentAttempts?.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                        <h2 style={{ fontSize: '1.15rem' }}>
-                            Lịch sử giao dịch thanh toán ({order.paymentAttempts.length} lần)
-                        </h2>
-                        <div
-                            style={{
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '6px',
-                                overflow: 'hidden',
-                            }}
-                        >
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                    textAlign: 'left',
-                                }}
-                            >
-                                <thead>
-                                    <tr
-                                        style={{
-                                            background: '#f1f5f9',
-                                            borderBottom: '1px solid #cbd5e1',
-                                        }}
-                                    >
-                                        <th style={{ padding: '8px 12px' }}>Lần</th>
-                                        <th style={{ padding: '8px 12px' }}>Kết quả</th>
-                                        <th style={{ padding: '8px 12px' }}>Thời gian</th>
-                                        <th style={{ padding: '8px 12px' }}>Ghi chú</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {order.paymentAttempts.map((att) => (
-                                        <tr
-                                            key={att.id ?? att.attemptNumber}
-                                            style={{
-                                                borderBottom: '1px solid #f1f5f9',
-                                            }}
-                                        >
-                                            <td style={{ padding: '8px 12px' }}>
-                                                #{att.attemptNumber}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    fontWeight: 'bold',
-                                                    color:
-                                                        att.result ===
-                                                            PaymentResult.SUCCESS
-                                                            ? '#166534'
-                                                            : att.result === 'PENDING'
-                                                                ? '#b45309'
-                                                                : '#b91c1c',
-                                                }}
-                                            >
-                                                {att.result === 'PENDING'
-                                                    ? 'Đang xử lý/đối soát'
-                                                    : PAYMENT_RESULT_LABELS[att.result] ||
-                                                      att.result}
-                                            </td>
-                                            <td style={{ padding: '8px 12px' }}>
-                                                {formatDateTime(att.createdAt)}
-                                            </td>
-                                            <td style={{ padding: '8px 12px' }}>
-                                                {att.note}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {/* Bảng chi tiết sản phẩm (Snapshot tại thời điểm đặt hàng - SR-PROD-03) */}
-                <h2 style={{ fontSize: '1.15rem' }}>Chi tiết sản phẩm trong đơn</h2>
-                <div
-                    style={{
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                    }}
-                >
-                    <table
-                        style={{
-                            width: '100%',
-                            borderCollapse: 'collapse',
-                            textAlign: 'left',
-                        }}
-                    >
-                        <thead>
-                            <tr
-                                style={{
-                                    background: '#f1f5f9',
-                                    borderBottom: '1px solid #cbd5e1',
-                                }}
-                            >
-                                <th style={{ padding: '10px 14px' }}>Sản phẩm</th>
-                                <th style={{ padding: '10px 14px' }}>Đơn giá chốt</th>
-                                <th style={{ padding: '10px 14px' }}>Số lượng</th>
-                                <th style={{ padding: '10px 14px' }}>Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {order.items.map((item) => (
-                                <tr
-                                    key={item.productId}
-                                    style={{ borderBottom: '1px solid #f1f5f9' }}
+                        <section className="order-card">
+                            <h2 className="order-card-title">Thao tác tiếp theo</h2>
+                            <div className="order-nav-actions">
+                                <Link
+                                    to={`/orders/${order.id}`}
+                                    className="order-btn order-btn--primary"
                                 >
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {item.productNameSnapshot}
-                                    </td>
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {formatCurrency(item.unitPriceSnapshot)}
-                                    </td>
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {item.quantity}
-                                    </td>
-                                    <td
-                                        style={{
-                                            padding: '10px 14px',
-                                            fontWeight: '500',
-                                        }}
-                                    >
-                                        {formatCurrency(item.lineTotal)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div
-                    style={{
-                        textAlign: 'right',
-                        fontSize: '1.25rem',
-                        fontWeight: 'bold',
-                        margin: '20px 0',
-                    }}
-                >
-                    Tổng thanh toán: {formatCurrency(order.totalAmount)}
-                </div>
-
-                <div
-                    style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '12px',
-                        marginTop: '24px',
-                    }}
-                >
-                    <Link
-                        to={`/orders/${order.id}`}
-                        style={{
-                            background: '#2563eb',
-                            color: '#ffffff',
-                            padding: '10px 18px',
-                            borderRadius: '6px',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                        }}
-                    >
-                        Theo dõi & Chi tiết đơn hàng
-                    </Link>
-
-                    <Link
-                        to="/orders"
-                        style={{
-                            background: '#f1f5f9',
-                            color: '#1e293b',
-                            padding: '10px 18px',
-                            borderRadius: '6px',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                        }}
-                    >
-                        Xem lịch sử mua hàng
-                    </Link>
-
-                    <Link
-                        to="/products"
-                        style={{
-                            background: '#f1f5f9',
-                            color: '#1e293b',
-                            padding: '10px 18px',
-                            borderRadius: '6px',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                        }}
-                    >
-                        Tiếp tục mua hàng
-                    </Link>
+                                    Theo dõi & Chi tiết đơn hàng
+                                </Link>
+                                <Link
+                                    to="/orders"
+                                    state={returnState}
+                                    className="order-btn order-btn--ghost"
+                                >
+                                    Xem lịch sử mua hàng
+                                </Link>
+                                <Link
+                                    to="/products"
+                                    state={returnState}
+                                    className="order-btn order-btn--ghost"
+                                >
+                                    Tiếp tục mua hàng
+                                </Link>
+                            </div>
+                        </section>
+                    </aside>
                 </div>
             </div>
-        </>
+        </div>
     )
 }
 

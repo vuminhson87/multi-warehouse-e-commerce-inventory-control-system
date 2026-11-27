@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Link,
   Navigate,
@@ -6,6 +6,8 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
+import { ProductImagePanel, ProductMainFields } from '../components/ProductFormFields'
+import { buildProductCategoryOptions } from '../constants/productCategories'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 
@@ -40,11 +42,18 @@ function EditProductForm() {
     name: product?.name ?? '',
     category: product?.category ?? '',
     price: product ? String(product.price) : '',
+    imageUrl: product?.imageUrl ?? '',
     description: product?.description ?? '',
   }))
 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  const categories = useMemo(
+    () => buildProductCategoryOptions(products, product?.category ?? ''),
+    [products, product?.category]
+  )
 
   if (currentUser?.role !== 'ADMIN') {
     return <Navigate to="/products" replace />
@@ -77,9 +86,17 @@ function EditProductForm() {
     setError('')
   }
 
+  function handleSetField(field, value) {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }))
+    setError('')
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
-    if (saving) return
+    if (saving || uploadingImage) return
 
     if (!form.name.trim()) {
       setError('Vui lòng nhập tên sản phẩm.')
@@ -120,74 +137,53 @@ function EditProductForm() {
         </div>
       </div>
 
-      <form className="mgmt-form" onSubmit={handleSubmit}>
-        <label htmlFor="edit-product-name">Tên sản phẩm *</label>
-        <input
-          id="edit-product-name"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          maxLength={150}
-          required
-        />
+      <form className="mgmt-product-layout" onSubmit={handleSubmit}>
+        <div className="mgmt-form mgmt-form--in-grid">
+          <ProductMainFields
+            idPrefix="edit-product"
+            form={form}
+            categories={categories}
+            onChange={handleChange}
+            onSetField={handleSetField}
+          />
 
-        <label htmlFor="edit-product-category">Danh mục *</label>
-        <select
-          id="edit-product-category"
-          name="category"
-          value={form.category}
-          onChange={handleChange}
-          required
-        >
-          <option value="">-- Chọn danh mục --</option>
-          <option value="Laptop">Laptop</option>
-          <option value="Phụ kiện">Phụ kiện</option>
-        </select>
-
-        <label htmlFor="edit-product-price">Giá bán (VNĐ) *</label>
-        <input
-          id="edit-product-price"
-          name="price"
-          type="number"
-          min="1"
-          step="1"
-          value={form.price}
-          onChange={handleChange}
-          required
-        />
-
-        <label htmlFor="edit-product-description">Mô tả</label>
-        <textarea
-          id="edit-product-description"
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          rows={4}
-        />
-
-        <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
-          Việc chỉnh sửa thông tin không thay đổi tình trạng kho
-          hoặc trạng thái kinh doanh của sản phẩm.
-        </p>
-
-        {error && (
-          <p className="mgmt-form__error" role="alert">
-            {error}
+          <p className="mgmt-note" style={{ marginTop: 8, marginBottom: 0 }}>
+            Việc chỉnh sửa thông tin không thay đổi tình trạng kho
+            hoặc trạng thái kinh doanh của sản phẩm.
           </p>
-        )}
 
-        <div className="mgmt-form__actions">
-          <Link
-            to={listDestination}
-            className="mgmt-btn mgmt-btn--ghost"
-          >
-            Hủy
-          </Link>
+          {error && (
+            <p className="mgmt-form__error" role="alert">
+              {error}
+            </p>
+          )}
 
-          <button type="submit" disabled={saving} className="mgmt-btn mgmt-btn--primary">
-            Lưu thay đổi
-          </button>
+          <div className="mgmt-form__actions">
+            <Link
+              to={listDestination}
+              className="mgmt-btn mgmt-btn--ghost"
+            >
+              Hủy
+            </Link>
+
+            <button
+              type="submit"
+              disabled={saving || uploadingImage}
+              className="mgmt-btn mgmt-btn--primary"
+            >
+              Lưu thay đổi
+            </button>
+          </div>
         </div>
+
+        <ProductImagePanel
+          idPrefix="edit-product"
+          imageUrl={form.imageUrl}
+          saving={saving}
+          uploadingImage={uploadingImage}
+          onUploadingChange={setUploadingImage}
+          onImageUrlChange={(value) => handleSetField('imageUrl', value)}
+        />
       </form>
     </div>
   )

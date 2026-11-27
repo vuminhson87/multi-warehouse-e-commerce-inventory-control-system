@@ -751,6 +751,7 @@ describe('idempotency, product, auth & backup utilities', () => {
             },
             warehouse: { findMany: async () => [{ id: 1 }, { id: 2 }, { id: 3 }] },
             inventory: { createMany: async () => ({ count: 3 }) },
+            $executeRaw: vi.fn().mockResolvedValue(0),
             $queryRaw: async () => [{ productId: 1, available: 10 }],
         }
 
@@ -760,6 +761,8 @@ describe('idempotency, product, auth & backup utilities', () => {
             category: 'Phụ kiện',
             price: 500000,
         })
+
+        expect(client.$executeRaw).toHaveBeenCalledTimes(2)
 
         expect((await listActiveProducts(client)).items).toHaveLength(1)
 

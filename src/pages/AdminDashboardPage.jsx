@@ -6,7 +6,7 @@ import { loadWarehouseAlerts, loadWarehouseInventory, loadWarehouses } from '../
 import ProductThumb from '../components/ProductThumb'
 import LucideIcon from '../components/LucideIcon'
 import { formatNumber, formatPrice } from '../utils/format'
-import { getStockStatus } from '../utils/stockThresholds'
+import { buildProductFallback, getStockStatus } from '../utils/stockThresholds'
 import { buildWarehouseDistribution, summarizeDashboardInventory } from '../utils/adminDashboardData.js'
 
 function AdminDashboardPage() {
@@ -83,7 +83,9 @@ function AdminDashboardPage() {
         const inventoryByKey = new Map(inventory.map(item => [`${item.warehouseId}:${item.productId}`, item]))
         return rawAlerts.map(alert => {
             const inventoryRow = inventoryByKey.get(`${alert.warehouseId}:${alert.productId}`)
-            const product = products.find(item => Number(item.id) === Number(alert.productId))
+            const product =
+                products.find(item => Number(item.id) === Number(alert.productId)) ??
+                buildProductFallback(alert)
             const warehouse = warehouses.find(item => Number(item.id) === Number(alert.warehouseId))
             const available = Number(alert.currentAvailable)
             const threshold = Number(alert.threshold)
@@ -110,7 +112,7 @@ function AdminDashboardPage() {
     }
 
     if (dashboardLoading) {
-        return <div className="mgmt-page"><h1>Tổng quan hệ thống</h1><p role="status">Đang tải dữ liệu từ máy chủ…</p></div>
+        return <div className="mgmt-page"><h1>Tổng quan hệ thống</h1><p role="status">Đang tải dữ liệu từ hệ thống…</p></div>
     }
 
     if (dashboardError) {
@@ -403,6 +405,10 @@ function AdminDashboardPage() {
                     <Link to="/admin/products/add">
                         <span>Thêm sản phẩm mới</span>
                         <LucideIcon name="plus" size={16} />
+                    </Link>
+                    <Link to="/admin/warehouse-managers">
+                        <span>Phân công quản lý kho</span>
+                        <LucideIcon name="arrow-right" size={16} />
                     </Link>
                     <Link to="/inventory">
                         <span>Tổng quan tồn kho</span>

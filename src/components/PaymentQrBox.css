@@ -1,0 +1,177 @@
+/* ===== Isolated Payment QR Module (Atelier Monochrome Theme) ===== */
+/* Nếu sau này gỡ tính năng QR, chỉ cần xóa file này cùng PaymentQrBox.jsx và backend/src/modules/payment/payment-qr.js */
+
+.payment-qr-card {
+    background-color: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 22px;
+}
+
+.payment-qr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.payment-qr-title {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #52525b;
+}
+
+.payment-qr-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background-color: #f4f4f5;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+}
+
+.payment-qr-timer.is-expired {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+.payment-qr-body {
+    display: grid;
+    grid-template-columns: 172px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+}
+
+.payment-qr-frame {
+    width: 172px;
+    height: 172px;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    background-color: #fafafa;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.payment-qr-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.payment-qr-fallback {
+    text-align: center;
+    font-size: 12px;
+    color: #71717a;
+    line-height: 1.45;
+    padding: 8px;
+}
+
+.payment-qr-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 13.5px;
+    color: #27272a;
+}
+
+.payment-qr-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.payment-qr-label {
+    font-size: 11.5px;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.payment-qr-value-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.payment-qr-value {
+    font-weight: 700;
+    color: #09090b;
+    word-break: break-word;
+}
+
+.payment-qr-value--mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.payment-qr-copy {
+    border: 1px solid #d4d4d8;
+    background-color: #ffffff;
+    color: #18181b;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
+}
+
+.payment-qr-copy:hover {
+    background-color: #f4f4f5;
+}
+
+.payment-qr-note {
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    color: #71717a;
+    line-height: 1.45;
+}
+
+.payment-qr-confirm-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 13px 20px;
+    border: none;
+    border-radius: 9999px;
+    background-color: #09090b;
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.payment-qr-confirm-btn:hover:not(:disabled) {
+    background-color: #27272a;
+}
+
+.payment-qr-confirm-btn:disabled {
+    background-color: #a1a1aa;
+    cursor: not-allowed;
+}
+
+@media (max-width: 540px) {
+    .payment-qr-body {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .payment-qr-meta {
+        width: 100%;
+    }
+}

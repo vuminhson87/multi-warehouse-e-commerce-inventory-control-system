@@ -1,5 +1,6 @@
 
 import { runInTransaction } from '../../db/transaction.js'
+import { invalidateInventoryCache } from '../../db/redis.js'
 
 import { AppError, ErrorCodes } from '../../shared/errors.js'
 
@@ -34,7 +35,7 @@ export async function cancelCustomerOrder(
   const orderId = parsePositiveIntId(rawOrderId, 'orderId')
   const input = validateCancelBody(body)
 
-  return runInTransaction(async (tx) => {
+  const cancelResult = await runInTransaction(async (tx) => {
 
     // Khóa đơn hàng trước khi thay đổi trạng thái.
     const rows = await tx.$queryRaw`
@@ -104,15 +105,17 @@ export async function cancelCustomerOrder(
     }
 
     let inventoryAction = InventoryAction.NONE
+    let affected = null
 
     if (order.status === OrderStatus.PENDING_PAYMENT) {
       // Hàng chưa bán: giải phóng reservation.
-      await releaseReservations(tx, {
+      const released = await releaseReservations(tx, {
         orderId,
         reason: 'RELEASED',
         actorUserId: customerId,
       })
 
+      affected = released?.affected ?? null
       inventoryAction = InventoryAction.RELEASED
     }
 
@@ -130,6 +133,7 @@ export async function cancelCustomerOrder(
         )
       }
 
+      affected = restored?.affected ?? null
       inventoryAction = InventoryAction.RESTORED
     }
 
@@ -141,6 +145,21 @@ export async function cancelCustomerOrder(
         version: { increment: 1 },
       },
     })
+
+    if (order.voucherCode && typeof tx.voucher?.findUnique === 'function') {
+      const linkedVoucher = await tx.voucher.findUnique({
+        where: { usedOrderId: orderId },
+      })
+      if (linkedVoucher && new Date(linkedVoucher.expiresAt).getTime() > Date.now()) {
+        await tx.voucher.update({
+          where: { id: linkedVoucher.id },
+          data: {
+            usedAt: null,
+            usedOrderId: null,
+          },
+        })
+      }
+    }
 
     const responseBody = {
       success: true,
@@ -162,6 +181,16 @@ export async function cancelCustomerOrder(
     return {
       statusCode: 200,
       body: responseBody,
+      affected,
     }
   })
+
+  if (cancelResult.affected?.warehouseIds?.length || cancelResult.affected?.productIds?.length) {
+    await invalidateInventoryCache(cancelResult.affected)
+  }
+
+  return {
+    statusCode: cancelResult.statusCode,
+    body: cancelResult.body,
+  }
 }

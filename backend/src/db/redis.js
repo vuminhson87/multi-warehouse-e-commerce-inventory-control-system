@@ -80,6 +80,22 @@ export function createMemoryCacheStore() {
     }
 }
 
+export function createNoopCacheStore() {
+    return {
+        async get() {
+            return null
+        },
+        async set() {},
+        async del() {
+            return 0
+        },
+        async delByPrefix() {
+            return 0
+        },
+        async disconnect() {},
+    }
+}
+
 export function createRedisCacheStore(redisClient) {
     return {
         async get(key) {
@@ -130,8 +146,8 @@ export function getDefaultCacheStore(env = globalThis.process?.env ?? {}) {
 
     const config = loadCacheConfig(env)
 
-    if (!config.enabled) {
-        defaultStore = createMemoryCacheStore()
+    if (!config.enabled || env.VITEST === 'true') {
+        defaultStore = createNoopCacheStore()
         return defaultStore
     }
 
@@ -148,6 +164,17 @@ export function getDefaultCacheStore(env = globalThis.process?.env ?? {}) {
     return defaultStore
 }
 
+export async function disconnectDefaultCacheStore() {
+    if (!defaultStore) return
+    const store = defaultStore
+    defaultStore = null
+    await store.disconnect?.()
+}
+
+export function resetDefaultCacheStore() {
+    defaultStore = null
+}
+
 // ---------------------------------------------------------------------------
 // Key builders
 // ---------------------------------------------------------------------------
@@ -161,8 +188,11 @@ export const CacheKeys = Object.freeze({
     catalogDetail(productId) {
         return `${CachePrefix.CATALOG_DETAIL}${productId}`
     },
-    inventorySummary() {
-        return CachePrefix.INVENTORY_SUMMARY
+    inventorySummary({ warehouseId, productId } = {}) {
+        if (warehouseId === undefined && productId === undefined) {
+            return CachePrefix.INVENTORY_SUMMARY
+        }
+        return `${CachePrefix.INVENTORY_SUMMARY}:wh=${warehouseId ?? 'all'}:p=${productId ?? 'all'}`
     },
     inventoryByWarehouse(warehouseId) {
         return `${CachePrefix.INVENTORY_BY_WAREHOUSE}${warehouseId}`
@@ -198,7 +228,7 @@ export async function getOrSetCache(key, ttlSeconds, loader, { store = getDefaul
 
     const freshData = await loader()
 
-    if (freshData !== undefined) {
+    if (freshData !== undefined && freshData !== null) {
         try {
             await store.set(key, JSON.stringify(freshData), ttlSeconds)
         } catch {
@@ -226,6 +256,7 @@ export async function invalidateInventoryCache(
 
     try {
         await store.del(keysToDelete)
+        await store.delByPrefix(CachePrefix.INVENTORY_SUMMARY)
         // Danh sách catalog có kèm trạng thái inStock nên cũng cần làm mới.
         await store.delByPrefix(CachePrefix.CATALOG_LIST)
     } catch {
@@ -250,6 +281,7 @@ export async function invalidateProductCache(
             )
         }
         await store.del(CacheKeys.inventorySummary())
+        await store.delByPrefix(CachePrefix.INVENTORY_SUMMARY)
         await store.delByPrefix(CachePrefix.CATALOG_LIST)
     } catch {
         // Bỏ qua lỗi cache.

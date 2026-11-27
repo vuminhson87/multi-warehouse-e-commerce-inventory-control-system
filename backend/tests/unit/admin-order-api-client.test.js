@@ -5,7 +5,9 @@ vi.mock('../../../src/services/apiClient.js', () => ({
 }))
 
 import { apiRequest } from '../../../src/services/apiClient.js'
+import { getAdminAuditLogsApi } from '../../../src/services/auditApi.js'
 import {
+    addAdminOrderTrackingApi,
     confirmOrderReceivedApi,
     getAdminOrdersApi,
     transitionAdminOrderToProcessingApi,
@@ -43,6 +45,52 @@ describe('Admin order API client', () => {
             token: 'admin-token',
             body: { status: 'Processing' },
         })
+    })
+    it('POSTs detailed delivery tracking updates and omits blank optional fields', async () => {
+        const response = { id: 10, stage: 'IN_TRANSIT' }
+        apiRequest.mockResolvedValue(response)
+
+        await expect(
+            addAdminOrderTrackingApi('admin-token', 42, {
+                stage: 'IN_TRANSIT',
+                note: '  Đang giao  ',
+                location: ' ',
+                trackingCode: 'GHN-999',
+            })
+        ).resolves.toBe(response)
+
+        expect(apiRequest).toHaveBeenCalledWith('/api/admin/orders/42/tracking', {
+            method: 'POST',
+            token: 'admin-token',
+            body: {
+                stage: 'IN_TRANSIT',
+                note: 'Đang giao',
+                trackingCode: 'GHN-999',
+            },
+        })
+    })
+})
+
+describe('Admin audit logs API client', () => {
+    it('requests filtered paginated audit logs', async () => {
+        const signal = new AbortController().signal
+        const response = { logs: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }
+        apiRequest.mockResolvedValue(response)
+
+        await expect(
+            getAdminAuditLogsApi('admin-token', {
+                page: 1,
+                limit: 20,
+                targetType: 'ORDER',
+                search: '42',
+                signal,
+            })
+        ).resolves.toBe(response)
+
+        expect(apiRequest).toHaveBeenCalledWith(
+            '/api/admin/audit-logs?page=1&limit=20&targetType=ORDER&search=42',
+            { token: 'admin-token', signal }
+        )
     })
 })
 

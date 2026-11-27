@@ -65,3 +65,41 @@ export function formatDateTime(isoString) {
     const date = new Date(isoString)
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN')
 }
+
+export const DeliveryStage = Object.freeze({
+    PROCESSING_STARTED: 'PROCESSING_STARTED',
+    PACKED: 'PACKED',
+    HANDED_TO_CARRIER: 'HANDED_TO_CARRIER',
+    IN_TRANSIT: 'IN_TRANSIT',
+    OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+    DELIVERED: 'DELIVERED',
+})
+
+export const ADMIN_TRACKABLE_STAGES = Object.freeze([
+    DeliveryStage.PACKED,
+    DeliveryStage.HANDED_TO_CARRIER,
+    DeliveryStage.IN_TRANSIT,
+    DeliveryStage.OUT_FOR_DELIVERY,
+])
+
+export const DELIVERY_STAGE_RANK = Object.freeze({
+    [DeliveryStage.PROCESSING_STARTED]: 1,
+    [DeliveryStage.PACKED]: 2,
+    [DeliveryStage.HANDED_TO_CARRIER]: 3,
+    [DeliveryStage.IN_TRANSIT]: 4,
+    [DeliveryStage.OUT_FOR_DELIVERY]: 5,
+    [DeliveryStage.DELIVERED]: 6,
+})
+
+export const DELIVERY_STAGE_LABELS = Object.freeze({
+    [DeliveryStage.PROCESSING_STARTED]: 'Kho đã tiếp nhận xử lý',
+    [DeliveryStage.PACKED]: 'Đã đóng gói xong',
+    [DeliveryStage.HANDED_TO_CARRIER]: 'Đã bàn giao vận chuyển',
+    [DeliveryStage.IN_TRANSIT]: 'Đang trung chuyển',
+    [DeliveryStage.OUT_FOR_DELIVERY]: 'Đang giao đến bạn',
+    [DeliveryStage.DELIVERED]: 'Đã giao hàng thành công',
+})
+
+export function getDeliveryStageLabel(stage) {
+    return DELIVERY_STAGE_LABELS[stage] ?? stage
+}

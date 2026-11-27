@@ -10,11 +10,29 @@ import { handleImageError } from '../utils/format'
 import LucideIcon from './LucideIcon'
 import LoginModal from './LoginModal'
 import RegisterModal from './RegisterModal'
+import ProductSearchInput from './ProductSearchInput'
+import { changePasswordApi, updateProfileApi } from '../services/authApi'
 
 const ROLE_LABELS = {
     CUSTOMER: 'Khách hàng thành viên',
-    WAREHOUSE_MANAGER: 'Quản lý kho (Warehouse Manager)',
-    ADMIN: 'Quản trị viên (Admin)',
+    WAREHOUSE_MANAGER: 'Quản lý kho',
+    ADMIN: 'Quản trị hệ thống',
+}
+
+const CATEGORY_ICON_RULES = [
+    { keywords: ['laptop', 'máy tính'], icon: 'laptop' },
+    { keywords: ['điện thoại', 'phone', 'smartphone'], icon: 'smartphone' },
+    { keywords: ['màn hình', 'monitor', 'display'], icon: 'monitor' },
+    { keywords: ['âm thanh', 'loa', 'tai nghe', 'audio'], icon: 'headphones' },
+    { keywords: ['phụ kiện', 'bàn phím', 'chuột', 'sạc'], icon: 'keyboard' },
+]
+
+function getCategoryIconName(category) {
+    const normalized = String(category || '').trim().toLowerCase()
+    const matched = CATEGORY_ICON_RULES.find((rule) =>
+        rule.keywords.some((keyword) => normalized.includes(keyword))
+    )
+    return matched ? matched.icon : 'layout-grid'
 }
 
 function CustomerHeader() {
@@ -28,7 +46,7 @@ function CustomerHeader() {
         (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
         0
     )
-    const { currentUser, logout } = useAuth()
+    const { currentUser, token, setCurrentUser, logout } = useAuth()
     const { products } = useProducts()
     const {
         wishlistIds,
@@ -46,6 +64,15 @@ function CustomerHeader() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchText, setSearchText] = useState('')
     const [isLoginOpen, setIsLoginOpen] = useState(false)
+    const [profileSection, setProfileSection] = useState(null) // null | 'profile' | 'password'
+    const [profileNameInput, setProfileNameInput] = useState('')
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+    })
+    const [profileBusy, setProfileBusy] = useState(false)
+    const [profileFeedback, setProfileFeedback] = useState(null)
     const [isRegisterOpen, setIsRegisterOpen] = useState(false)
     const [registeredUsername, setRegisteredUsername] = useState('')
     const menuBtnRef = useRef(null)
@@ -114,15 +141,22 @@ function CustomerHeader() {
         openDrawer('profile')
     }
 
-    function handleSearchSubmit(event) {
-        event.preventDefault()
-        const trimmed = searchText.trim()
+    function handleSearchQuerySubmit(rawQuery) {
+        const trimmed = String(rawQuery ?? searchText).trim()
         closeAllDrawers()
+        setIsSearchOpen(false)
         if (trimmed) {
             navigate(`/products?search=${encodeURIComponent(trimmed)}`)
         } else {
             navigate('/products')
         }
+    }
+
+    function handleSelectSuggestedProduct(product) {
+        closeAllDrawers()
+        setIsSearchOpen(false)
+        setSearchText('')
+        navigate(`/products/${product.id}`)
     }
 
     function handleClearSearch() {
@@ -327,28 +361,35 @@ function CustomerHeader() {
 
                         <p className="atelier-dash-heading">Danh mục</p>
                         <div className="atelier-dash-nav">
-                            {Object.entries(categoryCounts).map(([cat, count]) => (
-                                <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() =>
-                                        handleNavigateAndClose(
-                                            `/products?category=${encodeURIComponent(cat)}`
-                                        )
-                                    }
-                                    className="atelier-dash-link ch-menu-link"
-                                >
-                                    <span className="atelier-dash-link-left">
-                                        <LucideIcon
-                                            name="layout-grid"
-                                            size={18}
-                                            strokeWidth={1.75}
-                                        />
-                                        <span>{cat}</span>
-                                    </span>
-                                    <span className="atelier-dash-count">{count}</span>
-                                </button>
-                            ))}
+                            {Object.entries(categoryCounts).map(([cat, count]) => {
+                                const activeCategory =
+                                    location.pathname === '/products' &&
+                                    new URLSearchParams(location.search).get('category') === cat
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() =>
+                                            handleNavigateAndClose(
+                                                `/products?category=${encodeURIComponent(cat)}`
+                                            )
+                                        }
+                                        className={`atelier-dash-link ch-menu-link ${
+                                            activeCategory ? 'is-active' : ''
+                                        }`}
+                                    >
+                                        <span className="atelier-dash-link-left">
+                                            <LucideIcon
+                                                name={getCategoryIconName(cat)}
+                                                size={18}
+                                                strokeWidth={1.75}
+                                            />
+                                            <span>{cat}</span>
+                                        </span>
+                                        <span className="atelier-dash-count">{count}</span>
+                                    </button>
+                                )
+                            })}
                         </div>
 
                         {(currentUser?.role === 'ADMIN' ||
@@ -597,6 +638,12 @@ function CustomerHeader() {
                             </div>
 
                             <div className="atelier-profile-card sharp-frame">
+                                {currentUser.email && (
+                                    <div className="atelier-profile-row">
+                                        <span style={{ color: '#71717a' }}>Gmail xác thực:</span>
+                                        <strong>{currentUser.email}</strong>
+                                    </div>
+                                )}
                                 <div className="atelier-profile-row">
                                     <span style={{ color: '#71717a' }}>Vai trò:</span>
                                     <strong>
@@ -625,6 +672,203 @@ function CustomerHeader() {
                                     <strong>{cartCount} sản phẩm</strong>
                                 </div>
                             </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                                <button
+                                    type="button"
+                                    className="atelier-btn-outline"
+                                    style={{ flex: 1, padding: '8px 10px', fontSize: '12px' }}
+                                    onClick={() => {
+                                        setProfileFeedback(null)
+                                        setProfileNameInput(currentUser.fullName || '')
+                                        setProfileSection((prev) => (prev === 'profile' ? null : 'profile'))
+                                    }}
+                                >
+                                    Đổi họ tên
+                                </button>
+                                <button
+                                    type="button"
+                                    className="atelier-btn-outline"
+                                    style={{ flex: 1, padding: '8px 10px', fontSize: '12px' }}
+                                    onClick={() => {
+                                        setProfileFeedback(null)
+                                        setPasswordForm({
+                                            currentPassword: '',
+                                            newPassword: '',
+                                            confirmPassword: '',
+                                        })
+                                        setProfileSection((prev) => (prev === 'password' ? null : 'password'))
+                                    }}
+                                >
+                                    Đổi mật khẩu
+                                </button>
+                            </div>
+
+                            {profileSection === 'profile' && (
+                                <form
+                                    style={{ display: 'grid', gap: '10px', marginTop: '14px' }}
+                                    onSubmit={async (event) => {
+                                        event.preventDefault()
+                                        if (profileBusy || !token) return
+                                        setProfileBusy(true)
+                                        setProfileFeedback(null)
+                                        try {
+                                            const res = await updateProfileApi(token, {
+                                                fullName: profileNameInput.trim() || null,
+                                            })
+                                            if (res?.user) setCurrentUser(res.user)
+                                            setProfileSection(null)
+                                            showToast('Đã cập nhật họ tên')
+                                        } catch (err) {
+                                            setProfileFeedback({
+                                                error: true,
+                                                text: err.message || 'Không thể cập nhật họ tên.',
+                                            })
+                                        } finally {
+                                            setProfileBusy(false)
+                                        }
+                                    }}
+                                >
+                                    <input
+                                        type="text"
+                                        maxLength={120}
+                                        placeholder="Nhập họ và tên mới"
+                                        value={profileNameInput}
+                                        onChange={(e) => setProfileNameInput(e.target.value)}
+                                        style={{
+                                            padding: '10px 12px',
+                                            border: '1px solid #d4d4d8',
+                                            fontSize: '13px',
+                                        }}
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="atelier-btn-solid"
+                                        disabled={profileBusy}
+                                        style={{ padding: '10px', fontSize: '12px' }}
+                                    >
+                                        {profileBusy ? 'Đang lưu…' : 'Lưu họ tên'}
+                                    </button>
+                                </form>
+                            )}
+
+                            {profileSection === 'password' && (
+                                <form
+                                    style={{ display: 'grid', gap: '10px', marginTop: '14px' }}
+                                    onSubmit={async (event) => {
+                                        event.preventDefault()
+                                        if (profileBusy || !token) return
+                                        if (passwordForm.newPassword.length < 8) {
+                                            setProfileFeedback({
+                                                error: true,
+                                                text: 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+                                            })
+                                            return
+                                        }
+                                        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                                            setProfileFeedback({
+                                                error: true,
+                                                text: 'Mật khẩu xác nhận không khớp.',
+                                            })
+                                            return
+                                        }
+                                        setProfileBusy(true)
+                                        setProfileFeedback(null)
+                                        try {
+                                            await changePasswordApi(token, {
+                                                currentPassword: passwordForm.currentPassword,
+                                                newPassword: passwordForm.newPassword,
+                                            })
+                                            setProfileSection(null)
+                                            showToast('Đã đổi mật khẩu thành công')
+                                        } catch (err) {
+                                            setProfileFeedback({
+                                                error: true,
+                                                text: err.message || 'Không thể đổi mật khẩu.',
+                                            })
+                                        } finally {
+                                            setProfileBusy(false)
+                                        }
+                                    }}
+                                >
+                                    <input
+                                        type="password"
+                                        required
+                                        placeholder="Mật khẩu hiện tại"
+                                        value={passwordForm.currentPassword}
+                                        onChange={(e) =>
+                                            setPasswordForm((prev) => ({
+                                                ...prev,
+                                                currentPassword: e.target.value,
+                                            }))
+                                        }
+                                        style={{
+                                            padding: '10px 12px',
+                                            border: '1px solid #d4d4d8',
+                                            fontSize: '13px',
+                                        }}
+                                    />
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={8}
+                                        maxLength={72}
+                                        placeholder="Mật khẩu mới (ít nhất 8 ký tự)"
+                                        value={passwordForm.newPassword}
+                                        onChange={(e) =>
+                                            setPasswordForm((prev) => ({
+                                                ...prev,
+                                                newPassword: e.target.value,
+                                            }))
+                                        }
+                                        style={{
+                                            padding: '10px 12px',
+                                            border: '1px solid #d4d4d8',
+                                            fontSize: '13px',
+                                        }}
+                                    />
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={8}
+                                        maxLength={72}
+                                        placeholder="Nhập lại mật khẩu mới"
+                                        value={passwordForm.confirmPassword}
+                                        onChange={(e) =>
+                                            setPasswordForm((prev) => ({
+                                                ...prev,
+                                                confirmPassword: e.target.value,
+                                            }))
+                                        }
+                                        style={{
+                                            padding: '10px 12px',
+                                            border: '1px solid #d4d4d8',
+                                            fontSize: '13px',
+                                        }}
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="atelier-btn-solid"
+                                        disabled={profileBusy}
+                                        style={{ padding: '10px', fontSize: '12px' }}
+                                    >
+                                        {profileBusy ? 'Đang cập nhật…' : 'Xác nhận đổi mật khẩu'}
+                                    </button>
+                                </form>
+                            )}
+
+                            {profileFeedback && (
+                                <p
+                                    role={profileFeedback.error ? 'alert' : 'status'}
+                                    style={{
+                                        margin: '10px 0 0',
+                                        fontSize: '12px',
+                                        color: profileFeedback.error ? '#b91c1c' : '#166534',
+                                    }}
+                                >
+                                    {profileFeedback.text}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
@@ -717,24 +961,27 @@ function CustomerHeader() {
             {/* ===================================================================== */}
             <header className="ch-header">
                 <div className="ch-inner">
-                    <button
-                        ref={menuBtnRef}
-                        type="button"
-                        onClick={() => openDrawer('dashboard')}
-                        className="icon-btn ch-menu"
-                        aria-label="Mở menu"
-                        aria-expanded={activeDrawer === 'dashboard'}
-                    >
-                        <LucideIcon name="menu" size={22} strokeWidth={1.75} />
-                    </button>
+                    <div className="ch-brand-group">
+                        <button
+                            ref={menuBtnRef}
+                            type="button"
+                            onClick={() => openDrawer('dashboard')}
+                            className="icon-btn ch-menu"
+                            title="Mở menu điều hướng"
+                            aria-label="Mở menu"
+                            aria-expanded={activeDrawer === 'dashboard'}
+                        >
+                            <LucideIcon name="menu" size={22} strokeWidth={1.75} />
+                        </button>
 
-                    <Link
-                        to="/"
-                        onClick={closeAllDrawers}
-                        className="ch-brand"
-                    >
-                        Multi-Warehouse
-                    </Link>
+                        <Link
+                            to="/"
+                            onClick={closeAllDrawers}
+                            className="ch-brand"
+                        >
+                            Multi-Warehouse
+                        </Link>
+                    </div>
 
                     <nav className="ch-nav" aria-label="Điều hướng chính">
                         <Link
@@ -780,24 +1027,14 @@ function CustomerHeader() {
                         )}
                     </nav>
 
-                    <form
+                    <ProductSearchInput
                         className="ch-search"
-                        onSubmit={handleSearchSubmit}
-                        role="search"
-                    >
-                        <LucideIcon
-                            name="search"
-                            size={18}
-                            className="ch-search__icon"
-                        />
-                        <input
-                            type="search"
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Tìm kiếm sản phẩm..."
-                            aria-label="Tìm kiếm sản phẩm"
-                        />
-                    </form>
+                        value={searchText}
+                        onChange={setSearchText}
+                        onSubmitQuery={handleSearchQuerySubmit}
+                        onSelectProduct={handleSelectSuggestedProduct}
+                        iconClassName="ch-search__icon"
+                    />
 
                     <div className="ch-actions">
                         <button
@@ -882,32 +1119,24 @@ function CustomerHeader() {
                 </div>
 
                 {isSearchOpen && (
-                    <form
-                        onSubmit={handleSearchSubmit}
+                    <ProductSearchInput
                         className="ch-search-bar"
-                        role="search"
-                    >
-                        <LucideIcon
-                            name="search"
-                            size={18}
-                            className="ch-search__icon"
-                        />
-                        <input
-                            type="search"
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Tìm kiếm sản phẩm..."
-                            aria-label="Tìm kiếm sản phẩm"
-                            autoFocus
-                        />
-                        <button
-                            type="button"
-                            onClick={handleClearSearch}
-                            className="ch-search-bar__close"
-                        >
-                            Đóng
-                        </button>
-                    </form>
+                        value={searchText}
+                        onChange={setSearchText}
+                        onSubmitQuery={handleSearchQuerySubmit}
+                        onSelectProduct={handleSelectSuggestedProduct}
+                        iconClassName="ch-search__icon"
+                        autoFocus
+                        trailingAction={
+                            <button
+                                type="button"
+                                onClick={handleClearSearch}
+                                className="ch-search-bar__close"
+                            >
+                                Đóng
+                            </button>
+                        }
+                    />
                 )}
             </header>
 

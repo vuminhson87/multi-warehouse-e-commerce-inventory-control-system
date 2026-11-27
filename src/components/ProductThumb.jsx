@@ -1,11 +1,11 @@
 import { getProductVisual } from '../utils/productVisuals'
-import { handleImageError } from '../utils/format'
+import { handleImageError, resolveMediaUrl } from '../utils/format'
 
 // Ảnh nhỏ của sản phẩm trong bảng quản lý (có ảnh dự phòng khi lỗi).
 function ProductThumb({ product }) {
     if (!product) return null
     const visual = getProductVisual(product)
-    const src = product?.imageUrl || visual.image
+    const src = resolveMediaUrl(product?.imageUrl) || visual.image
     return (
         <img
             className="mgmt-thumb"

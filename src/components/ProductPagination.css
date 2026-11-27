@@ -17,18 +17,29 @@
     border-radius: 8px;
     background: #fff;
     color: #171717;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
     text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.product-pagination-control:hover:not([aria-current="page"]):not([aria-disabled="true"]) {
+    border-color: #a3a3a3;
+    background: #f5f5f5;
 }
 
 .product-pagination-control[aria-current="page"] {
     border-color: #171717;
     background: #171717;
     color: #fff;
-    font-weight: 600;
+    font-weight: 700;
+    cursor: default;
 }
 
 .product-pagination-control[aria-disabled="true"] {
-    color: #737373;
+    color: #a3a3a3;
+    background: #fafafa;
     cursor: default;
 }
 
@@ -36,4 +47,3 @@
     outline: 2px solid #171717;
     outline-offset: 2px;
 }
-

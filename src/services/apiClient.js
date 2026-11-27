@@ -1,4 +1,4 @@
-const API_URL = (
+export const API_URL = (
     import.meta.env.VITE_API_URL ||
     'http://127.0.0.1:3001'
 ).replace(/\/$/, '')
@@ -33,7 +33,7 @@ export async function apiRequest(
         })
     } catch {
         const error = new Error(
-            'Không thể kết nối Backend. Hãy kiểm tra Express Server.'
+            'Không thể kết nối đến hệ thống máy chủ. Vui lòng thử lại sau.'
         )
         error.code = 'NETWORK_ERROR'
         error.isNetworkError = true

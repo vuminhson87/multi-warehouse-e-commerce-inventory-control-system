@@ -19,8 +19,15 @@
     gap: 24px;
 }
 
+.ch-brand-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 .ch-menu {
-    display: none;
+    display: inline-flex;
     width: 44px;
     height: 44px;
     flex-shrink: 0;
@@ -212,8 +219,8 @@
         gap: 8px;
     }
 
-    .ch-menu {
-        display: inline-flex;
+    .ch-brand-group {
+        gap: 8px;
     }
 
     .ch-brand {

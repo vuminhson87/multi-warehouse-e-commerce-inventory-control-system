@@ -9,7 +9,7 @@
 // - Khi checkout, M2 dùng `findActiveProductsForCheckout` để lấy tên/giá chuẩn từ PostgreSQL
 //   tạo snapshot vào `order_items`, không bao giờ tin tên/giá do frontend gửi lên.
 
-import { getAvailableByProduct } from '../inventory/inventory.repository.js'
+import { getAvailableByProduct, syncAllLowStockAlerts } from '../inventory/inventory.repository.js'
 import { SEED_WAREHOUSES } from '../../../prisma/seed-data.js'
 import { AppError, ErrorCodes, validationError } from '../../shared/errors.js'
 
@@ -197,6 +197,8 @@ export async function createProduct(
         })),
         skipDuplicates: true,
     })
+
+    await syncAllLowStockAlerts(tx, { productIds: [product.id] })
 
     return mapProduct(product, 0)
 }

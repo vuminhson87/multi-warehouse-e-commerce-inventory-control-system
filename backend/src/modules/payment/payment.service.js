@@ -2,6 +2,7 @@
 
 
 import { runInTransaction } from '../../db/transaction.js'
+import { invalidateInventoryCache } from '../../db/redis.js'
 import businessConfig from '../../config/business.js'
 import { AppError, ErrorCodes } from '../../shared/errors.js'
 import {
@@ -112,14 +113,22 @@ export async function payOrder(customerId, rawOrderId, body) {
       r => r.status === 'ACTIVE'
     )
 
+    const affectedWarehouseIds = new Set()
+    const affectedProductIds = new Set()
+    const collectAffected = (affected) => {
+      for (const id of affected?.warehouseIds ?? []) affectedWarehouseIds.add(id)
+      for (const id of affected?.productIds ?? []) affectedProductIds.add(id)
+    }
+
     // Reservation hết hạn: giải phóng trước khi giữ lại.
     if (active.some(r => r.expiresAt <= new Date())) {
-      await releaseReservations(tx, {
+      const released = await releaseReservations(tx, {
         orderId,
         reason: 'EXPIRED',
         expiredBefore: new Date(),
         actorUserId: customerId,
       })
+      collectAffected(released?.affected)
     }
 
     const remaining = await tx.stockReservation.count({
@@ -127,7 +136,7 @@ export async function payOrder(customerId, rawOrderId, body) {
     })
 
     if (remaining === 0) {
-      await reserveForExistingOrder(tx, {
+      const reserved = await reserveForExistingOrder(tx, {
         orderId,
         warehouseId: order.fulfillmentWarehouseId,
         items: order.items.map(item => ({
@@ -139,6 +148,7 @@ export async function payOrder(customerId, rawOrderId, body) {
         ),
         actorUserId: customerId,
       })
+      collectAffected(reserved?.affected)
     }
 
     const attempt = await tx.paymentAttempt.create({
@@ -154,6 +164,10 @@ export async function payOrder(customerId, rawOrderId, body) {
       claimId: claim.record.id,
       attemptId: attempt.id,
       amount: order.totalAmount.toFixed(2),
+      affected: {
+        warehouseIds: [...affectedWarehouseIds],
+        productIds: [...affectedProductIds],
+      },
     }
   })
 
@@ -162,6 +176,10 @@ export async function payOrder(customerId, rawOrderId, body) {
       statusCode: preparation.statusCode,
       body: preparation.body,
     }
+  }
+
+  if (preparation.affected?.warehouseIds?.length || preparation.affected?.productIds?.length) {
+    await invalidateInventoryCache(preparation.affected)
   }
 
   // Gateway chạy NGOÀI transaction.
@@ -185,7 +203,7 @@ export async function payOrder(customerId, rawOrderId, body) {
   }
 
   // TRANSACTION 2: chốt kết quả vào DB.
-  return runInTransaction(async (tx) => {
+  const settlement = await runInTransaction(async (tx) => {
     const order = await lockOrder(tx, orderId, customerId)
 
     const attempt = await tx.paymentAttempt.findUniqueOrThrow({
@@ -201,6 +219,7 @@ export async function payOrder(customerId, rawOrderId, body) {
 
     let paymentStatus
     let failureReason = gateway.failureReason
+    let affected
 
     if (gateway.result === 'SUCCESS') {
       const active = order.reservations.filter(
@@ -231,6 +250,8 @@ export async function payOrder(customerId, rawOrderId, body) {
         throw new Error('Không tiêu thụ đủ reservation.')
       }
 
+      affected = consumed.affected ?? null
+
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -245,11 +266,13 @@ export async function payOrder(customerId, rawOrderId, body) {
       gateway.result === 'FAILED' ||
       gateway.result === 'INCOMPLETE'
     ) {
-      await releaseReservations(tx, {
+      const released = await releaseReservations(tx, {
         orderId,
         reason: 'RELEASED',
         actorUserId: customerId,
       })
+
+      affected = released?.affected ?? null
 
       paymentStatus = gateway.result === 'FAILED'
         ? PaymentAttemptStatus.FAILED
@@ -287,6 +310,16 @@ export async function payOrder(customerId, rawOrderId, body) {
     return {
       statusCode: 200,
       body: responseBody,
+      affected,
     }
   })
+
+  if (settlement.affected?.warehouseIds?.length || settlement.affected?.productIds?.length) {
+    await invalidateInventoryCache(settlement.affected)
+  }
+
+  return {
+    statusCode: settlement.statusCode,
+    body: settlement.body,
+  }
 }

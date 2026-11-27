@@ -71,6 +71,12 @@ function LoginModal({ onClose, onRegister, initialUsername = '', registered = fa
                         Multi-Warehouse
                     </div>
 
+                    <img
+                        src="/images/auth-warehouse-network.jpg"
+                        alt="Hệ thống 3 kho hàng Multi-Warehouse"
+                        className="auth-warehouse-illustration"
+                    />
+
                     <h2>Chào mừng bạn trở lại!</h2>
 
                     <p>
@@ -89,7 +95,7 @@ function LoginModal({ onClose, onRegister, initialUsername = '', registered = fa
                 <div className="login-modal-content">
                     <div className="login-modal-header">
                         <h2 id="login-modal-title">Đăng nhập</h2>
-                        <p>Đăng nhập vào tài khoản của bạn</p>
+                        <p>Đăng nhập bằng tên đăng nhập hoặc Gmail của bạn</p>
                     </div>
 
                     {registered && <p className="login-modal-success" role="status">Tạo tài khoản thành công. Hãy đăng nhập để tiếp tục.</p>}
@@ -100,13 +106,13 @@ function LoginModal({ onClose, onRegister, initialUsername = '', registered = fa
                     >
                         <div className="login-modal-field">
                             <label htmlFor="modal-username">
-                                Tên đăng nhập
+                                Tên đăng nhập hoặc Gmail
                             </label>
 
                             <input
                                 id="modal-username"
                                 type="text"
-                                placeholder="Nhập tên đăng nhập"
+                                placeholder="Nhập tên đăng nhập hoặc @gmail.com"
                                 autoComplete="username"
                                 autoFocus
                                 required

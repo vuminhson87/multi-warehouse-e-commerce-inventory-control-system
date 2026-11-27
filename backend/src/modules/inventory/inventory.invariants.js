@@ -6,6 +6,7 @@ import { validationError } from '../../shared/errors.js'
 // Giới hạn một lần nhập kho để chặn nhập nhầm số quá lớn.
 export const MAX_RESTOCK_QUANTITY = 100000
 export const MAX_LOW_STOCK_THRESHOLD = 100000
+export const MAX_ADJUST_ON_HAND = 1000000
 
 export function computeAvailable({ onHand, reserved }) {
     return onHand - reserved
@@ -44,6 +45,24 @@ export function assertThreshold(value, field = 'threshold') {
     }
 
     return value
+}
+
+export function assertNonNegativeInt(value, field = 'onHand', max = MAX_ADJUST_ON_HAND) {
+    if (!Number.isInteger(value) || value < 0 || value > max) {
+        throw validationError([{ field, reason: `Phải là số nguyên từ 0 đến ${max}.` }])
+    }
+
+    return value
+}
+
+export function assertAdjustmentNote(value, field = 'note', maxLength = 200) {
+    if (typeof value !== 'string' || value.trim().length === 0 || value.trim().length > maxLength) {
+        throw validationError([
+            { field, reason: `Lý do điều chỉnh không được để trống và tối đa ${maxLength} ký tự.` },
+        ])
+    }
+
+    return value.trim()
 }
 
 // Chuẩn hóa items: gộp sản phẩm trùng, sắp theo productId để khóa hàng theo thứ tự cố định (tránh deadlock).

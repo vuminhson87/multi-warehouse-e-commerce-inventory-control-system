@@ -5,14 +5,14 @@ import {
     saveAdminFeaturedSlides,
 } from '../services/featuredProductsApi'
 import LucideIcon from './LucideIcon'
-import { handleImageError } from '../utils/format'
+import { handleImageError, resolveMediaUrl } from '../utils/format'
 import './FeaturedProductsPanel.css'
 
 const MAX_SLIDES = 5
 
 function SlidePreviewCard({ slide }) {
     const [failedUrl, setFailedUrl] = useState(null)
-    const effectiveImage = slide.imageUrlOverride?.trim() || slide.product?.imageUrl
+    const effectiveImage = resolveMediaUrl(slide.imageUrlOverride?.trim() || slide.product?.imageUrl)
     const effectiveDesc =
         slide.descriptionOverride?.trim() || slide.product?.description || ''
 
@@ -527,7 +527,7 @@ export default function FeaturedProductsPanel() {
                                             <div className="featured-panel__product-item-left">
                                                 <img
                                                     className="featured-panel__product-item-thumb"
-                                                    src={product.imageUrl || '/images/products/placeholder.jpg'}
+                                                    src={resolveMediaUrl(product.imageUrl) || '/images/products/placeholder.jpg'}
                                                     alt=""
                                                     onError={handleImageError}
                                                 />

@@ -1,0 +1,363 @@
+/* Floating 7-color Lucky Wheel Widget (position: fixed so scrolling never shifts it) */
+.lucky-wheel-fab-wrap {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.lucky-wheel-fab-badge {
+  background: linear-gradient(135deg, #111827, #312e81);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 5px 11px;
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lucky-wheel-fab-shell {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.lucky-wheel-fab-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  padding: 4px;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #f8fafc);
+  box-shadow:
+    0 10px 26px rgba(15, 23, 42, 0.28),
+    0 0 0 3px rgba(251, 191, 36, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.lucky-wheel-fab-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow:
+    0 14px 30px rgba(15, 23, 42, 0.34),
+    0 0 0 5px rgba(251, 191, 36, 0.65);
+}
+
+/* Ghi đè ưu tiên cao để icon nút nổi luôn quay liên tục bất kể prefers-reduced-motion */
+.lucky-wheel-fab-btn .lucky-wheel-fab-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+  animation: wheelFabSpin 3.6s linear infinite !important;
+}
+
+.lucky-wheel-fab-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lucky-wheel-fab-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.lucky-wheel-fab-close:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+@keyframes wheelFabSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal overlay & card */
+.lucky-wheel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.lucky-wheel-modal {
+  position: relative;
+  width: 100%;
+  max-width: 470px;
+  background: linear-gradient(165deg, #1e1b4b 0%, #312e81 42%, #0f172a 100%);
+  color: #f8fafc;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 24px 22px 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.lucky-wheel-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lucky-wheel-modal-close:hover {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.lucky-wheel-title {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fde68a;
+  letter-spacing: 0.01em;
+}
+
+.lucky-wheel-subtitle {
+  margin: 0 0 16px;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+/* Wheel stage */
+.lucky-wheel-stage {
+  position: relative;
+  width: 310px;
+  height: 310px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.lucky-wheel-stage.is-clickable {
+  cursor: pointer;
+}
+
+.lucky-wheel-pointer {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  transform-origin: 50% 6px;
+  z-index: 8;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  transition: transform 0.06s ease-out !important;
+  pointer-events: none;
+}
+
+.lucky-wheel-pointer.is-ticking {
+  transform: translateX(-50%) rotate(-18deg);
+}
+
+.lucky-wheel-rotor {
+  width: 296px;
+  height: 296px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 8px #b45309,
+    0 0 0 12px rgba(251, 191, 36, 0.35),
+    0 18px 36px rgba(0, 0, 0, 0.5);
+  will-change: transform;
+}
+
+/* Bảo đảm hiệu ứng quay mượt vẫn chạy đúng 4.8s dù OS bật Reduced Motion */
+.lucky-wheel-modal .lucky-wheel-rotor.is-animating {
+  transition-property: transform !important;
+  transition-duration: 4.8s !important;
+  transition-timing-function: cubic-bezier(0.12, 0.88, 0.18, 1) !important;
+}
+
+.lucky-wheel-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 4px solid #fef3c7;
+  background: radial-gradient(circle at 35% 28%, #fbbf24 0%, #ea580c 72%, #9a3412 100%);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-shadow:
+    0 0 0 4px rgba(15, 23, 42, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.lucky-wheel-center-btn:hover:not(:disabled) {
+  transform: translate(-50%, -50%) scale(1.08);
+  filter: brightness(1.08);
+}
+
+.lucky-wheel-center-btn:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+.lucky-wheel-center-btn:disabled {
+  cursor: wait;
+  opacity: 0.88;
+}
+
+.lucky-wheel-primary-btn {
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.98rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.lucky-wheel-primary-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.lucky-wheel-primary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.lucky-wheel-result-card {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 8px;
+}
+
+.lucky-wheel-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px dashed #fbbf24;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 10px 0 12px;
+}
+
+.lucky-wheel-code-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #fde68a;
+  letter-spacing: 0.04em;
+}
+
+.lucky-wheel-copy-btn {
+  background: #fbbf24;
+  color: #111827;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lucky-wheel-error {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.86rem;
+  margin-bottom: 10px;
+}
+
+.lucky-wheel-info-note {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+@media (max-width: 520px) {
+  .lucky-wheel-fab-wrap {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .lucky-wheel-stage {
+    width: 274px;
+    height: 274px;
+  }
+
+  .lucky-wheel-rotor {
+    width: 262px;
+    height: 262px;
+  }
+}

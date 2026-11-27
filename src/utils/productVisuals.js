@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from './format'
+
 // Ánh xạ hình ảnh studio tối giản & khung trưng bày kiểu Atelier / House of Spoils
 // cho danh mục sản phẩm thực tế của hệ thống Multi-Warehouse E-Commerce.
 
@@ -112,7 +114,7 @@ export function getProductVisual(product) {
 
     const numId = Number(product.id)
     const specific = SPECIFIC_PRODUCT_VISUALS[numId]
-    const imageUrl = product.imageUrl || product.image
+    const imageUrl = resolveMediaUrl(product.imageUrl || product.image)
 
     if (imageUrl) {
         if (specific) {

@@ -49,9 +49,9 @@ function optionalImageUrl(value, field) {
     }
 
     const internal =
-        imageUrl.startsWith('/images/') &&
+        (imageUrl.startsWith('/images/') || imageUrl.startsWith('/uploads/')) &&
         parsed.origin === ASSET_ORIGIN &&
-        parsed.pathname.startsWith('/images/')
+        (parsed.pathname.startsWith('/images/') || parsed.pathname.startsWith('/uploads/'))
     const external =
         /^https:\/\//i.test(imageUrl) &&
         parsed.protocol === 'https:' &&
@@ -59,7 +59,7 @@ function optionalImageUrl(value, field) {
         !parsed.password
 
     if (!internal && !external) {
-        invalidField(field, 'Dùng đường dẫn /images/ hoặc URL HTTPS.')
+        invalidField(field, 'Dùng đường dẫn /images/, /uploads/ hoặc URL HTTPS.')
     }
 
     return imageUrl

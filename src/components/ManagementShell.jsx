@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { flushSync } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
@@ -12,12 +12,14 @@ const ROLE_LABELS = {
 }
 
 // Khung điều hướng dùng chung cho Quản lý kho và Admin.
-// Chỉ liệt kê các route thực sự tồn tại và đúng quyền của người dùng.
+// Hoạt động dạng ngăn kéo trượt giống menu điều hướng ở cửa hàng.
 function ManagementShell({ children }) {
     const { currentUser, token, setCurrentUser } = useAuth()
     const navigate = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
     const [warehouseState, setWarehouseState] = useState(null)
+    const menuBtnRef = useRef(null)
+    const closeBtnRef = useRef(null)
     const warehouseRequestKey = `${token ?? ''}:${currentUser?.assignedWarehouseId ?? ''}`
 
     useEffect(() => {
@@ -43,14 +45,26 @@ function ManagementShell({ children }) {
         return () => controller.abort()
     }, [token, currentUser?.role, currentUser?.assignedWarehouseId, warehouseRequestKey])
 
-    // Escape đóng sidebar trên mobile.
+    // Escape đóng ngăn kéo; khóa cuộn nền khi ngăn kéo đang mở; quản lý focus giống storefront.
     useEffect(() => {
         if (!isOpen) return undefined
+
+        closeBtnRef.current?.focus()
+        const previousOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+
         const onKey = (event) => {
-            if (event.key === 'Escape') setIsOpen(false)
+            if (event.key === 'Escape') {
+                setIsOpen(false)
+                menuBtnRef.current?.focus()
+            }
         }
+
         document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
+        return () => {
+            document.removeEventListener('keydown', onKey)
+            document.body.style.overflow = previousOverflow
+        }
     }, [isOpen])
 
     if (
@@ -74,14 +88,28 @@ function ManagementShell({ children }) {
                   { label: 'Tổng quan', path: '/admin', icon: 'dashboard', end: true },
                   { label: 'Quản lý sản phẩm', path: '/admin/products', icon: 'package' },
                   { label: 'Xử lý đơn hàng', path: '/admin/orders/processing', icon: 'box' },
+                  { label: 'Quản lý tài khoản', path: '/admin/users', icon: 'user' },
+                  { label: 'Phân công kho', path: '/admin/warehouse-managers', icon: 'shield' },
+                  { label: 'Nhật ký thao tác', path: '/admin/audit-logs', icon: 'file-text' },
               ]
-            : []),
+            : [
+                  { label: 'Xử lý đơn hàng', path: '/inventory/orders', icon: 'box' },
+              ]),
         { label: 'Tổng quan tồn kho', path: '/inventory', icon: 'warehouse', end: true },
         { label: 'Tồn kho theo kho', path: '/inventory/warehouses', icon: 'box' },
+        { label: 'Lịch sử biến động', path: '/inventory/movements', icon: 'file-text' },
         { label: 'Cảnh báo tồn kho', path: '/inventory/alerts', icon: 'alert-triangle' },
     ]
 
+    const closeDrawer = (restoreFocus = false) => {
+        setIsOpen(false)
+        if (restoreFocus) {
+            menuBtnRef.current?.focus()
+        }
+    }
+
     const handleLogout = () => {
+        setIsOpen(false)
         flushSync(() => {
             navigate('/', { replace: true })
         })
@@ -96,13 +124,15 @@ function ManagementShell({ children }) {
         <div className="mgmt-shell">
             <div
                 className={`mgmt-overlay ${isOpen ? 'is-open' : ''}`}
-                onClick={() => setIsOpen(false)}
+                onClick={() => closeDrawer(true)}
                 aria-hidden="true"
             />
 
             <aside
+                id="mgmt-drawer-nav"
                 className={`mgmt-sidebar ${isOpen ? 'is-open' : ''}`}
                 aria-label="Điều hướng quản lý"
+                inert={!isOpen}
             >
                 <div className="mgmt-sidebar__brand">
                     <span className="mgmt-sidebar__logo">
@@ -110,12 +140,13 @@ function ManagementShell({ children }) {
                     </span>
                     <span>{isAdmin ? 'Admin Panel' : 'Warehouse'}</span>
                     <button
+                        ref={closeBtnRef}
                         type="button"
                         className="icon-btn mgmt-sidebar__close"
-                        onClick={() => setIsOpen(false)}
+                        onClick={() => closeDrawer(true)}
                         aria-label="Đóng menu"
                     >
-                        <LucideIcon name="x" size={20} />
+                        <LucideIcon name="x" size={20} strokeWidth={1.75} />
                     </button>
                 </div>
 
@@ -125,7 +156,7 @@ function ManagementShell({ children }) {
                             key={item.path}
                             to={item.path}
                             end={item.end}
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => closeDrawer(false)}
                             className={({ isActive }) =>
                                 `mgmt-nav-link ${isActive ? 'is-active' : ''}`
                             }
@@ -137,7 +168,11 @@ function ManagementShell({ children }) {
                 </nav>
 
                 <div className="mgmt-sidebar__bottom">
-                    <Link to="/" className="mgmt-nav-link">
+                    <Link
+                        to="/"
+                        className="mgmt-nav-link"
+                        onClick={() => closeDrawer(false)}
+                    >
                         <LucideIcon name="store" size={20} strokeWidth={1.75} />
                         <span>Về cửa hàng</span>
                     </Link>
@@ -154,14 +189,25 @@ function ManagementShell({ children }) {
 
             <div className="mgmt-main">
                 <header className="mgmt-topbar">
-                    <button
-                        type="button"
-                        className="icon-btn mgmt-topbar__menu"
-                        onClick={() => setIsOpen(true)}
-                        aria-label="Mở menu quản lý"
-                    >
-                        <LucideIcon name="menu" size={22} />
-                    </button>
+                    <div className="mgmt-topbar__left">
+                        <button
+                            ref={menuBtnRef}
+                            type="button"
+                            className="icon-btn mgmt-topbar__menu"
+                            onClick={() => setIsOpen((prev) => !prev)}
+                            aria-label="Mở menu quản lý"
+                            aria-expanded={isOpen}
+                            aria-controls="mgmt-drawer-nav"
+                        >
+                            <LucideIcon name="menu" size={22} strokeWidth={1.75} />
+                        </button>
+                        <Link
+                            to={isAdmin ? '/admin' : '/inventory'}
+                            className="mgmt-topbar__brand"
+                        >
+                            {isAdmin ? 'Admin Panel' : 'Warehouse'}
+                        </Link>
+                    </div>
 
                     <div className="mgmt-user">
                         <span className="mgmt-user__avatar">{initial}</span>

@@ -3,6 +3,7 @@ import businessConfig from '../../config/business.js'
 import { AppError, ErrorCodes, validationError } from '../../shared/errors.js'
 import { parsePositiveIntId, validateListQuery } from './order.validator.js'
 import { OrderStatus, PaymentAttemptStatus } from './order.constants.js'
+import { buildOrderPaymentQr } from '../payment/payment-qr.js'
 
 const orderInclude = {
   fulfillmentWarehouse: { select: { id: true, name: true } },
@@ -10,6 +11,10 @@ const orderInclude = {
   items: { orderBy: { productId: 'asc' } },
   reservations: { orderBy: { createdAt: 'desc' } },
   payments: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] },
+  trackingEvents: {
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    include: { actor: { select: { username: true, role: true } } },
+  },
 }
 
 function formatOrder(order, { detail = false } = {}) {
@@ -37,7 +42,19 @@ function formatOrder(order, { detail = false } = {}) {
   const result = {
     orderId: order.id,
     status: order.status,
+    voucherCode: order.voucherCode ?? null,
+    discountAmount: order.discountAmount ? order.discountAmount.toFixed(2) : '0.00',
     totalAmount: order.totalAmount.toFixed(2),
+    shippingAddress:
+      order.shippingFullName || order.shippingAddressLine
+        ? {
+            fullName: order.shippingFullName ?? null,
+            phone: order.shippingPhone ?? null,
+            province: order.shippingProvince ?? null,
+            addressLine: order.shippingAddressLine ?? null,
+            note: order.shippingNote ?? null,
+          }
+        : null,
     currency: 'VND',
     warehouseId: order.fulfillmentWarehouseId,
     fulfillmentWarehouseName: order.fulfillmentWarehouse.name,
@@ -57,10 +74,20 @@ function formatOrder(order, { detail = false } = {}) {
     paymentInProgress: pendingPayment,
     canPay: isPending && !pendingPayment,
     canCancel: cancellable,
+    paymentQr: detail ? buildOrderPaymentQr(order) : null,
     paymentCount: order.payments.length,
     payments: detail
       ? paymentHistory.slice(0, businessConfig.maxPaymentsInOrderDetail)
       : paymentHistory,
+    trackingEvents: (order.trackingEvents ?? []).map(event => ({
+      id: event.id,
+      stage: event.stage,
+      note: event.note,
+      location: event.location ?? null,
+      trackingCode: event.trackingCode ?? null,
+      actorUsername: event.actor?.username ?? null,
+      createdAt: event.createdAt.toISOString(),
+    })),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     paidAt: order.paidAt?.toISOString() ?? null,
@@ -88,7 +115,7 @@ export async function listCustomerOrders(customerId, query) {
   }
 }
 
-export async function listAdminOrders(query = {}) {
+export async function listAdminOrders(query = {}, { warehouseId } = {}) {
   const { page, limit, status } = validateListQuery(query)
   const orderStatus = status ?? OrderStatus.PAID
 
@@ -98,7 +125,12 @@ export async function listAdminOrders(query = {}) {
     ])
   }
 
-  const where = { status: orderStatus }
+  const where = {
+    status: orderStatus,
+    ...(warehouseId !== undefined && warehouseId !== null
+      ? { fulfillmentWarehouseId: warehouseId }
+      : {}),
+  }
   const [orders, total] = await prisma.$transaction([
     prisma.order.findMany({
       where,
