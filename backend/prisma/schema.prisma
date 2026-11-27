@@ -69,6 +69,22 @@ enum InventoryMovementType {
   ADJUST
 }
 
+enum DeliveryStage {
+  PROCESSING_STARTED
+  PACKED
+  HANDED_TO_CARRIER
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+enum AuditTargetType {
+  ORDER
+  PRODUCT
+  USER
+  INVENTORY
+}
+
 // ---------------------------------------------------------------------------
 // Danh mục & người dùng
 // ---------------------------------------------------------------------------
@@ -87,6 +103,7 @@ model Warehouse {
   reservations StockReservation[]
   alerts       LowStockAlert[]
   movements    InventoryMovement[]
+  auditLogs    AdminAuditLog[]
 
   @@map("warehouses")
 }
@@ -94,20 +111,28 @@ model Warehouse {
 // NFR-SEC-01: chỉ lưu passwordHash (bcrypt), không bao giờ lưu mật khẩu thô.
 // SR-AUTH-05: assignedWarehouseId bắt buộc với WAREHOUSE_MANAGER, NULL với vai trò khác (CHECK trong SQL).
 model User {
-  id                  Int      @id @default(autoincrement())
-  username            String   @unique @db.VarChar(50)
-  passwordHash        String   @map("password_hash") @db.VarChar(100)
+  id                  Int       @id @default(autoincrement())
+  username            String    @unique @db.VarChar(50)
+  email               String?   @unique @db.VarChar(120)
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  passwordHash        String    @map("password_hash") @db.VarChar(100)
   fullName            String?  @map("full_name") @db.VarChar(120)
   role                Role
   assignedWarehouseId Int?     @map("assigned_warehouse_id")
   isActive            Boolean  @default(true) @map("is_active")
+  loginCount          Int      @default(0) @map("login_count")
+  hasSpunWelcomeWheel Boolean  @default(false) @map("has_spun_welcome_wheel")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  assignedWarehouse Warehouse?          @relation(fields: [assignedWarehouseId], references: [id], onDelete: Restrict)
+  assignedWarehouse Warehouse?           @relation(fields: [assignedWarehouseId], references: [id], onDelete: Restrict)
   orders            Order[]
   idempotencyKeys   IdempotencyRecord[]
   movements         InventoryMovement[]
+  trackingEvents    OrderTrackingEvent[]
+  auditLogs         AdminAuditLog[]
+  wishlistItems     WishlistItem[]
+  vouchers          Voucher[]
 
   @@index([role])
   @@map("users")
@@ -134,6 +159,7 @@ model Product {
   alerts       LowStockAlert[]
   movements    InventoryMovement[]
   homeFeaturedSlide HomeFeaturedSlide?
+  wishlistItems WishlistItem[]
 
   @@index([isActive, category])
   @@index([name])
@@ -250,20 +276,29 @@ model Order {
   customerId             Int         @map("customer_id")
   fulfillmentWarehouseId Int         @map("fulfillment_warehouse_id")
   status                 OrderStatus @default(PendingPayment)
+  voucherCode            String?     @map("voucher_code") @db.VarChar(32)
+  discountAmount         Decimal     @default(0) @map("discount_amount") @db.Decimal(15, 2)
   totalAmount            Decimal     @map("total_amount") @db.Decimal(15, 2)
+  shippingFullName       String?     @map("shipping_full_name") @db.VarChar(120)
+  shippingPhone          String?     @map("shipping_phone") @db.VarChar(30)
+  shippingProvince       String?     @map("shipping_province") @db.VarChar(100)
+  shippingAddressLine    String?     @map("shipping_address_line") @db.VarChar(255)
+  shippingNote           String?     @map("shipping_note") @db.VarChar(255)
   version                Int         @default(0)
   createdAt              DateTime    @default(now()) @map("created_at")
   updatedAt              DateTime    @updatedAt @map("updated_at")
   paidAt                 DateTime?   @map("paid_at")
   cancelledAt            DateTime?   @map("cancelled_at")
 
-  customer             User                @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  fulfillmentWarehouse Warehouse           @relation(fields: [fulfillmentWarehouseId], references: [id], onDelete: Restrict)
+  customer             User                 @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  fulfillmentWarehouse Warehouse            @relation(fields: [fulfillmentWarehouseId], references: [id], onDelete: Restrict)
   items                OrderItem[]
   reservations         StockReservation[]
   payments             PaymentAttempt[]
   movements            InventoryMovement[]
   idempotencyRecords   IdempotencyRecord[]
+  trackingEvents       OrderTrackingEvent[]
+  voucher              Voucher?
 
   @@index([customerId, createdAt(sort: Desc)])
   @@index([status])
@@ -322,4 +357,86 @@ model IdempotencyRecord {
 
   @@unique([userId, operation, key])
   @@map("idempotency_records")
+}
+
+model OrderTrackingEvent {
+  id           Int           @id @default(autoincrement())
+  orderId      Int           @map("order_id")
+  stage        DeliveryStage
+  note         String        @default("") @db.VarChar(255)
+  location     String?       @db.VarChar(160)
+  trackingCode String?       @map("tracking_code") @db.VarChar(64)
+  actorUserId  Int?          @map("actor_user_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("order_tracking_events")
+}
+
+model AdminAuditLog {
+  id          Int             @id @default(autoincrement())
+  actorUserId Int             @map("actor_user_id")
+  actorRole   Role            @map("actor_role")
+  action      String          @db.VarChar(64)
+  targetType  AuditTargetType @map("target_type")
+  targetId    Int?            @map("target_id")
+  warehouseId Int?            @map("warehouse_id")
+  summary     String          @db.VarChar(255)
+  metadata    Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  actor     User       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@map("admin_audit_logs")
+}
+
+model WishlistItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("wishlist_items")
+}
+
+model RegistrationOtp {
+  id         Int       @id @default(autoincrement())
+  email      String    @db.VarChar(120)
+  codeHash   String    @map("code_hash") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([email, createdAt(sort: Desc)])
+  @@map("registration_otps")
+}
+
+model Voucher {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique @db.VarChar(32)
+  userId          Int       @map("user_id")
+  discountPercent Int       @map("discount_percent")
+  expiresAt       DateTime  @map("expires_at")
+  usedAt          DateTime? @map("used_at")
+  usedOrderId     Int?      @unique @map("used_order_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedOrder Order? @relation(fields: [usedOrderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("vouchers")
 }

@@ -44,6 +44,8 @@ export function loadBusinessConfig(env = globalThis.process?.env ?? {}) {
         gatewayTimeoutMs: readPositiveInt(env, 'GATEWAY_TIMEOUT_MS', 10000),
         // Chỉ khi bật mới nhận trường "simulate" từ client.
         demoMode: readBoolean(env, 'DEMO_MODE', false),
+        // Chế độ demo vòng quay may mắn: true = quay nhiều lần để test/demo; false = chỉ quay 1 lần khi đăng nhập lần đầu.
+        wheelUnlimitedDemo: readBoolean(env, 'WHEEL_UNLIMITED_DEMO', true),
         // Giới hạn đầu vào checkout.
         maxItemsPerOrder: readPositiveInt(env, 'MAX_ITEMS_PER_ORDER', 50),
         maxQuantityPerProduct: readPositiveInt(env, 'MAX_QUANTITY_PER_PRODUCT', 100),

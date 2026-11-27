@@ -3,6 +3,8 @@ import cors from 'cors'
 
 import prisma from './db/prisma.js'
 import authRoutes from './modules/auth/auth.routes.js'
+import adminUserRoutes from './modules/auth/admin-users.routes.js'
+import adminAccountsRoutes from './modules/auth/admin-accounts.routes.js'
 import orderRoutes from './modules/order/order.routes.js'
 import adminOrderRoutes from './modules/order/order.admin.routes.js'
 import {
@@ -10,8 +12,11 @@ import {
   notFoundHandler,
 } from './middlewares/errorHandler.js'
 
-import { catalogRoutes, adminProductRoutes } from './modules/product/product.routes.js'
+import { catalogRoutes, adminProductRoutes, UPLOADS_ROOT } from './modules/product/product.routes.js'
 import inventoryRoutes from './modules/inventory/inventory.routes.js'
+import adminAuditRoutes from './modules/audit/audit.routes.js'
+import wishlistRoutes from './modules/wishlist/wishlist.routes.js'
+import wheelRoutes from './modules/wheel/wheel.routes.js'
 import { publicFeaturedRoutes, adminFeaturedRoutes } from './modules/featured-products/featured-products.routes.js'
 
 const app = express()
@@ -32,6 +37,7 @@ app.use(
 )
 
 app.use(express.json({ limit: '100kb' }))
+app.use('/uploads', express.static(UPLOADS_ROOT))
 
 // Health check
 app.get('/api/health', async (req, res, next) => {
@@ -53,11 +59,16 @@ app.get('/api/health', async (req, res, next) => {
 
 // Authentication API
 app.use('/api/auth', authRoutes)
+app.use('/api/admin/warehouse-managers', adminUserRoutes)
+app.use('/api/admin/users', adminAccountsRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/admin/orders', adminOrderRoutes)
+app.use('/api/admin/audit-logs', adminAuditRoutes)
 app.use('/api/products', catalogRoutes)
 app.use('/api/admin/products', adminProductRoutes)
 app.use('/api/inventory', inventoryRoutes)
+app.use('/api/wishlist', wishlistRoutes)
+app.use('/api/wheel', wheelRoutes)
 app.use('/api/featured-products', publicFeaturedRoutes)
 app.use('/api/admin/featured-products', adminFeaturedRoutes)
 

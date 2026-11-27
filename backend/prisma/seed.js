@@ -5,6 +5,7 @@
 import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 import { SEED_USERS, SEED_WAREHOUSES, buildInventories, buildProducts } from './seed-data.js'
+import { syncAllLowStockAlerts } from '../src/modules/inventory/inventory.repository.js'
 
 const prisma = new PrismaClient()
 
@@ -57,6 +58,7 @@ async function main() {
 
     // Không ghi đè onHand/reserved nếu dòng đã tồn tại để tránh phá dữ liệu đơn đang giữ hàng.
     await prisma.inventory.createMany({ data: inventories, skipDuplicates: true })
+    await syncAllLowStockAlerts(prisma)
 
     const existingSlideCount = await prisma.homeFeaturedSlide.count()
     if (existingSlideCount === 0) {
