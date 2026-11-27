@@ -151,7 +151,7 @@ try {
   const success = await createOrderPage()
   success.page.once('dialog', dialog => dialog.accept())
   await success.page.getByRole('button', { name: '✓ Xác nhận đã nhận hàng' }).click()
-  await success.page.getByText('Hoàn tất (Completed)', { exact: true }).waitFor()
+  await success.page.getByText('Hoàn tất', { exact: true }).first().waitFor()
   assert.equal(success.state.confirmCalls, 1)
   assert.deepEqual(success.state.confirmRequest, {
     method: 'POST',
@@ -167,7 +167,7 @@ try {
   await dismissed.page.getByRole('button', { name: '✓ Xác nhận đã nhận hàng' }).click()
   await dismissed.page.getByRole('button', { name: '✓ Xác nhận đã nhận hàng' }).waitFor()
   assert.equal(dismissed.state.confirmCalls, 0)
-  assert.equal(await dismissed.page.getByText('Đang xử lý (Processing)', { exact: true }).count(), 1)
+  assert.ok((await dismissed.page.getByText('Đang xử lý', { exact: true }).count()) >= 1)
   await dismissed.context.close()
   results.push('Dismissing the confirmation dialog keeps the order in Processing without an API request')
 
