@@ -91,7 +91,7 @@ function ShoppingCartPage() {
                                                     marginLeft: '10px',
                                                 }}
                                             >
-                                                [Hết hàng theo dữ liệu máy chủ]
+                                                [Hiện đã hết hàng]
                                             </span>
                                         )}
                                         {!item.isDiscontinued &&
@@ -161,7 +161,7 @@ function ShoppingCartPage() {
                                 Tổng tạm tính: {totalPrice.toLocaleString('vi-VN')} VNĐ
                             </p>
 
-                            {stockLoading && <p role="status">Đang tải tồn kho khả dụng từ máy chủ…</p>}
+                            {stockLoading && <p role="status">Đang kiểm tra tình trạng tồn kho…</p>}
                             {stockError && <p role="alert">Không thể tải tồn kho. Hãy thử tải lại trang trước khi đặt hàng.</p>}
 
                             {hasDiscontinuedItems && (
@@ -173,7 +173,7 @@ function ShoppingCartPage() {
 
                             {!stockLoading && !stockError && hasInsufficientStockItems && (
                                 <p style={{ color: '#b45309', fontWeight: 'bold' }}>
-                                    Tồn kho máy chủ hiện không đủ cho số lượng trong giỏ.
+                                    Tồn kho hiện tại không đủ cho số lượng trong giỏ.
                                     Hãy giảm số lượng hoặc xóa sản phẩm trước khi thanh toán.
                                 </p>
                             )}
@@ -197,7 +197,7 @@ function ShoppingCartPage() {
                                     >
                                         ✓ Dự kiến kho xuất hàng:{' '}
                                         <strong>{fulfillmentWarehouse.name}</strong>{' '}
-                                        (hệ thống sẽ xác nhận khi đặt hàng)
+                                        (toàn bộ đơn hàng được giao từ một kho)
                                     </p>
                                 </div>
                             )}

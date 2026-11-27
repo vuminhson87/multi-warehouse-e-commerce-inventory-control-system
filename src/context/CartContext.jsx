@@ -102,6 +102,7 @@ export function CartProvider({ children }) {
                 productId: item.productId,
                 name: product?.name || 'Sản phẩm không xác định',
                 price: product?.price ?? 0,
+                imageUrl: product?.imageUrl ?? null,
                 category: product?.category || '',
                 description: product?.description || '',
                 status: product?.status || 'DISCONTINUED',
@@ -199,7 +200,7 @@ export function CartProvider({ children }) {
 
     const increaseQuantity = (productId) => {
         if (stockLoading || stockError) {
-            alert('Đang tải tồn kho máy chủ. Vui lòng thử lại sau.')
+            alert('Đang kiểm tra tình trạng tồn kho. Vui lòng thử lại sau.')
             return
         }
         const targetId = Number(productId)
@@ -224,7 +225,7 @@ export function CartProvider({ children }) {
 
         if (currentQty + 1 > available) {
             alert(
-                `Số lượng trong giỏ vượt quá tồn khả dụng dự kiến của một kho (hiện có: ${available}). Quy định: Một đơn hàng chỉ lấy từ 1 kho.`
+                `Số lượng trong giỏ vượt quá số lượng còn hàng tại một kho (hiện có: ${available}). Một đơn hàng chỉ được xuất từ một kho.`
             )
             return
         }
