@@ -129,7 +129,7 @@ img {
     background-color: #09090b;
     color: #ffffff;
     padding: 12px 20px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.025em;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
@@ -146,6 +146,7 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {

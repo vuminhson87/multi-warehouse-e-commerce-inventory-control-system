@@ -16,11 +16,15 @@ import OrderResultPage from './pages/OrderResultPage'
 import OrderTrackingPage from './pages/OrderTrackingPage'
 import PurchaseHistoryPage from './pages/PurchaseHistoryPage'
 import WarehouseInventoryPage from './pages/WarehouseInventoryPage'
+import InventoryMovementsPage from './pages/InventoryMovementsPage'
 import LowStockAlertsPage from './pages/LowStockAlertsPage'
 import AddProductPage from './pages/AddProductPage'
 import EditProductPage from './pages/EditProductPage'
 import DiscontinueProductPage from './pages/DiscontinueProductPage'
 import AdminOrderProcessingPage from './pages/AdminOrderProcessingPage'
+import WarehouseManagerAssignmentPage from './pages/WarehouseManagerAssignmentPage'
+import AdminAuditLogsPage from './pages/AdminAuditLogsPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import './App.css'
@@ -64,6 +68,14 @@ function App() {
                       element={<WarehouseInventoryPage />}
                     />
                     <Route
+                      path="/inventory/orders"
+                      element={<AdminOrderProcessingPage />}
+                    />
+                    <Route
+                      path="/inventory/movements"
+                      element={<InventoryMovementsPage />}
+                    />
+                    <Route
                       path="/inventory/alerts"
                       element={<LowStockAlertsPage />}
                     />
@@ -82,6 +94,18 @@ function App() {
                     <Route
                       path="/admin/orders/processing"
                       element={<AdminOrderProcessingPage />}
+                    />
+                    <Route
+                      path="/admin/warehouse-managers"
+                      element={<WarehouseManagerAssignmentPage />}
+                    />
+                    <Route
+                      path="/admin/users"
+                      element={<AdminUsersPage />}
+                    />
+                    <Route
+                      path="/admin/audit-logs"
+                      element={<AdminAuditLogsPage />}
                     />
                     <Route
                       path="/admin/products/add"
