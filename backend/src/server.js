@@ -1,5 +1,5 @@
 
-import 'dotenv/config'
+import './env.js'
 
 import app from './app.js'
 import { disconnectPrisma } from './db/prisma.js'

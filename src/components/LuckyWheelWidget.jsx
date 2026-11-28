@@ -152,6 +152,16 @@ function LuckyWheelWidgetInner({ currentUser, token }) {
   }, [])
 
   useEffect(() => {
+    const handleReopenWheel = () => {
+      sessionStorage.removeItem(dismissKey)
+      setHidden(false)
+      setModalOpen(true)
+    }
+    window.addEventListener('mw:open-lucky-wheel', handleReopenWheel)
+    return () => window.removeEventListener('mw:open-lucky-wheel', handleReopenWheel)
+  }, [dismissKey])
+
+  useEffect(() => {
     if (!token || !currentUser || currentUser.role !== 'CUSTOMER') {
       return
     }

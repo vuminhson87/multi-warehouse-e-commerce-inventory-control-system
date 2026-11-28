@@ -1,0 +1,438 @@
+/* ===== Minimalist Atelier Contact & Warehouse Network Page ===== */
+
+.contact-page {
+    min-height: calc(100vh - 64px);
+    padding: 32px 24px 64px;
+    background-color: #ffffff;
+    color: #18181b;
+}
+
+.contact-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.contact-header {
+    padding-bottom: 16px;
+    border-bottom: 2px solid #18181b;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.contact-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #09090b;
+}
+
+.contact-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #52525b;
+}
+
+/* 4 Quick Contact Info Cards */
+.contact-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.contact-info-card {
+    background-color: #fafafa;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.contact-info-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #71717a;
+}
+
+.contact-info-value {
+    font-size: 15.5px;
+    font-weight: 800;
+    color: #09090b;
+    word-break: break-word;
+}
+
+.contact-info-sub {
+    font-size: 12.5px;
+    color: #52525b;
+}
+
+/* Section cards */
+.contact-card {
+    background-color: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 24px;
+}
+
+.contact-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.contact-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #52525b;
+}
+
+.contact-region-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.contact-region-tab {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #e4e4e7;
+    background-color: #ffffff;
+    color: #52525b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.contact-region-tab.is-active {
+    background-color: #09090b;
+    border-color: #09090b;
+    color: #ffffff;
+}
+
+/* 3 Warehouses + Interactive Map */
+.contact-warehouses-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 20px;
+    align-items: stretch;
+}
+
+.contact-warehouse-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.contact-warehouse-item {
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 16px 18px;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    text-align: left;
+}
+
+.contact-warehouse-item:hover {
+    border-color: #a1a1aa;
+}
+
+.contact-warehouse-item.is-selected {
+    border-color: #09090b;
+    background-color: #fafafa;
+    box-shadow: 0 4px 16px rgba(9, 9, 11, 0.07);
+}
+
+.contact-warehouse-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.contact-warehouse-region {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background-color: #09090b;
+    color: #ffffff;
+}
+
+.contact-warehouse-status {
+    font-size: 12px;
+    font-weight: 600;
+    color: #166534;
+}
+
+.contact-warehouse-name {
+    margin: 4px 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #09090b;
+}
+
+.contact-warehouse-address {
+    margin: 0 0 10px;
+    font-size: 13.5px;
+    color: #3f3f46;
+    line-height: 1.5;
+}
+
+.contact-warehouse-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 12.5px;
+    color: #71717a;
+    margin-bottom: 12px;
+}
+
+.contact-warehouse-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.contact-mini-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 6px;
+    border: 1px solid #d4d4d8;
+    background-color: #ffffff;
+    color: #18181b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.contact-mini-btn:hover {
+    background-color: #f4f4f5;
+}
+
+.contact-map-panel {
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: #fafafa;
+    min-height: 360px;
+}
+
+.contact-map-bar {
+    padding: 12px 16px;
+    background-color: #09090b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.contact-map-bar strong {
+    font-weight: 700;
+}
+
+.contact-map-iframe {
+    width: 100%;
+    flex: 1;
+    min-height: 340px;
+    border: none;
+    display: block;
+}
+
+/* Bottom 2-column: Contact Form + FAQ */
+.contact-bottom-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.contact-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.contact-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.contact-field--full {
+    grid-column: 1 / -1;
+}
+
+.contact-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #27272a;
+}
+
+.contact-field label span {
+    color: #dc2626;
+}
+
+.contact-input,
+.contact-select,
+.contact-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d4d4d8;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #09090b;
+    font-size: 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contact-input:focus,
+.contact-select:focus,
+.contact-textarea:focus {
+    outline: none;
+    border-color: #18181b;
+    box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.1);
+}
+
+.contact-textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.contact-submit-btn {
+    margin-top: 16px;
+    padding: 13px 26px;
+    border: none;
+    border-radius: 9999px;
+    background-color: #09090b;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.18s ease;
+}
+
+.contact-submit-btn:hover:not(:disabled) {
+    background-color: #27272a;
+}
+
+.contact-submit-btn:disabled {
+    background-color: #a1a1aa;
+    cursor: not-allowed;
+}
+
+.contact-feedback {
+    margin-bottom: 16px;
+    padding: 13px 15px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+
+.contact-feedback--ok {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+.contact-feedback--err {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+/* FAQ Accordion */
+.contact-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contact-faq-item {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #ffffff;
+}
+
+.contact-faq-trigger {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background-color: #fafafa;
+    color: #09090b;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.contact-faq-trigger:hover {
+    background-color: #f4f4f5;
+}
+
+.contact-faq-answer {
+    padding: 12px 16px 14px;
+    font-size: 13.5px;
+    color: #52525b;
+    line-height: 1.55;
+    border-top: 1px solid #f4f4f5;
+}
+
+@media (max-width: 1024px) {
+    .contact-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .contact-warehouses-grid,
+    .contact-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .contact-page {
+        padding: 20px 14px 44px;
+    }
+
+    .contact-strip,
+    .contact-form-grid {
+        grid-template-columns: 1fr;
+    }
+}

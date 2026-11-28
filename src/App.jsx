@@ -31,6 +31,8 @@ import './App.css'
 import { ProductProvider } from './context/ProductContext'
 import { WishlistProvider } from './context/WishlistContext'
 import HomePage from './pages/HomePage'
+import ContactPage from './pages/ContactPage'
+import StaffChatInboxPage from './pages/StaffChatInboxPage'
 import CustomerLayout from './layouts/CustomerLayout'
 import AdminLayout from './layouts/AdminLayout'
 import WarehouseLayout from './layouts/WarehouseLayout'
@@ -47,6 +49,7 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/products" element={<ProductCatalogPage />} />
                     <Route path="/products/:productId" element={<ProductDetailPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
                     <Route path="/cart" element={<ShoppingCartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/order-result" element={<OrderResultPage />} />
@@ -79,6 +82,10 @@ function App() {
                       path="/inventory/alerts"
                       element={<LowStockAlertsPage />}
                     />
+                    <Route
+                      path="/inventory/messages"
+                      element={<StaffChatInboxPage />}
+                    />
                   </Route>
 
                   {/* Admin */}
@@ -106,6 +113,10 @@ function App() {
                     <Route
                       path="/admin/audit-logs"
                       element={<AdminAuditLogsPage />}
+                    />
+                    <Route
+                      path="/admin/messages"
+                      element={<StaffChatInboxPage />}
                     />
                     <Route
                       path="/admin/products/add"

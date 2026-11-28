@@ -271,7 +271,7 @@ function RegisterModal({ onClose, onSwitchToLogin, onSuccess }) {
                                     maxLength={120}
                                     required
                                     autoFocus
-                                    placeholder="Ví dụ: duyan746@gmail.com"
+                                    placeholder="Ví dụ: abc@gmail.com"
                                     value={email}
                                     onChange={handleEmailChange}
                                 />

@@ -1,0 +1,346 @@
+/* ===== Minimalist Atelier Voucher Wallet Modal ===== */
+
+.vw-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 115;
+    background-color: rgba(9, 9, 11, 0.56);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.vw-modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: 86vh;
+    background-color: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(9, 9, 11, 0.24);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #18181b;
+}
+
+.vw-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e4e4e7;
+}
+
+.vw-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vw-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #09090b;
+}
+
+.vw-count-pill {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background-color: #f4f4f5;
+    color: #18181b;
+}
+
+.vw-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid #e4e4e7;
+    background-color: #ffffff;
+    color: #18181b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.vw-close-btn:hover {
+    background-color: #f4f4f5;
+}
+
+.vw-body {
+    padding: 18px 22px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Banner bật lại vòng quay may mắn */
+.vw-wheel-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background-color: #fafafa;
+    border: 1px solid #e4e4e7;
+}
+
+.vw-wheel-banner-text h3 {
+    margin: 0 0 3px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #09090b;
+}
+
+.vw-wheel-banner-text p {
+    margin: 0;
+    font-size: 12.5px;
+    color: #52525b;
+    line-height: 1.4;
+}
+
+.vw-wheel-reopen-btn {
+    flex-shrink: 0;
+    padding: 9px 15px;
+    border-radius: 999px;
+    border: none;
+    background-color: #09090b;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.18s ease;
+}
+
+.vw-wheel-reopen-btn:hover {
+    background-color: #27272a;
+}
+
+/* Tabs chuẩn sàn TMĐT */
+.vw-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #e4e4e7;
+    padding-bottom: 10px;
+}
+
+.vw-tab {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid #e4e4e7;
+    background-color: #ffffff;
+    color: #52525b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vw-tab.is-active {
+    background-color: #09090b;
+    border-color: #09090b;
+    color: #ffffff;
+}
+
+/* Coupon Ticket Card */
+.vw-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vw-ticket {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vw-ticket:hover {
+    border-color: #a1a1aa;
+    box-shadow: 0 4px 14px rgba(9, 9, 11, 0.06);
+}
+
+.vw-ticket.is-inactive {
+    opacity: 0.65;
+}
+
+.vw-ticket-stub {
+    position: relative;
+    background-color: #09090b;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 10px;
+    text-align: center;
+    border-right: 1px dashed rgba(255, 255, 255, 0.35);
+}
+
+.vw-ticket.is-inactive .vw-ticket-stub {
+    background-color: #71717a;
+}
+
+.vw-ticket-stub::before,
+.vw-ticket-stub::after {
+    content: '';
+    position: absolute;
+    right: -7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #ffffff;
+}
+
+.vw-ticket-stub::before {
+    top: -7px;
+}
+
+.vw-ticket-stub::after {
+    bottom: -7px;
+}
+
+.vw-ticket-percent {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.vw-ticket-tag {
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #d4d4d8;
+}
+
+.vw-ticket-main {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.vw-ticket-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vw-ticket-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    font-weight: 800;
+    color: #09090b;
+    letter-spacing: 0.03em;
+}
+
+.vw-copy-btn {
+    border: 1px solid #d4d4d8;
+    background-color: #ffffff;
+    color: #18181b;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vw-copy-btn:hover {
+    background-color: #f4f4f5;
+}
+
+.vw-ticket-desc {
+    margin: 0;
+    font-size: 13px;
+    color: #52525b;
+    line-height: 1.4;
+}
+
+.vw-ticket-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vw-ticket-expiry {
+    font-size: 12px;
+    color: #71717a;
+}
+
+.vw-ticket-expiry strong {
+    color: #b45309;
+    margin-left: 6px;
+}
+
+.vw-use-btn {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: none;
+    background-color: #09090b;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.vw-use-btn:hover {
+    background-color: #27272a;
+}
+
+.vw-status-badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background-color: #f4f4f5;
+    color: #52525b;
+}
+
+.vw-empty {
+    text-align: center;
+    padding: 28px 16px;
+    border: 1px dashed #d4d4d8;
+    border-radius: 10px;
+    color: #52525b;
+    font-size: 14px;
+}
+
+.vw-empty p {
+    margin: 0 0 14px;
+}
+
+@media (max-width: 520px) {
+    .vw-wheel-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .vw-ticket {
+        grid-template-columns: 90px minmax(0, 1fr);
+    }
+}
