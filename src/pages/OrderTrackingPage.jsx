@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCustomerOrder } from '../hooks/useCustomerOrder.js'
-import { payOrderApi, cancelOrderApi, confirmOrderReceivedApi } from '../services/orderApi.js'
+import { cancelOrderApi, confirmOrderReceivedApi } from '../services/orderApi.js'
 import { acquireActionKey, clearActionKey } from '../services/requestKeys.js'
 import {
     OrderStatus,
@@ -110,44 +110,11 @@ function OrderTrackingPage() {
     const isCancelled = order.status === OrderStatus.CANCELLED
     const isReconciling = Boolean(order.paymentInProgress) || needsReconciliation
     const canCancel = order.canCancel && !busy && !isReconciling
-    const paymentDisabled = busy || !order.canPay || isReconciling
     const canConfirmReceipt = isProcessing && !busy
 
     const currentStepIndex = PROGRESS_STEPS.findIndex(
         (step) => step.key === order.status
     )
-
-    // Thực hiện thanh toán giả lập hoặc thử lại thanh toán ngay trên trang chi tiết đơn (UC04)
-    const handleSimulatePayment = async (mode) => {
-        if (busy || needsReconciliation || !order?.canPay || order.paymentInProgress) return
-        const scope = `pay:${currentUser.id}:${order.id}:${mode}`
-        setBusy(true)
-        try {
-            const result = await payOrderApi(token, order.id, mode, acquireActionKey(scope))
-            clearActionKey(scope)
-            setNeedsReconciliation(false)
-            setFeedback({
-                ok: result.paymentStatus === 'SUCCEEDED',
-                isWarning: result.paymentStatus !== 'SUCCEEDED',
-                message: `Kết quả thanh toán: ${PAYMENT_RESULT_LABELS[result.paymentStatus] || result.paymentStatus}`,
-            })
-            reload()
-        } catch (err) {
-            const unknown = err.status === 503 ||
-                ['REQUEST_OUTCOME_UNKNOWN', 'PAYMENT_IN_PROGRESS'].includes(err.code)
-            if (unknown) setNeedsReconciliation(true)
-            setFeedback({
-                ok: false,
-                isWarning: unknown,
-                message: unknown
-                    ? 'Kết quả chưa rõ. Vui lòng chờ đối soát, không thanh toán mới.'
-                    : err.message,
-            })
-            reload()
-        } finally {
-            setBusy(false)
-        }
-    }
 
     // Xử lý hủy đơn hàng (UC11: SR-CAN-01..04, BR-05, BR-06)
     const handleCancelOrder = async () => {
@@ -486,112 +453,61 @@ function OrderTrackingPage() {
                     )}
                 </div>
 
-                {/* Khu vực Thanh toán giả lập / Thử lại thanh toán nếu đơn đang PendingPayment */}
+                {/* Khu vực nhắc thanh toán một luồng duy nhất — điều hướng về /order-result/:id */}
                 {isPendingPayment && (
                     <div
                         style={{
                             background: '#ffffff',
-                            border: '1px solid #e2e8f0',
-                            padding: '16px 20px',
-                            borderRadius: '8px',
+                            border: '1px solid #e4e4e7',
+                            padding: '18px 20px',
+                            borderRadius: '10px',
                             marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '14px',
                         }}
                     >
-                        <h2
-                            style={{
-                                fontSize: '16px',
-                                fontWeight: 600,
-                                marginTop: 0,
-                                marginBottom: '8px',
-                                color: '#0f172a',
-                            }}
-                        >
-                            Thanh toán / Thử lại thanh toán (Giả lập)
-                        </h2>
-                        <p style={{ margin: '0 0 14px', color: '#475569', fontSize: '14px' }}>
-                            Đơn hàng đang ở trạng thái <strong style={{ color: '#0f172a', fontWeight: 600 }}>Chờ thanh toán</strong>. Chọn kết quả giả lập bên dưới để tiếp tục:
-                        </p>
-                        {isReconciling && (
-                            <p
+                        <div style={{ flex: '1 1 280px' }}>
+                            <h2
                                 style={{
-                                    margin: '0 0 12px',
-                                    padding: '8px 12px',
-                                    borderRadius: '6px',
-                                    background: '#fffbeb',
-                                    border: '1px solid #fde68a',
-                                    color: '#92400e',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
+                                    fontSize: '15.5px',
+                                    fontWeight: 700,
+                                    marginTop: 0,
+                                    marginBottom: '6px',
+                                    color: '#09090b',
                                 }}
                             >
-                                Đang đối soát kết quả thanh toán. Không thể tạo giao dịch mới lúc này.
+                                Đơn hàng đang chờ thanh toán
+                            </h2>
+                            <p style={{ margin: 0, color: '#52525b', fontSize: '13.5px', lineHeight: 1.5 }}>
+                                {isReconciling
+                                    ? 'Đơn hàng đang có giao dịch chờ đối soát kết quả. Vui lòng kiểm tra lại sau giây lát.'
+                                    : 'Vui lòng quay lại màn hình thanh toán để quét mã QR hoặc chọn phương thức thanh toán hoàn tất đơn hàng.'}
                             </p>
-                        )}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(PaymentResult.SUCCESS)
-                                }
-                                style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#166534',
-                                    color: '#ffffff',
-                                    border: '1px solid transparent',
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '14px',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : 'Thanh toán thành công'}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(PaymentResult.FAILED)
-                                }
-                                style={{
-                                    background: '#ffffff',
-                                    color: paymentDisabled ? '#94a3b8' : '#334155',
-                                    border: paymentDisabled
-                                        ? '1px solid #e2e8f0'
-                                        : '1px solid #cbd5e1',
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '14px',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : 'Thanh toán thất bại'}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={paymentDisabled}
-                                onClick={() =>
-                                    handleSimulatePayment(
-                                        PaymentResult.INCOMPLETE
-                                    )
-                                }
-                                style={{
-                                    background: '#ffffff',
-                                    color: paymentDisabled ? '#94a3b8' : '#334155',
-                                    border: paymentDisabled
-                                        ? '1px solid #e2e8f0'
-                                        : '1px solid #cbd5e1',
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '14px',
-                                    cursor: paymentDisabled ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {busy ? 'Đang xử lý...' : 'Chưa hoàn tất thanh toán'}
-                            </button>
                         </div>
+
+                        {!isReconciling && (
+                            <Link
+                                to={`/order-result/${order.id}`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: '#09090b',
+                                    color: '#ffffff',
+                                    padding: '10px 20px',
+                                    borderRadius: '9999px',
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    textDecoration: 'none',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                Quay lại trang thanh toán →
+                            </Link>
+                        )}
                     </div>
                 )}
 

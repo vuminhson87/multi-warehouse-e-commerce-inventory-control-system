@@ -352,11 +352,38 @@ function OrderResultPage() {
                                 </div>
                             </section>
                         )}
+                        {isPendingPayment && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    flexWrap: 'wrap',
+                                    gap: '10px',
+                                    fontSize: '13.5px',
+                                    color: '#52525b',
+                                    padding: '2px 4px',
+                                }}
+                            >
+                                <span>Muốn thanh toán sau hoặc đổi sản phẩm?</span>
+                                <Link
+                                    to="/orders"
+                                    state={returnState}
+                                    style={{
+                                        color: '#09090b',
+                                        fontWeight: 700,
+                                        textDecoration: 'underline',
+                                    }}
+                                >
+                                    Xem lịch sử mua hàng →
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Cột phải: Mã QR (tách biệt) + Demo giả lập 3 trường hợp + Điều hướng */}
+                    {/* Cột phải: Mã QR + Demo khi Chờ thanh toán; Thao tác tiếp theo khi đã xong */}
                     <aside className="order-result-right">
-                        {isPendingPayment && (
+                        {isPendingPayment ? (
                             <>
                                 {/* === MODULE MÃ QR THANH TOÁN (TÁCH BIỆT) === */}
                                 <PaymentQrBox
@@ -417,33 +444,33 @@ function OrderResultPage() {
                                     </div>
                                 </section>
                             </>
+                        ) : (
+                            <section className="order-card">
+                                <h2 className="order-card-title">Thao tác tiếp theo</h2>
+                                <div className="order-nav-actions">
+                                    <Link
+                                        to={`/orders/${order.id}`}
+                                        className="order-btn order-btn--primary"
+                                    >
+                                        Theo dõi &amp; Chi tiết đơn hàng
+                                    </Link>
+                                    <Link
+                                        to="/orders"
+                                        state={returnState}
+                                        className="order-btn order-btn--ghost"
+                                    >
+                                        Xem lịch sử mua hàng
+                                    </Link>
+                                    <Link
+                                        to="/products"
+                                        state={returnState}
+                                        className="order-btn order-btn--ghost"
+                                    >
+                                        Tiếp tục mua hàng
+                                    </Link>
+                                </div>
+                            </section>
                         )}
-
-                        <section className="order-card">
-                            <h2 className="order-card-title">Thao tác tiếp theo</h2>
-                            <div className="order-nav-actions">
-                                <Link
-                                    to={`/orders/${order.id}`}
-                                    className="order-btn order-btn--primary"
-                                >
-                                    Theo dõi & Chi tiết đơn hàng
-                                </Link>
-                                <Link
-                                    to="/orders"
-                                    state={returnState}
-                                    className="order-btn order-btn--ghost"
-                                >
-                                    Xem lịch sử mua hàng
-                                </Link>
-                                <Link
-                                    to="/products"
-                                    state={returnState}
-                                    className="order-btn order-btn--ghost"
-                                >
-                                    Tiếp tục mua hàng
-                                </Link>
-                            </div>
-                        </section>
                     </aside>
                 </div>
             </div>
