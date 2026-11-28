@@ -90,10 +90,12 @@ function ManagementShell({ children }) {
                   { label: 'Xử lý đơn hàng', path: '/admin/orders/processing', icon: 'box' },
                   { label: 'Quản lý tài khoản', path: '/admin/users', icon: 'user' },
                   { label: 'Phân công kho', path: '/admin/warehouse-managers', icon: 'shield' },
+                  { label: 'Tin nhắn khách hàng', path: '/admin/messages', icon: 'message-circle' },
                   { label: 'Nhật ký thao tác', path: '/admin/audit-logs', icon: 'file-text' },
               ]
             : [
                   { label: 'Xử lý đơn hàng', path: '/inventory/orders', icon: 'box' },
+                  { label: 'Tin nhắn khách hàng', path: '/inventory/messages', icon: 'message-circle' },
               ]),
         { label: 'Tổng quan tồn kho', path: '/inventory', icon: 'warehouse', end: true },
         { label: 'Tồn kho theo kho', path: '/inventory/warehouses', icon: 'box' },

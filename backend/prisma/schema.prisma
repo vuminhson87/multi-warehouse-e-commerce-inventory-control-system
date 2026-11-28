@@ -102,8 +102,9 @@ model Warehouse {
   orders       Order[]
   reservations StockReservation[]
   alerts       LowStockAlert[]
-  movements    InventoryMovement[]
-  auditLogs    AdminAuditLog[]
+  movements            InventoryMovement[]
+  auditLogs            AdminAuditLog[]
+  supportConversations SupportConversation[]
 
   @@map("warehouses")
 }
@@ -131,8 +132,10 @@ model User {
   movements         InventoryMovement[]
   trackingEvents    OrderTrackingEvent[]
   auditLogs         AdminAuditLog[]
-  wishlistItems     WishlistItem[]
-  vouchers          Voucher[]
+  wishlistItems        WishlistItem[]
+  vouchers             Voucher[]
+  supportConversations SupportConversation[]
+  supportMessages      SupportMessage[]
 
   @@index([role])
   @@map("users")
@@ -439,4 +442,39 @@ model Voucher {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("vouchers")
+}
+
+model SupportConversation {
+  id               Int       @id @default(autoincrement())
+  customerId       Int       @map("customer_id")
+  warehouseId      Int       @map("warehouse_id")
+  status           String    @default("OPEN") @db.VarChar(20)
+  unreadByStaff    Int       @default(0) @map("unread_by_staff")
+  unreadByCustomer Int       @default(0) @map("unread_by_customer")
+  lastMessageAt    DateTime  @default(now()) @map("last_message_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  customer  User             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  messages  SupportMessage[]
+
+  @@unique([customerId, warehouseId])
+  @@index([warehouseId, lastMessageAt(sort: Desc)])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id             Int      @id @default(autoincrement())
+  conversationId Int      @map("conversation_id")
+  senderType     String   @map("sender_type") @db.VarChar(20)
+  senderUserId   Int?     @map("sender_user_id")
+  content        String   @db.VarChar(1000)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?               @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@map("support_messages")
 }

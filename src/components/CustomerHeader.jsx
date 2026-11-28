@@ -10,6 +10,7 @@ import { handleImageError } from '../utils/format'
 import LucideIcon from './LucideIcon'
 import LoginModal from './LoginModal'
 import RegisterModal from './RegisterModal'
+import VoucherWalletModal from './VoucherWalletModal'
 import ProductSearchInput from './ProductSearchInput'
 import { changePasswordApi, updateProfileApi } from '../services/authApi'
 
@@ -61,6 +62,7 @@ function CustomerHeader() {
     const navigate = useNavigate()
 
     const [activeDrawer, setActiveDrawer] = useState(null) // 'dashboard' | 'cart' | 'wishlist' | 'profile' | null
+    const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchText, setSearchText] = useState('')
     const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -321,6 +323,33 @@ function CustomerHeader() {
                                         {wishlistIds.length}
                                     </span>
                                 )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleNavigateAndClose('/contact')}
+                                className={`atelier-dash-link ch-menu-link ${
+                                    location.pathname === '/contact' ? 'is-active' : ''
+                                }`}
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="phone" size={20} strokeWidth={1.75} />
+                                    <span>Liên hệ</span>
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    closeAllDrawers()
+                                    setIsVoucherModalOpen(true)
+                                }}
+                                className="atelier-dash-link ch-menu-link"
+                            >
+                                <span className="atelier-dash-link-left">
+                                    <LucideIcon name="ticket" size={20} strokeWidth={1.75} />
+                                    <span>Mã giảm giá</span>
+                                </span>
                             </button>
 
                             <button
@@ -1006,6 +1035,16 @@ function CustomerHeader() {
                             <LucideIcon name="package" size={20} strokeWidth={1.75} />
                             <span>Sản phẩm</span>
                         </Link>
+                        <Link
+                            to="/contact"
+                            onClick={closeAllDrawers}
+                            className={`ch-nav__link ${
+                                location.pathname === '/contact' ? 'is-active' : ''
+                            }`}
+                        >
+                            <LucideIcon name="phone" size={19} strokeWidth={1.75} />
+                            <span>Liên hệ</span>
+                        </Link>
                         {(currentUser?.role === 'ADMIN' ||
                             currentUser?.role === 'WAREHOUSE_MANAGER') && (
                             <Link
@@ -1150,6 +1189,13 @@ function CustomerHeader() {
             >
                 {toastMessage}
             </div>
+
+            {isVoucherModalOpen && (
+                <VoucherWalletModal
+                    onClose={() => setIsVoucherModalOpen(false)}
+                    onRequireLogin={() => setIsLoginOpen(true)}
+                />
+            )}
 
             {isLoginOpen && (
                 <LoginModal

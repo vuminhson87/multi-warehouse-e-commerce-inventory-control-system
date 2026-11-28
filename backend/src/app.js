@@ -17,6 +17,8 @@ import inventoryRoutes from './modules/inventory/inventory.routes.js'
 import adminAuditRoutes from './modules/audit/audit.routes.js'
 import wishlistRoutes from './modules/wishlist/wishlist.routes.js'
 import wheelRoutes from './modules/wheel/wheel.routes.js'
+import contactRoutes from './modules/contact/contact.routes.js'
+import chatRoutes from './modules/chat/chat.routes.js'
 import { publicFeaturedRoutes, adminFeaturedRoutes } from './modules/featured-products/featured-products.routes.js'
 
 const app = express()
@@ -69,6 +71,8 @@ app.use('/api/admin/products', adminProductRoutes)
 app.use('/api/inventory', inventoryRoutes)
 app.use('/api/wishlist', wishlistRoutes)
 app.use('/api/wheel', wheelRoutes)
+app.use('/api/contact', contactRoutes)
+app.use('/api/chat', chatRoutes)
 app.use('/api/featured-products', publicFeaturedRoutes)
 app.use('/api/admin/featured-products', adminFeaturedRoutes)
 
