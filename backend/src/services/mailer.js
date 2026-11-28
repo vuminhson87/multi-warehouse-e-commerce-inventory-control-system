@@ -30,10 +30,27 @@ export function readSmtpConfig(env = globalThis.process?.env ?? {}) {
     }
 }
 
+export function formatFromHeader(from) {
+    const trimmed = String(from ?? '').trim()
+    if (!trimmed) return ''
+    return trimmed.includes('<') ? trimmed : `"Multi-Warehouse" <${trimmed}>`
+}
+
+export function shouldLogOtpToConsole(env = globalThis.process?.env ?? {}) {
+    const explicit = String(env.OTP_LOG_TO_CONSOLE ?? '').trim().toLowerCase()
+    if (explicit === 'true') return true
+    if (explicit === 'false') return false
+    return String(env.NODE_ENV ?? '').trim().toLowerCase() !== 'production'
+}
+
 export function logMailerMode(logger = console, env = globalThis.process?.env ?? {}) {
     const config = readSmtpConfig(env)
+    const parallelLog = shouldLogOtpToConsole(env)
     if (config.configured) {
-        logger?.info?.(`[OTP Mailer] Đang bật gửi Gmail thật qua ${config.host}:${config.port} (${config.user})`)
+        logger?.info?.(
+            `[OTP Mailer] Đang bật gửi Gmail thật qua ${config.host}:${config.port} (${config.user})` +
+            (parallelLog ? ' + tự động in mã OTP ra terminal (dev/test).' : ' (đã tắt in OTP terminal ở production).')
+        )
     } else {
         logger?.info?.('[OTP Mailer] Chưa điền SMTP_USER/SMTP_PASS trong backend/.env — tạm in mã OTP ra terminal backend.')
     }
@@ -108,12 +125,92 @@ export async function sendRegistrationOtpEmail({
     `
 
     await transporter.sendMail({
-        from: `"Multi-Warehouse" <${config.from}>`,
+        from: formatFromHeader(config.from),
         to,
         subject,
         text,
         html,
     })
 
-    return { delivery: 'email' }
+    const consoleLogged = shouldLogOtpToConsole(env)
+    if (consoleLogged) {
+        logger?.info?.(
+            `[OTP Mailer] Đã gửi Gmail tới ${to} | Username: ${username} | Mã OTP: ${code} (hiệu lực ${ttlSeconds}s)`
+        )
+    }
+
+    return { delivery: 'email', consoleLogged }
+}
+
+export async function sendContactSupportEmail({
+    referenceCode,
+    fullName,
+    email,
+    phone = '',
+    topic,
+    warehouseName = '',
+    orderCode = '',
+    message,
+    env = globalThis.process?.env ?? {},
+    logger = console,
+}) {
+    const config = readSmtpConfig(env)
+
+    if (!config.configured) {
+        logger?.info?.(
+            `[DEV CONTACT] Mã ${referenceCode} | Từ: ${fullName} <${email}> | Chủ đề: ${topic} | Nội dung: ${message}`
+        )
+        return { delivery: 'dev-console', consoleLogged: true }
+    }
+
+    const transporter = getTransporter(config)
+    const subject = `[Multi-Warehouse CSKH][${referenceCode}] ${topic} — ${fullName}`
+    const text = [
+        `Mã tiếp nhận: ${referenceCode}`,
+        `Họ tên khách hàng: ${fullName}`,
+        `Email liên hệ: ${email}`,
+        phone ? `Số điện thoại: ${phone}` : null,
+        `Chủ đề: ${topic}`,
+        warehouseName ? `Kho liên quan: ${warehouseName}` : null,
+        orderCode ? `Mã đơn hàng: ${orderCode}` : null,
+        '',
+        'Nội dung yêu cầu:',
+        message,
+    ]
+        .filter((line) => line !== null)
+        .join('\n')
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #e4e4e7; background: #ffffff; color: #18181b;">
+            <p style="margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #71717a;">MULTI-WAREHOUSE SUPPORT</p>
+            <h2 style="margin: 0 0 14px; font-size: 19px;">Yêu cầu hỗ trợ mới — ${escapeHtml(referenceCode)}</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 16px;">
+                <tr><td style="padding: 6px 0; color: #71717a; width: 140px;">Khách hàng</td><td style="padding: 6px 0; font-weight: 600;">${escapeHtml(fullName)}</td></tr>
+                <tr><td style="padding: 6px 0; color: #71717a;">Email</td><td style="padding: 6px 0;">${escapeHtml(email)}</td></tr>
+                ${phone ? `<tr><td style="padding: 6px 0; color: #71717a;">Số điện thoại</td><td style="padding: 6px 0;">${escapeHtml(phone)}</td></tr>` : ''}
+                <tr><td style="padding: 6px 0; color: #71717a;">Chủ đề</td><td style="padding: 6px 0; font-weight: 600;">${escapeHtml(topic)}</td></tr>
+                ${warehouseName ? `<tr><td style="padding: 6px 0; color: #71717a;">Kho liên quan</td><td style="padding: 6px 0;">${escapeHtml(warehouseName)}</td></tr>` : ''}
+                ${orderCode ? `<tr><td style="padding: 6px 0; color: #71717a;">Mã đơn hàng</td><td style="padding: 6px 0;">${escapeHtml(orderCode)}</td></tr>` : ''}
+            </table>
+            <div style="padding: 14px 16px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; white-space: pre-wrap; line-height: 1.55; font-size: 14px;">${escapeHtml(message)}</div>
+        </div>
+    `
+
+    await transporter.sendMail({
+        from: formatFromHeader(config.from),
+        to: config.user,
+        replyTo: email,
+        subject,
+        text,
+        html,
+    })
+
+    const consoleLogged = shouldLogOtpToConsole(env)
+    if (consoleLogged) {
+        logger?.info?.(
+            `[Contact Mailer] Đã gửi yêu cầu ${referenceCode} từ ${fullName} <${email}> tới ${config.user}`
+        )
+    }
+
+    return { delivery: 'email', consoleLogged }
 }

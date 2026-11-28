@@ -53,7 +53,7 @@ vi.mock('../../../src/services/apiClient.js', () => ({
 
 import authRoutes from '../../src/modules/auth/auth.routes.js'
 import { errorHandler } from '../../src/middlewares/errorHandler.js'
-import { readSmtpConfig } from '../../src/services/mailer.js'
+import { formatFromHeader, readSmtpConfig, shouldLogOtpToConsole } from '../../src/services/mailer.js'
 import {
     deriveDefaultUsernameFromGmail,
     hashOtpCode,
@@ -370,6 +370,19 @@ describe('Gmail OTP registration service', () => {
         })
 
         expect(readSmtpConfig({ SMTP_USER: '', SMTP_PASS: '' }).configured).toBe(false)
+    })
+
+    it('formats SMTP_FROM cleanly without double wrapping and auto-enables terminal OTP log outside production', () => {
+        expect(formatFromHeader('demo@gmail.com')).toBe('"Multi-Warehouse" <demo@gmail.com>')
+        expect(formatFromHeader('Multi-Warehouse <demo@gmail.com>')).toBe(
+            'Multi-Warehouse <demo@gmail.com>'
+        )
+
+        expect(shouldLogOtpToConsole({})).toBe(true)
+        expect(shouldLogOtpToConsole({ NODE_ENV: 'development' })).toBe(true)
+        expect(shouldLogOtpToConsole({ NODE_ENV: 'production' })).toBe(false)
+        expect(shouldLogOtpToConsole({ NODE_ENV: 'production', OTP_LOG_TO_CONSOLE: 'true' })).toBe(true)
+        expect(shouldLogOtpToConsole({ NODE_ENV: 'development', OTP_LOG_TO_CONSOLE: 'false' })).toBe(false)
     })
 })
 
