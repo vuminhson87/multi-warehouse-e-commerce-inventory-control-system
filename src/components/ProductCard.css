@@ -49,6 +49,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
+    padding: 16px;
 }
 
 .product-card__image-link img {
