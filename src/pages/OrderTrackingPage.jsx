@@ -239,15 +239,16 @@ function OrderTrackingPage() {
                             style={{
                                 color: '#2563eb',
                                 textDecoration: 'none',
-                                fontSize: '0.9rem',
+                                fontSize: '13px',
+                                fontWeight: 500,
                             }}
                         >
                             ← Quay lại lịch sử mua hàng
                         </Link>
-                        <h1 style={{ margin: '6px 0 4px 0', fontSize: '1.6rem' }}>
+                        <h1 style={{ margin: '6px 0 4px 0', fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>
                             Chi tiết & Theo dõi đơn hàng: {order.id}
                         </h1>
-                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.92rem' }}>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
                             Ngày đặt: {formatDateTime(order.createdAt)} | Cập nhật
                             lần cuối: {formatDateTime(order.updatedAt)}
                         </p>
@@ -267,8 +268,8 @@ function OrderTrackingPage() {
                                   : '#92400e',
                             padding: '6px 14px',
                             borderRadius: '999px',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            fontSize: '13px',
                         }}
                     >
                         {getOrderStatusLabel(order.status)}
@@ -310,26 +311,26 @@ function OrderTrackingPage() {
                 {order.shippingAddress && (
                     <div
                         style={{
-                            background: '#f8fafc',
+                            background: '#ffffff',
                             border: '1px solid #e2e8f0',
-                            padding: '14px 18px',
+                            padding: '16px 20px',
                             borderRadius: '8px',
                             marginBottom: '20px',
                             color: '#334155',
                         }}
                     >
-                        <div style={{ fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>
+                        <h2 style={{ fontSize: '16px', fontWeight: 600, marginTop: 0, marginBottom: '10px', color: '#0f172a' }}>
                             Thông tin giao hàng
-                        </div>
-                        <p style={{ margin: '4px 0' }}>
-                            <strong>Người nhận:</strong> {order.shippingAddress.fullName} — {order.shippingAddress.phone}
+                        </h2>
+                        <p style={{ margin: '6px 0', fontSize: '14px', color: '#334155' }}>
+                            <strong style={{ color: '#0f172a', fontWeight: 600 }}>Người nhận:</strong> {order.shippingAddress.fullName} — {order.shippingAddress.phone}
                         </p>
-                        <p style={{ margin: '4px 0' }}>
-                            <strong>Địa chỉ:</strong> {order.shippingAddress.addressLine}, {order.shippingAddress.province}
+                        <p style={{ margin: '6px 0', fontSize: '14px', color: '#334155' }}>
+                            <strong style={{ color: '#0f172a', fontWeight: 600 }}>Địa chỉ:</strong> {order.shippingAddress.addressLine}, {order.shippingAddress.province}
                         </p>
                         {order.shippingAddress.note && (
-                            <p style={{ margin: '4px 0', color: '#64748b' }}>
-                                <strong>Ghi chú:</strong> {order.shippingAddress.note}
+                            <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#334155' }}>
+                                <strong style={{ color: '#0f172a', fontWeight: 600 }}>Ghi chú:</strong> {order.shippingAddress.note}
                             </p>
                         )}
                     </div>
@@ -376,8 +377,8 @@ function OrderTrackingPage() {
                                             isActive ? '#2563eb' : '#e2e8f0'
                                         }`,
                                         color: isActive ? '#1e40af' : '#94a3b8',
-                                        fontWeight: isActive ? 'bold' : 'normal',
-                                        fontSize: '0.9rem',
+                                        fontWeight: isActive ? 600 : 400,
+                                        fontSize: '13px',
                                     }}
                                 >
                                     <div>Bước {index + 1}</div>
@@ -391,26 +392,26 @@ function OrderTrackingPage() {
                 {/* Thông tin kho xuất hàng và giữ chỗ */}
                 <div
                     style={{
-                        background: '#f8fafc',
+                        background: '#ffffff',
                         border: '1px solid #e2e8f0',
                         padding: '16px 20px',
                         borderRadius: '8px',
                         marginBottom: '20px',
                     }}
                 >
-                    <h2 style={{ fontSize: '1.1rem', marginTop: 0 }}>
+                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginTop: 0, marginBottom: '10px', color: '#0f172a' }}>
                         Thông tin kho xử lý đơn hàng
                     </h2>
-                    <p style={{ margin: '6px 0' }}>
-                        <strong>Kho thực hiện đơn:</strong>{' '}
+                    <p style={{ margin: '6px 0', fontSize: '14px', color: '#334155' }}>
+                        <strong style={{ color: '#0f172a', fontWeight: 600 }}>Kho thực hiện đơn:</strong>{' '}
                         {order.fulfillmentWarehouseName}
                     </p>
-                    <p style={{ margin: '6px 0' }}>
-                        <strong>Khách hàng:</strong>{' '}
+                    <p style={{ margin: '6px 0', fontSize: '14px', color: '#334155' }}>
+                        <strong style={{ color: '#0f172a', fontWeight: 600 }}>Khách hàng:</strong>{' '}
                         {order.customerUsername}
                     </p>
-                    <p style={{ margin: '6px 0', color: '#475569' }}>
-                        <strong>Trạng thái tồn kho của đơn:</strong>{' '}
+                    <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#334155' }}>
+                        <strong style={{ color: '#0f172a', fontWeight: 600 }}>Trạng thái tồn kho của đơn:</strong>{' '}
                         {isPaid
                             ? `Đã xuất kho cho đơn hàng tại ${order.fulfillmentWarehouseName}.`
                             : isCancelled
@@ -431,7 +432,7 @@ function OrderTrackingPage() {
                         marginBottom: '20px',
                     }}
                 >
-                    <h2 style={{ fontSize: '1.1rem', marginTop: 0, marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginTop: 0, marginBottom: '12px', color: '#0f172a' }}>
                         Tiến độ giao / nhận hàng chi tiết
                     </h2>
                     {order.trackingEvents?.length > 0 ? (
@@ -453,21 +454,21 @@ function OrderTrackingPage() {
                                         paddingLeft: '12px',
                                     }}
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                                        <strong style={{ color: idx === 0 ? '#1e40af' : '#0f172a' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '14px' }}>
+                                        <strong style={{ color: idx === 0 ? '#1e40af' : '#0f172a', fontWeight: 600 }}>
                                             {getDeliveryStageLabel(event.stage)}
                                         </strong>
-                                        <span style={{ color: '#64748b', fontSize: '0.88rem' }}>
+                                        <span style={{ color: '#64748b', fontSize: '13px' }}>
                                             {formatDateTime(event.createdAt)}
                                         </span>
                                     </div>
                                     {event.note && (
-                                        <p style={{ margin: '4px 0 0', color: '#334155', fontSize: '0.94rem' }}>
+                                        <p style={{ margin: '4px 0 0', color: '#334155', fontSize: '14px' }}>
                                             {event.note}
                                         </p>
                                     )}
                                     {(event.location || event.trackingCode) && (
-                                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '13px' }}>
                                             {event.location ? `Địa điểm: ${event.location}` : ''}
                                             {event.location && event.trackingCode ? ' · ' : ''}
                                             {event.trackingCode ? `Mã vận đơn: ${event.trackingCode}` : ''}
@@ -477,7 +478,7 @@ function OrderTrackingPage() {
                             ))}
                         </ol>
                     ) : (
-                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.94rem' }}>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
                             {isCancelled
                                 ? 'Đơn hàng đã hủy trước khi chuyển sang giai đoạn giao nhận.'
                                 : 'Chưa có cập nhật vận chuyển chi tiết. Tiến độ sẽ hiển thị sau khi kho bắt đầu xử lý đơn hàng.'}
@@ -489,8 +490,8 @@ function OrderTrackingPage() {
                 {isPendingPayment && (
                     <div
                         style={{
-                            background: '#fffbeb',
-                            border: '1px solid #fcd34d',
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
                             padding: '16px 20px',
                             borderRadius: '8px',
                             marginBottom: '20px',
@@ -498,19 +499,32 @@ function OrderTrackingPage() {
                     >
                         <h2
                             style={{
-                                fontSize: '1.1rem',
+                                fontSize: '16px',
+                                fontWeight: 600,
                                 marginTop: 0,
-                                color: '#92400e',
+                                marginBottom: '8px',
+                                color: '#0f172a',
                             }}
                         >
-                            💳 Thanh toán / Thử lại thanh toán (Giả lập)
+                            Thanh toán / Thử lại thanh toán (Giả lập)
                         </h2>
-                        <p style={{ margin: '6px 0 12px', color: '#78350f', fontSize: '0.92rem' }}>
-                            Đơn hàng đang ở trạng thái <strong>Chờ thanh toán</strong>. Bạn có thể chọn kết quả giả lập bên dưới:
+                        <p style={{ margin: '0 0 14px', color: '#475569', fontSize: '14px' }}>
+                            Đơn hàng đang ở trạng thái <strong style={{ color: '#0f172a', fontWeight: 600 }}>Chờ thanh toán</strong>. Chọn kết quả giả lập bên dưới để tiếp tục:
                         </p>
                         {isReconciling && (
-                            <p style={{ margin: '0 0 12px', color: '#b45309', fontWeight: 'bold' }}>
-                                ⚠️ Đang đối soát kết quả thanh toán. Không thể tạo giao dịch mới lúc này.
+                            <p
+                                style={{
+                                    margin: '0 0 12px',
+                                    padding: '8px 12px',
+                                    borderRadius: '6px',
+                                    background: '#fffbeb',
+                                    border: '1px solid #fde68a',
+                                    color: '#92400e',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Đang đối soát kết quả thanh toán. Không thể tạo giao dịch mới lúc này.
                             </p>
                         )}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
@@ -521,16 +535,17 @@ function OrderTrackingPage() {
                                     handleSimulatePayment(PaymentResult.SUCCESS)
                                 }
                                 style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#16a34a',
+                                    background: paymentDisabled ? '#94a3b8' : '#166534',
                                     color: '#ffffff',
-                                    border: 'none',
-                                    padding: '9px 16px',
+                                    border: '1px solid transparent',
+                                    padding: '8px 16px',
                                     borderRadius: '6px',
-                                    fontWeight: 'bold',
+                                    fontWeight: 600,
+                                    fontSize: '14px',
                                     cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                {busy ? 'Đang xử lý...' : '✓ Thanh toán Thành công'}
+                                {busy ? 'Đang xử lý...' : 'Thanh toán thành công'}
                             </button>
                             <button
                                 type="button"
@@ -539,16 +554,19 @@ function OrderTrackingPage() {
                                     handleSimulatePayment(PaymentResult.FAILED)
                                 }
                                 style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#dc2626',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '9px 16px',
+                                    background: '#ffffff',
+                                    color: paymentDisabled ? '#94a3b8' : '#334155',
+                                    border: paymentDisabled
+                                        ? '1px solid #e2e8f0'
+                                        : '1px solid #cbd5e1',
+                                    padding: '8px 16px',
                                     borderRadius: '6px',
-                                    fontWeight: 'bold',
+                                    fontWeight: 600,
+                                    fontSize: '14px',
                                     cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                {busy ? 'Đang xử lý...' : '✕ Thanh toán Thất bại'}
+                                {busy ? 'Đang xử lý...' : 'Thanh toán thất bại'}
                             </button>
                             <button
                                 type="button"
@@ -559,110 +577,142 @@ function OrderTrackingPage() {
                                     )
                                 }
                                 style={{
-                                    background: paymentDisabled ? '#94a3b8' : '#d97706',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '9px 16px',
+                                    background: '#ffffff',
+                                    color: paymentDisabled ? '#94a3b8' : '#334155',
+                                    border: paymentDisabled
+                                        ? '1px solid #e2e8f0'
+                                        : '1px solid #cbd5e1',
+                                    padding: '8px 16px',
                                     borderRadius: '6px',
-                                    fontWeight: 'bold',
+                                    fontWeight: 600,
+                                    fontSize: '14px',
                                     cursor: paymentDisabled ? 'not-allowed' : 'pointer',
                                 }}
                             >
-                                {busy ? 'Đang xử lý...' : '⏱ Chưa hoàn tất thanh toán'}
+                                {busy ? 'Đang xử lý...' : 'Chưa hoàn tất thanh toán'}
                             </button>
                         </div>
                     </div>
                 )}
 
                 {/* Bảng danh sách mặt hàng trong đơn */}
-                <h2 style={{ fontSize: '1.15rem' }}>
-                    Danh sách sản phẩm trong đơn
-                </h2>
                 <div
                     style={{
+                        background: '#ffffff',
                         border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        marginBottom: '16px',
+                        padding: '16px 20px',
+                        borderRadius: '8px',
+                        marginBottom: '20px',
                     }}
                 >
-                    <table
+                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginTop: 0, marginBottom: '12px', color: '#0f172a' }}>
+                        Danh sách sản phẩm trong đơn
+                    </h2>
+                    <div
                         style={{
-                            width: '100%',
-                            borderCollapse: 'collapse',
-                            textAlign: 'left',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
                         }}
                     >
-                        <thead>
-                            <tr
-                                style={{
-                                    background: '#f1f5f9',
-                                    borderBottom: '1px solid #cbd5e1',
-                                }}
-                            >
-                                <th style={{ padding: '10px 14px' }}>Mã SP</th>
-                                <th style={{ padding: '10px 14px' }}>
-                                    Tên sản phẩm
-                                </th>
-                                <th style={{ padding: '10px 14px' }}>
-                                    Đơn giá lúc đặt
-                                </th>
-                                <th style={{ padding: '10px 14px' }}>Số lượng</th>
-                                <th style={{ padding: '10px 14px' }}>Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {order.items.map((item) => (
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                textAlign: 'left',
+                                fontSize: '14px',
+                                color: '#334155',
+                            }}
+                        >
+                            <thead>
                                 <tr
-                                    key={item.productId}
-                                    style={{ borderBottom: '1px solid #f1f5f9' }}
+                                    style={{
+                                        background: '#f8fafc',
+                                        borderBottom: '1px solid #e2e8f0',
+                                        color: '#475569',
+                                        fontSize: '13px',
+                                    }}
                                 >
-                                    <td style={{ padding: '10px 14px' }}>
-                                        #{item.productId}
-                                    </td>
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {item.productNameSnapshot}
-                                    </td>
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {formatCurrency(item.unitPriceSnapshot)}
-                                    </td>
-                                    <td style={{ padding: '10px 14px' }}>
-                                        {item.quantity}
-                                    </td>
-                                    <td
-                                        style={{
-                                            padding: '10px 14px',
-                                            fontWeight: '500',
-                                        }}
-                                    >
-                                        {formatCurrency(item.lineTotal)}
-                                    </td>
+                                    <th style={{ padding: '8px 12px', fontWeight: 600 }}>Mã SP</th>
+                                    <th style={{ padding: '8px 12px', fontWeight: 600 }}>
+                                        Tên sản phẩm
+                                    </th>
+                                    <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'right' }}>
+                                        Đơn giá lúc đặt
+                                    </th>
+                                    <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'right' }}>
+                                        Số lượng
+                                    </th>
+                                    <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'right' }}>
+                                        Thành tiền
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {order.items.map((item) => (
+                                    <tr
+                                        key={item.productId}
+                                        style={{ borderBottom: '1px solid #f1f5f9' }}
+                                    >
+                                        <td style={{ padding: '8px 12px', color: '#64748b' }}>
+                                            #{item.productId}
+                                        </td>
+                                        <td style={{ padding: '8px 12px', fontWeight: 500, color: '#0f172a' }}>
+                                            {item.productNameSnapshot}
+                                        </td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                                            {formatCurrency(item.unitPriceSnapshot)}
+                                        </td>
+                                        <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                                            {item.quantity}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '8px 12px',
+                                                textAlign: 'right',
+                                                fontWeight: 600,
+                                                color: '#0f172a',
+                                            }}
+                                        >
+                                            {formatCurrency(item.lineTotal)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
-                <div
-                    style={{
-                        textAlign: 'right',
-                        fontSize: '1.25rem',
-                        fontWeight: 'bold',
-                        marginBottom: '24px',
-                    }}
-                >
-                    {order.voucherCode && Number(order.discountAmount) > 0 && (
-                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#15803d', marginBottom: '4px' }}>
-                            Đã áp dụng mã {order.voucherCode}: -{formatCurrency(order.discountAmount)}
+                    <div
+                        style={{
+                            textAlign: 'right',
+                            marginTop: '12px',
+                            paddingTop: '12px',
+                            borderTop: '1px solid #e2e8f0',
+                        }}
+                    >
+                        {order.voucherCode && Number(order.discountAmount) > 0 && (
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#15803d', marginBottom: '4px' }}>
+                                Đã áp dụng mã {order.voucherCode}: -{formatCurrency(order.discountAmount)}
+                            </div>
+                        )}
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                            Tổng cộng: {formatCurrency(order.totalAmount)}
                         </div>
-                    )}
-                    Tổng cộng: {formatCurrency(order.totalAmount)}
+                    </div>
                 </div>
 
                 {/* Lịch sử các lần thanh toán */}
                 {order.paymentAttempts?.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                        <h2 style={{ fontSize: '1.15rem' }}>
+                    <div
+                        style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            padding: '16px 20px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                        }}
+                    >
+                        <h2 style={{ fontSize: '16px', fontWeight: 600, marginTop: 0, marginBottom: '12px', color: '#0f172a' }}>
                             Lịch sử các lần thanh toán ({order.paymentAttempts.length})
                         </h2>
                         <div
@@ -677,19 +727,23 @@ function OrderTrackingPage() {
                                     width: '100%',
                                     borderCollapse: 'collapse',
                                     textAlign: 'left',
+                                    fontSize: '14px',
+                                    color: '#334155',
                                 }}
                             >
                                 <thead>
                                     <tr
                                         style={{
-                                            background: '#f1f5f9',
-                                            borderBottom: '1px solid #cbd5e1',
+                                            background: '#f8fafc',
+                                            borderBottom: '1px solid #e2e8f0',
+                                            color: '#475569',
+                                            fontSize: '13px',
                                         }}
                                     >
-                                        <th style={{ padding: '8px 12px' }}>Lần</th>
-                                        <th style={{ padding: '8px 12px' }}>Kết quả</th>
-                                        <th style={{ padding: '8px 12px' }}>Thời gian</th>
-                                        <th style={{ padding: '8px 12px' }}>Chi tiết</th>
+                                        <th style={{ padding: '8px 12px', fontWeight: 600 }}>Lần</th>
+                                        <th style={{ padding: '8px 12px', fontWeight: 600 }}>Kết quả</th>
+                                        <th style={{ padding: '8px 12px', fontWeight: 600 }}>Thời gian</th>
+                                        <th style={{ padding: '8px 12px', fontWeight: 600 }}>Chi tiết</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -745,10 +799,10 @@ function OrderTrackingPage() {
                             marginBottom: '20px',
                         }}
                     >
-                        <h2 style={{ fontSize: '1.1rem', margin: '0 0 8px', color: '#166534' }}>
+                        <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 8px', color: '#166534' }}>
                             Bạn đã nhận được hàng?
                         </h2>
-                        <p style={{ margin: '0 0 12px', color: '#166534', fontSize: '0.92rem' }}>
+                        <p style={{ margin: '0 0 12px', color: '#166534', fontSize: '14px' }}>
                             Chỉ xác nhận sau khi bạn đã nhận đơn hàng. Xác nhận sẽ chuyển trạng thái đơn sang Hoàn tất.
                         </p>
                         <button
@@ -756,16 +810,17 @@ function OrderTrackingPage() {
                             disabled={!canConfirmReceipt}
                             onClick={handleConfirmReceipt}
                             style={{
-                                background: canConfirmReceipt ? '#16a34a' : '#94a3b8',
+                                background: canConfirmReceipt ? '#166534' : '#94a3b8',
                                 color: '#ffffff',
                                 border: 'none',
-                                padding: '10px 18px',
+                                padding: '8px 16px',
                                 borderRadius: '6px',
-                                fontWeight: 'bold',
+                                fontWeight: 600,
+                                fontSize: '14px',
                                 cursor: canConfirmReceipt ? 'pointer' : 'not-allowed',
                             }}
                         >
-                            {busy ? 'Đang xác nhận…' : '✓ Xác nhận đã nhận hàng'}
+                            {busy ? 'Đang xác nhận…' : 'Xác nhận đã nhận hàng'}
                         </button>
                     </div>
                 )}
@@ -782,7 +837,7 @@ function OrderTrackingPage() {
                         gap: '12px',
                     }}
                 >
-                    <div style={{ color: '#475569', fontSize: '0.92rem' }}>
+                    <div style={{ color: '#475569', fontSize: '14px' }}>
                         {isReconciling ? (
                             <span>
                                 Đơn hàng đang có giao dịch <strong>Đang đối soát</strong> nên
